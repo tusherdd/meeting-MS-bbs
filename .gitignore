@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment (never commit secrets; .env.example IS committed)
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+coverage/
+
+# Uploaded files
+uploads/
+
+# Personal data seed files (officer list)
+backend/src/database/seeds/data/
+
+# OS / editor
+.DS_Store
+*.log
+.idea/
