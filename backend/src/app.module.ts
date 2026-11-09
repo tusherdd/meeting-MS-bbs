@@ -47,12 +47,19 @@ import { WingsModule } from './modules/wings/wings.module';
         }),
     }),
 
-    // Global default: 100 requests per minute per IP; auth routes are stricter (auth.constants).
+    // Global default: THROTTLE_LIMIT (100) requests per minute per IP; auth routes are stricter
+    // (auth.constants). Raise it when many users share one IP (office NAT) or for the frontend Playwright suite.
     // Skipped under NODE_ENV=test so e2e tests can log in many times.
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<EnvVars, true>) => ({
-        throttlers: [{ name: 'default', ttl: seconds(60), limit: 100 }],
+        throttlers: [
+          {
+            name: 'default',
+            ttl: seconds(60),
+            limit: config.get('THROTTLE_LIMIT', { infer: true }),
+          },
+        ],
         skipIf: () => config.get('NODE_ENV', { infer: true }) === 'test',
         errorMessage:
           'অনেক বেশি অনুরোধ পাঠানো হয়েছে। কিছুক্ষণ অপেক্ষা করে আবার চেষ্টা করুন।',

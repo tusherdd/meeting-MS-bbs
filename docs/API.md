@@ -98,7 +98,7 @@ Errors always have the shape `{ statusCode, message, error, requestId }` (Bangla
 
 | Method | Path | Access | Purpose | Main request fields | Responses |
 |---|---|---|---|---|---|
-| GET | `/conflicts/mine` | 👤 | Pending conflicts on meetings I organize (lower meeting) or where I am the shared officer | — | 200 |
+| GET | `/conflicts/mine` | 👤 | Conflicts on meetings I organize (lower meeting) or where I am the shared officer (`?status=` PENDING default, RESOLVED) | `status` (query) | 200 |
 | GET | `/conflicts` | 🛡 | All conflicts (ADMIN), `?status=PENDING` | `page` (query), `limit` (query), `status` (query) | 200, 403 |
 
 ## Notifications

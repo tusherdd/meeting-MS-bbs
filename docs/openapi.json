@@ -2690,7 +2690,22 @@
     "/api/v1/conflicts/mine": {
       "get": {
         "operationId": "ConflictsController_mine",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "RESOLVED = history (newest first, at most 100)",
+            "schema": {
+              "default": "PENDING",
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "RESOLVED"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -2711,7 +2726,7 @@
             "bearer": []
           }
         ],
-        "summary": "Pending conflicts on meetings I organize (lower meeting) or where I am the shared officer",
+        "summary": "Conflicts on meetings I organize (lower meeting) or where I am the shared officer (`?status=` PENDING default, RESOLVED)",
         "tags": [
           "Conflicts"
         ]
@@ -5332,6 +5347,15 @@
               "MEMBER"
             ],
             "example": "MEMBER"
+          },
+          "wing": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WingRefDto"
+              }
+            ]
           }
         },
         "required": [
@@ -5339,7 +5363,8 @@
           "nameBn",
           "nameEn",
           "designation",
-          "role"
+          "role",
+          "wing"
         ]
       },
       "ConflictMeetingRefDto": {
@@ -5375,9 +5400,15 @@
             ]
           },
           "organizerDesignation": {
-            "type": "object",
+            "type": "string",
+            "nullable": true,
             "example": "সচিব",
             "description": "Organizer's designation (Bangla)"
+          },
+          "organizedByMe": {
+            "type": "boolean",
+            "example": false,
+            "description": "True when the current user organizes this meeting (may cancel/reschedule it)"
           }
         },
         "required": [
@@ -5387,7 +5418,8 @@
           "endAt",
           "priority",
           "status",
-          "organizerDesignation"
+          "organizerDesignation",
+          "organizedByMe"
         ]
       },
       "MeetingConflictDto": {
@@ -5719,7 +5751,8 @@
         "type": "object",
         "properties": {
           "notes": {
-            "type": "object",
+            "type": "string",
+            "nullable": true,
             "example": "সিদ্ধান্ত: ১. এডিপি সংশোধনী প্রস্তাব ১৫ ডিসেম্বরের মধ্যে পাঠানো হবে।",
             "description": "Notes / minutes"
           }

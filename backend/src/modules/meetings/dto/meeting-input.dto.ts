@@ -146,6 +146,8 @@ export class CancelMeetingDto {
 
 export class CompleteMeetingDto {
   @ApiPropertyOptional({
+    type: String,
+    nullable: true,
     example:
       'সিদ্ধান্ত: ১. এডিপি সংশোধনী প্রস্তাব ১৫ ডিসেম্বরের মধ্যে পাঠানো হবে।',
     description: 'Notes / minutes',
@@ -198,6 +200,18 @@ export class MeetingQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsIn(['mine', 'all'], { message: 'scope mine অথবা all হতে হবে।' })
   scope?: 'mine' | 'all';
+}
+
+/** GET /conflicts/mine: PENDING (default) or RESOLVED. */
+export class MyConflictsQueryDto {
+  @ApiPropertyOptional({
+    enum: ConflictStatus,
+    default: ConflictStatus.PENDING,
+    description: 'RESOLVED = history (newest first, at most 100)',
+  })
+  @IsOptional()
+  @IsEnum(ConflictStatus, { message: 'অবৈধ status।' })
+  status?: ConflictStatus;
 }
 
 export class ConflictQueryDto extends PaginationQueryDto {

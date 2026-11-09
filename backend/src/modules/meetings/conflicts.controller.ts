@@ -15,7 +15,7 @@ import {
 import type { AuthUser } from '../../common/types/auth-user';
 import { UserRole } from '../users/enums/user-role.enum';
 import { ConflictsService } from './conflicts.service';
-import { ConflictQueryDto } from './dto/meeting-input.dto';
+import { ConflictQueryDto, MyConflictsQueryDto } from './dto/meeting-input.dto';
 import { ConflictListItemDto } from './dto/meeting-response.dto';
 
 @ApiTags('Conflicts')
@@ -27,11 +27,14 @@ export class ConflictsController {
   @Get('mine')
   @ApiOperation({
     summary:
-      'Pending conflicts on meetings I organize (lower meeting) or where I am the shared officer',
+      'Conflicts on meetings I organize (lower meeting) or where I am the shared officer (`?status=` PENDING default, RESOLVED)',
   })
   @ApiOkResponse({ type: [ConflictListItemDto] })
-  mine(@CurrentUser() user: AuthUser): Promise<ConflictListItemDto[]> {
-    return this.conflicts.mine(user);
+  mine(
+    @CurrentUser() user: AuthUser,
+    @Query() query: MyConflictsQueryDto,
+  ): Promise<ConflictListItemDto[]> {
+    return this.conflicts.mine(user, query.status);
   }
 
   @Roles(UserRole.ADMIN)

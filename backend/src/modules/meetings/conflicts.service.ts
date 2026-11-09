@@ -17,6 +17,9 @@ import { ConflictStatus } from './enums/conflict-status.enum';
 import { MEETING_MESSAGES as MSG } from './meetings.messages';
 import { MeetingsService } from './meetings.service';
 
+/** At most this many resolved conflicts in GET /conflicts/mine?status=RESOLVED. */
+export const MINE_RESOLVED_LIMIT = 100;
+
 /** Conflict lists (SPEC.md §8 "Conflicts"). */
 @Injectable()
 export class ConflictsService {
@@ -26,10 +29,17 @@ export class ConflictsService {
     private readonly meetings: MeetingsService,
   ) {}
 
-  /** PENDING conflicts where I organize the lower meeting or I am the shared officer. */
-  async mine(actor: AuthUser): Promise<ConflictListItemDto[]> {
+  /**
+   * Conflicts where I organize the lower meeting or I am the shared officer.
+   * PENDING by default; RESOLVED for the history tab (newest first).
+   */
+  async mine(
+    actor: AuthUser,
+    status: ConflictStatus = ConflictStatus.PENDING,
+  ): Promise<ConflictListItemDto[]> {
+    const resolved = status === ConflictStatus.RESOLVED;
     const rows = await this.query()
-      .where('c.status = :pending', { pending: ConflictStatus.PENDING })
+      .where('c.status = :status', { status })
       .andWhere(
         new Brackets((b) =>
           b
@@ -37,7 +47,13 @@ export class ConflictsService {
             .orWhere('c.userId = :me', { me: actor.id }),
         ),
       )
-      .orderBy('h.startAt', 'ASC')
+      .orderBy(
+        resolved ? 'c.resolvedAt' : 'h.startAt',
+        resolved ? 'DESC' : 'ASC',
+      )
+      .addOrderBy('c.id', 'ASC')
+      // History is capped; pending conflicts are always few.
+      .take(resolved ? MINE_RESOLVED_LIMIT : undefined)
       .getMany();
     return this.toItems(actor, rows);
   }
@@ -86,6 +102,7 @@ export class ConflictsService {
       priority: m.priority,
       status: m.status,
       organizerDesignation: m.organizer.designation?.nameBn ?? null,
+      organizedByMe: m.organizerId === actor.id,
     });
     return rows.map((r) => ({
       id: r.id,

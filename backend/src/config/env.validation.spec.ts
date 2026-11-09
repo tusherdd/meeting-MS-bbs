@@ -160,6 +160,16 @@ describe('validateEnv', () => {
     });
   });
 
+  it('THROTTLE_LIMIT defaults to 100 and must stay between 10 and 10000', () => {
+    expect(validateEnv(validEnv()).THROTTLE_LIMIT).toBe(100);
+    expect(
+      validateEnv({ ...validEnv(), THROTTLE_LIMIT: '1000' }).THROTTLE_LIMIT,
+    ).toBe(1000);
+    expect(() => validateEnv({ ...validEnv(), THROTTLE_LIMIT: '5' })).toThrow(
+      /THROTTLE_LIMIT/,
+    );
+  });
+
   it('defaults SWAGGER_ENABLED to false', () => {
     const env = validEnv();
     delete env.SWAGGER_ENABLED;

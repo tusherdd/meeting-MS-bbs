@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { WingRefDto } from '../../users/dto/user-response.dto';
 import { ConflictStatus } from '../enums/conflict-status.enum';
 import { MeetingStatus } from '../enums/meeting-status.enum';
 import { ParticipantRole } from '../enums/participant-role.enum';
@@ -31,6 +32,9 @@ export class PersonDto {
 export class ParticipantDto extends PersonDto {
   @ApiProperty({ enum: ParticipantRole, example: ParticipantRole.MEMBER })
   role!: ParticipantRole;
+
+  @ApiProperty({ type: WingRefDto, nullable: true })
+  wing!: WingRefDto | null;
 }
 
 export class MeetingSummaryDto {
@@ -104,10 +108,19 @@ export class ConflictMeetingRefDto {
   status!: MeetingStatus;
 
   @ApiProperty({
+    type: String,
+    nullable: true,
     example: 'সচিব',
     description: "Organizer's designation (Bangla)",
   })
   organizerDesignation!: string | null;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'True when the current user organizes this meeting (may cancel/reschedule it)',
+  })
+  organizedByMe!: boolean;
 }
 
 export class OfficerRefDto {

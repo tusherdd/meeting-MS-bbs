@@ -502,7 +502,7 @@ export class MeetingsService {
       relations: {
         organizer: { designation: true },
         chair: { designation: true },
-        participants: { user: { designation: true } },
+        participants: { user: { designation: true, wing: true } },
       },
     });
     const people = meeting?.participants.map((p) => p.userId) ?? [];
@@ -515,7 +515,17 @@ export class MeetingsService {
       agenda: meeting.agenda,
       chair: meeting.chair ? personDto(meeting.chair) : null,
       participants: meeting.participants
-        .map((p) => ({ ...personDto(p.user), role: p.role }))
+        .map((p) => ({
+          ...personDto(p.user),
+          role: p.role,
+          wing: p.user.wing
+            ? {
+                id: p.user.wing.id,
+                nameBn: p.user.wing.nameBn,
+                nameEn: p.user.wing.nameEn,
+              }
+            : null,
+        }))
         .sort(
           (a, b) =>
             roleRank(a.role) - roleRank(b.role) ||
@@ -971,6 +981,7 @@ export class MeetingsService {
           priority: other.priority,
           status: other.status,
           organizerDesignation: other.organizer.designation?.nameBn ?? null,
+          organizedByMe: other.organizerId === actor.id,
         },
         officer: { id: r.user.id, nameBn: r.user.nameBn },
         resolvedAt: r.resolvedAt,

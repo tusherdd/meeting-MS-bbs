@@ -222,11 +222,19 @@ describe('Meetings and conflict engine (e2e)', () => {
           .set(as(who))
           .expect(200);
         const items = res.body as Array<{
-          higherMeeting: { id: string; title: string; startAt: string };
-          lowerMeeting: { id: string; startAt: string };
+          higherMeeting: {
+            id: string;
+            title: string;
+            startAt: string;
+            organizedByMe: boolean;
+          };
+          lowerMeeting: { id: string; startAt: string; organizedByMe: boolean };
         }>;
         const item = items.find((i) => i.higherMeeting.id === higherId)!;
         expect(item.lowerMeeting.id).toBe(lowerId);
+        // Only the lower organizer gets the cancel/reschedule actions in the UI.
+        expect(item.lowerMeeting.organizedByMe).toBe(who === 'so');
+        expect(item.higherMeeting.organizedByMe).toBe(false);
         expect(item.higherMeeting.startAt).toBeDefined();
         expect(item.higherMeeting.title).toBe(
           who === 'shared' ? 'জরুরি সমন্বয় সভা' : MEETING_MESSAGES.hiddenTitle,
@@ -255,6 +263,29 @@ describe('Meetings and conflict engine (e2e)', () => {
       });
       expect(conflict.status).toBe(ConflictStatus.RESOLVED);
       expect(conflict.resolvedAt).toBeInstanceOf(Date);
+      // Leaves the pending list, appears in the history.
+      const pending = await http()
+        .get(`${API}/conflicts/mine`)
+        .set(as('so'))
+        .expect(200);
+      expect(
+        (pending.body as Array<{ id: string }>).some(
+          (c) => c.id === conflict.id,
+        ),
+      ).toBe(false);
+      const history = await http()
+        .get(`${API}/conflicts/mine?status=RESOLVED`)
+        .set(as('so'))
+        .expect(200);
+      expect(
+        (history.body as Array<{ id: string; status: string }>).find(
+          (c) => c.id === conflict.id,
+        )?.status,
+      ).toBe(ConflictStatus.RESOLVED);
+      await http()
+        .get(`${API}/conflicts/mine?status=OPEN`)
+        .set(as('so'))
+        .expect(400);
       const cancelled = await notificationsOf(
         'shared',
         NotificationType.MEETING_CANCELLED,
@@ -510,9 +541,17 @@ describe('Meetings and conflict engine (e2e)', () => {
         .expect(200);
       const detailBody = detail.body as {
         chair: { id: string };
-        participants: Array<{ id: string; role: ParticipantRole }>;
+        participants: Array<{
+          id: string;
+          role: ParticipantRole;
+          wing?: { nameBn: string } | null;
+        }>;
       };
       expect(detailBody.chair.id).toBe(ids.director);
+      // Every person carries a wing field (null when the officer has no wing).
+      expect(detailBody.participants.every((p) => p.wing !== undefined)).toBe(
+        true,
+      );
       const roles = Object.fromEntries(
         detailBody.participants.map((p) => [p.id, p.role]),
       );
