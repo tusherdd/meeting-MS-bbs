@@ -158,9 +158,12 @@ async function seedSuperAdmin(
   password: string,
 ): Promise<'created' | 'already existing'> {
   const repo = manager.getRepository(User);
-  if (await repo.exists({ where: { loginEmail: email } })) {
-    return 'already existing'; // never overwrite (e.g. a password already changed)
-  }
+  // Any SUPER_ADMIN counts: the super admin may have changed their own login email (step 5),
+  // and a re-run must not create a second one. Existing accounts are never overwritten.
+  const exists = await repo.exists({
+    where: [{ role: UserRole.SUPER_ADMIN }, { loginEmail: email }],
+  });
+  if (exists) return 'already existing';
   await repo.insert({
     loginEmail: email,
     notificationEmail: email,

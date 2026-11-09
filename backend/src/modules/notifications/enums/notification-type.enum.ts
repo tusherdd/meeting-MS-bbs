@@ -1,0 +1,11 @@
+/** Bell notification types. Stored as varchar; later steps add meeting/conflict types. */
+export enum NotificationType {
+  // e-mail only (account / security)
+  ACCOUNT_CREATED = 'ACCOUNT_CREATED',
+  PASSWORD_RESET_LINK = 'PASSWORD_RESET_LINK',
+  NOTIFICATION_EMAIL_CHANGE_REQUESTED = 'NOTIFICATION_EMAIL_CHANGE_REQUESTED',
+  // bell + e-mail
+  CHANGE_REQUEST_SUBMITTED = 'CHANGE_REQUEST_SUBMITTED',
+  CHANGE_REQUEST_APPROVED = 'CHANGE_REQUEST_APPROVED',
+  CHANGE_REQUEST_REJECTED = 'CHANGE_REQUEST_REJECTED',
+}

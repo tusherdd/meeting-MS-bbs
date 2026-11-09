@@ -1,4 +1,4 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 
 /**
@@ -6,6 +6,9 @@ import { BaseEntity } from '../../../common/entities/base.entity';
  * it lives here, never in code, so admins can change it (SPEC.md §6.1).
  */
 @Entity('designations')
+// Case-insensitive unique nameEn: expression index created by migration
+// UniqueDesignationWingNames; `synchronize: false` keeps migration:generate from touching it.
+@Index('UQ_designations_nameEn_lower', { synchronize: false })
 export class Designation extends BaseEntity {
   @Column({ type: 'varchar', length: 150 })
   nameBn!: string;

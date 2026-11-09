@@ -129,6 +129,7 @@ export class User extends BaseEntity {
   @Column({ type: 'int', default: 0 })
   failedLoginCount!: number;
 
+  /** Currently unused: there is no account lock (owner decision, SPEC.md §9.2). */
   @Column({ type: 'timestamptz', nullable: true })
   lockedUntil!: Date | null;
 

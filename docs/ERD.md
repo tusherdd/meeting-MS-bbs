@@ -66,7 +66,7 @@ erDiagram
         boolean isActive
         boolean mustChangePassword
         int failedLoginCount
-        timestamptz lockedUntil
+        timestamptz lockedUntil "unused (no account lock)"
         timestamptz lastLoginAt
     }
     user_additional_charges {

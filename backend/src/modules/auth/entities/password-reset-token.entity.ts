@@ -8,8 +8,12 @@ import {
 } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
+import { PasswordTokenPurpose } from '../enums/password-token-purpose.enum';
 
-/** Single-use, expiring "forgot password" token (stored hashed, SPEC.md §9.12). */
+/**
+ * Single-use, expiring password token (stored hashed, SPEC.md §9.12): "forgot password",
+ * admin reset, or the first password of a new account (purpose).
+ */
 @Entity('password_reset_tokens')
 export class PasswordResetToken extends BaseEntity {
   @Column({ type: 'uuid' })
@@ -22,6 +26,9 @@ export class PasswordResetToken extends BaseEntity {
   @Index('UQ_password_reset_tokens_tokenHash', { unique: true })
   @Column({ type: 'varchar', length: 128, select: false })
   tokenHash!: string;
+
+  @Column({ type: 'varchar', length: 20, default: PasswordTokenPurpose.RESET })
+  purpose!: PasswordTokenPurpose;
 
   @Column({ type: 'timestamptz' })
   expiresAt!: Date;

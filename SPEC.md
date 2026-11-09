@@ -127,13 +127,17 @@ On re-run, the seed updates the priority of an existing designation to match thi
 ### 6.2 Profiles
 - **Login email** = user id. Unique, never edited directly. Change only via a change request approved by an admin.
 - **Notification email** = where all mail goes. Officer can change it; the new address becomes active
-  only after clicking a verification link sent to it (token hashed, expires in 24 h).
+  only after clicking a verification link sent to it (token hashed, expires in 24 h, single use).
+  The current address gets a short "change requested" notice.
+- **Mobile numbers** are stored as `01XXXXXXXXX` (Bangla/English digits and `+880` accepted on input).
 - Officer can edit directly: name (bn/en), photo, mobile, office phone, fax, wing, designation remark,
   additional charges, password, notification email (with verification).
 - **Designation change** needs admin approval (it changes priority). Until approved, the old designation applies.
-- Change request flow: officer submits → admins get bell notification + email → admin approves or rejects
-  (with an optional note) → on approve the change is applied automatically → officer is notified
-  (for login email: both old and new addresses are notified).
+- Change request flow: officer submits → admins get bell notification + email → admin approves (optional
+  note) or rejects (**note required**, owner decision 2026-11-09) → on approve the change is re-validated and
+  applied automatically → officer is notified (for login email: both old and new addresses are notified,
+  and all sessions are ended). Only one PENDING request per type per officer; the officer can cancel a
+  PENDING request. An admin cannot approve their own request.
 
 ### 6.3 Meetings
 - Fields: title, agenda (text), start, end, room (free text, typed manually), optional online link,
@@ -169,6 +173,17 @@ meeting **E** that shares at least one officer:
 - Channels: in-app bell (always) and email (to the notification email).
 - Email goes through a DB outbox (`email_outbox`). A scheduled worker sends pending mail every minute,
   retries with backoff up to 5 times, and records the last error. Creating a meeting never waits for SMTP.
+  - The worker claims up to 20 due rows with `SELECT … FOR UPDATE SKIP LOCKED`, so two workers never send
+    the same mail. Retry after 1, 5, 15, 60 minutes; FAILED after the 5th attempt. `lastError` is short and
+    never contains SMTP credentials. Admins can retry FAILED mail.
+  - After a mail is SENT its body (`html`, `text`) is set to NULL; a daily job deletes SENT rows older than
+    30 days.
+  - `MAIL_DRY_RUN=true`: no SMTP connection; only the masked recipient and subject are logged and the mail is
+    marked SENT (in development a copy is written to the git-ignored `backend/tmp/mail-preview/`).
+  - Every user-targeted message goes through `NotificationsService.notify(userIds, message, channels)` and
+    e-mail always goes to the user's verified notification email.
+- Mail templates: one Bangla HTML layout (BBS header, footer "এটি স্বয়ংক্রিয় বার্তা, উত্তর দেবেন না") with a
+  plain-text version; all user-provided text is HTML-escaped. **No mail ever contains a password.**
 - Channel code is pluggable (`NotificationChannel` interface) so SMS/WhatsApp can be added later.
 
 ### 6.6 Reports
@@ -192,7 +207,7 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
   bcsBatch, role (enum), isActive, mustChangePassword, failedLoginCount, lockedUntil, lastLoginAt
 - **user_additional_charges**: userId, description
 - **refresh_tokens**: userId, tokenHash, expiresAt, revokedAt, replacedById, userAgent, ip
-- **password_reset_tokens**: userId, tokenHash, expiresAt, usedAt
+- **password_reset_tokens**: userId, tokenHash, purpose (`RESET` | `SET_INITIAL`), expiresAt, usedAt
 - **change_requests**: userId, type (`LOGIN_EMAIL` | `DESIGNATION`), newValue (json), status
   (`PENDING` | `APPROVED` | `REJECTED`), reviewedById, reviewedAt, reviewNote
 - **meetings**: title, agenda, startAt, endAt, room, onlineLink, organizerId, chairId, priority,
@@ -201,7 +216,8 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
 - **meeting_conflicts**: higherMeetingId, lowerMeetingId, userId (shared officer), status
   (`PENDING` | `RESOLVED`), resolvedAt
 - **notifications**: userId, type, title, body, link, readAt
-- **email_outbox**: to, subject, html, status (`PENDING` | `SENT` | `FAILED`), attempts, lastError, nextAttemptAt, sentAt
+- **email_outbox**: to, subject, html (nullable, purged after sending), text (plain-text version, purged too),
+  status (`PENDING` | `SENT` | `FAILED`), attempts, lastError, nextAttemptAt, sentAt
 - **audit_logs**: actorId, action, entityType, entityId, before (json), after (json), ip, createdAt
 
 Indexes: meetings(startAt, endAt, status); meeting_participants(userId); notifications(userId, readAt).
@@ -224,7 +240,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | GET | `/auth/me` | 👤 | Current user + role + designation + priority |
 | POST | `/auth/change-password` | 👤 | Old + new password (clears mustChangePassword) |
 | POST | `/auth/forgot-password` | 🔓 | Sends reset link to notification email (always returns 200) |
-| POST | `/auth/reset-password` | 🔓 | Token + new password |
+| POST | `/auth/reset-password` | 🔓 | Token + new password (accepts reset links and set-password links) |
 
 ### Profile (my own)
 | Method | Path | Access | Purpose |
@@ -237,6 +253,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | GET | `/profile/notification-email/verify?token=` | 🔓 | Confirm new notification email |
 | POST | `/profile/change-requests` | 👤 | Request login-email or designation change |
 | GET | `/profile/change-requests` | 👤 | My requests and their status |
+| DELETE | `/profile/change-requests/:id` | 👤 | Cancel my own PENDING request |
 
 ### Users (admin)
 | Method | Path | Access | Purpose |
@@ -244,11 +261,11 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | GET | `/users/directory` | 👤 | Minimal active officer list (id, names, designation, wing, photo) for the participant picker |
 | GET | `/users` | 🛡 | Search/filter/paginate (q, wingId, designationId, role, isActive) |
 | GET | `/users/:id` | 🛡 | Full user |
-| POST | `/users` | 🛡 | Create officer (temp password, mustChangePassword = true, welcome mail) |
+| POST | `/users` | 🛡 | Create officer: no password is set or mailed; a one-time "set your password" link (`FRONTEND_URL/set-password?token=`, 72 h) is mailed |
 | PATCH | `/users/:id` | 🛡 | Edit any field including loginEmail and designation |
 | PATCH | `/users/:id/status` | 🛡 | Activate / deactivate |
 | PATCH | `/users/:id/role` | 🛡 | Make ADMIN / OFFICER (SUPER_ADMIN untouchable) |
-| POST | `/users/:id/reset-password` | 🛡 | Generate temp password, force change |
+| POST | `/users/:id/reset-password` | 🛡 | Old password stops working, all sessions end, a one-time reset link (72 h) is mailed |
 
 ### Designations & wings
 | Method | Path | Access | Purpose |
@@ -314,8 +331,15 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 
 ## 9. Security requirements (must all be implemented)
 
-1. Passwords: argon2id; min 8 chars with letters + digits; not equal to the email; never returned by any API.
-2. Login: generic error message; lock account for 15 min after 5 failed attempts; record lastLoginAt.
+1. Passwords: argon2id; min 8 chars with letters + digits; not equal to the email; never returned by any API
+   and never sent by mail (new accounts and admin resets get a one-time link instead).
+2. Login: **no account lock** (owner decision, 2026-11-09).
+   - One generic error for every failed login, known or unknown email, always suggesting "forgot password".
+   - Progressive delay: after 5 consecutive failures for an email, each further attempt is answered only
+     after 2 s, 4 s, 8 s, 16 s, then 30 s (cap). The delay runs before the password check (also for a correct
+     password) and follows the same pattern for emails without an account, so neither the message nor the
+     timing reveals whether an account exists. A correct password resets the counter.
+   - Per-IP throttling on login; record lastLoginAt and failedLoginCount (`lockedUntil` stays unused).
 3. Tokens: access token 15 min, refresh token 7 days with rotation and reuse detection (reuse → revoke all of that user's tokens). Refresh tokens stored hashed.
 4. Cookies: `httpOnly`, `secure` in production, `sameSite=lax` (access) / `strict` (refresh, path `/api/v1/auth`). Bearer header also accepted for Swagger.
 5. CSRF: for cookie-authenticated unsafe methods, check `Origin` against the allowed frontend origin.

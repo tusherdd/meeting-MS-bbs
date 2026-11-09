@@ -23,6 +23,7 @@ for rules, data model, API list and security requirements. If a request conflict
 ## Security (never skip)
 Follow SPEC.md §9 in every step. Never commit `.env` or files under `backend/src/database/seeds/data/`.
 Never log passwords, tokens or full request bodies of auth routes.
+Never print passwords, secrets, tokens or .env values in chat explanations or reports — refer to the variable name instead.
 
 ## Commands (backend)
 - `npm run start:dev` — run API with watch mode (http://localhost:4000, Swagger at /api/docs)

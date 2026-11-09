@@ -1,8 +1,15 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import { static as serveStatic } from 'express';
 import helmet from 'helmet';
+import { createValidationPipe } from './common/pipes/validation.pipe';
+import {
+  ensureUploadDirs,
+  resolveUploadRoot,
+  UPLOADS_URL_PREFIX,
+} from './common/utils/uploads';
 import { EnvVars } from './config/env.validation';
 
 export const API_PREFIX = 'api/v1';
@@ -28,13 +35,9 @@ export function configureApp(app: INestApplication): void {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // strip unknown properties...
-      forbidNonWhitelisted: true, // ...and reject the request if any were sent
-      transform: true, // turn payloads into DTO instances (and query strings into numbers etc.)
-    }),
-  );
+  app.useGlobalPipes(createValidationPipe());
+
+  serveUploads(app, config.get('UPLOAD_DIR', { infer: true }));
 
   app.enableShutdownHooks();
 
@@ -58,4 +61,29 @@ function setupSwagger(app: INestApplication): void {
   SwaggerModule.setup(SWAGGER_PATH, app, document, {
     swaggerOptions: { persistAuthorization: true },
   });
+}
+
+/**
+ * Uploaded files (avatars) are served read-only at /uploads (SPEC.md §9.9): GET/HEAD only,
+ * no directory listing, no index files, no dotfiles, and nosniff so a file is never run as
+ * another type. Files are always our own re-encoded WebP images with random names.
+ */
+function serveUploads(app: INestApplication, uploadDir: string): void {
+  const root = resolveUploadRoot(uploadDir);
+  ensureUploadDirs(root);
+  app.use(
+    UPLOADS_URL_PREFIX,
+    serveStatic(root, {
+      index: false,
+      dotfiles: 'deny',
+      redirect: false,
+      fallthrough: true,
+      maxAge: '7d', // file names are random and never reused
+      setHeaders: (res) => {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        // Lets the frontend (same site, other port) show the images.
+        res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+      },
+    }),
+  );
 }

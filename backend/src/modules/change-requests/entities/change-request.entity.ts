@@ -1,4 +1,11 @@
-import { Column, Entity, JoinColumn, ManyToOne, type Relation } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  type Relation,
+} from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 import { ChangeRequestStatus } from '../enums/change-request-status.enum';
@@ -9,6 +16,9 @@ import { ChangeRequestType } from '../enums/change-request-type.enum';
  * on approval the change is applied (SPEC.md §6.2).
  */
 @Entity('change_requests')
+// One PENDING request per (userId, type): partial unique index from migration
+// ChangeRequestPendingUnique; `synchronize: false` keeps migration:generate away from it.
+@Index('UQ_change_requests_one_pending', { synchronize: false })
 export class ChangeRequest extends BaseEntity {
   @Column({ type: 'uuid' })
   userId!: string;
