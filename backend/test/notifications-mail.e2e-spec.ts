@@ -49,6 +49,18 @@ describe('Notifications, mail worker, email outbox (e2e)', () => {
   const tokens = {} as Record<'alice' | 'bob' | 'admin', string>;
 
   const http = () => request(app.getHttpServer());
+
+  /**
+   * Runs the worker until nothing is due any more (other suites may have queued many mails;
+   * one batch takes at most 20, like one cron minute).
+   */
+  async function drainOutbox(): Promise<void> {
+    for (let i = 0; i < 100; i++) {
+      const r = await app.get(MailWorkerService).processBatch();
+      if (r.sent + r.retried + r.failed === 0) return;
+    }
+    throw new Error('outbox did not drain');
+  }
   const as = (who: 'alice' | 'bob' | 'admin') => ({
     Authorization: `Bearer ${tokens[who]}`,
   });
@@ -235,7 +247,7 @@ describe('Notifications, mail worker, email outbox (e2e)', () => {
         html: '<p>one-time link</p>',
         text: 'one-time link',
       });
-      await app.get(MailWorkerService).processBatch();
+      await drainOutbox();
       const row = await ds.getRepository(EmailOutbox).findOneByOrFail({ id });
       expect(row).toMatchObject({
         status: EmailStatus.SENT,
@@ -264,7 +276,7 @@ describe('Notifications, mail worker, email outbox (e2e)', () => {
           'SELECT id FROM email_outbox WHERE id = $1 FOR UPDATE',
           [id],
         );
-        await app.get(MailWorkerService).processBatch();
+        await drainOutbox();
         expect(
           (await ds.getRepository(EmailOutbox).findOneByOrFail({ id })).status,
         ).toBe(EmailStatus.PENDING);
@@ -272,7 +284,7 @@ describe('Notifications, mail worker, email outbox (e2e)', () => {
         await other.rollbackTransaction();
         await other.release();
       }
-      await app.get(MailWorkerService).processBatch();
+      await drainOutbox();
       expect(
         (await ds.getRepository(EmailOutbox).findOneByOrFail({ id })).status,
       ).toBe(EmailStatus.SENT);
@@ -288,7 +300,7 @@ describe('Notifications, mail worker, email outbox (e2e)', () => {
       await ds
         .getRepository(EmailOutbox)
         .update(id, { nextAttemptAt: new Date(Date.now() + 10 * 60_000) });
-      await app.get(MailWorkerService).processBatch();
+      await drainOutbox();
       expect(
         (await ds.getRepository(EmailOutbox).findOneByOrFail({ id })).status,
       ).toBe(EmailStatus.PENDING);
@@ -375,7 +387,7 @@ describe('Notifications, mail worker, email outbox (e2e)', () => {
       });
       expect(audit.actorId).toBe(ids.admin);
 
-      await app.get(MailWorkerService).processBatch();
+      await drainOutbox();
       const row = await ds
         .getRepository(EmailOutbox)
         .findOneByOrFail({ id: failedId });

@@ -17,6 +17,11 @@ export interface ErrorResponseBody {
   statusCode: number;
   message: string | string[];
   error: string;
+  /**
+   * Extra details a 4xx HttpException deliberately provides, e.g. `blocking` of a meeting
+   * 409 (step 8). Never added for 5xx.
+   */
+  [detail: string]: unknown;
 }
 
 export const GENERIC_SERVER_ERROR_MESSAGE =
@@ -71,22 +76,30 @@ export function toErrorBody(
     const response = exception.getResponse();
     let message: string | string[] = exception.message;
     let error = statusText(statusCode);
+    let details: Record<string, unknown> = {};
 
     if (typeof response === 'string') {
       message = response;
     } else if (typeof response === 'object' && response !== null) {
-      const obj = response as { message?: unknown; error?: unknown };
-      if (typeof obj.message === 'string' || Array.isArray(obj.message)) {
-        message = obj.message as string | string[];
-      }
-      if (typeof obj.error === 'string') error = obj.error;
+      const {
+        message: m,
+        error: e,
+        statusCode: _s,
+        ...rest
+      } = response as Record<string, unknown>;
+      void _s;
+      if (typeof m === 'string' || Array.isArray(m))
+        message = m as string | string[];
+      if (typeof e === 'string') error = e;
+      // Client errors may carry structured details the API chose to send (never for 5xx).
+      if (statusCode < 500) details = rest;
     }
 
     if (isProduction && statusCode >= 500) {
       message = GENERIC_SERVER_ERROR_MESSAGE;
       error = statusText(statusCode);
     }
-    return { statusCode, message, error };
+    return { ...details, statusCode, message, error };
   }
 
   const clientError = asExposedClientError(exception);

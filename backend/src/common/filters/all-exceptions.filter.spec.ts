@@ -95,4 +95,25 @@ describe('toErrorBody', () => {
       GENERIC_SERVER_ERROR_MESSAGE,
     );
   });
+
+  it('keeps structured details of a 4xx (e.g. meeting 409 blocking list)', () => {
+    const ex = new ConflictException({
+      message: 'সংঘাত',
+      blocking: [{ meetingId: 'm1' }],
+    });
+    expect(toErrorBody(ex, true)).toEqual({
+      statusCode: 409,
+      message: 'সংঘাত',
+      error: 'Conflict',
+      blocking: [{ meetingId: 'm1' }],
+    });
+  });
+
+  it('never adds details to a 5xx', () => {
+    const ex = new InternalServerErrorException({
+      message: 'x',
+      sql: 'SELECT secret',
+    });
+    expect(toErrorBody(ex, false)).not.toHaveProperty('sql');
+  });
 });

@@ -18,6 +18,8 @@ export interface EnvVars {
   DB_USER: string;
   DB_PASSWORD: string;
   DB_NAME: string;
+  /** e2e tests only (.env.test): must differ from DB_NAME. */
+  DB_NAME_TEST?: string;
 
   JWT_ACCESS_SECRET: string;
   JWT_REFRESH_SECRET: string;
@@ -35,6 +37,8 @@ export interface EnvVars {
   UPLOAD_DIR: string;
   MAX_UPLOAD_MB: number;
   SWAGGER_ENABLED: boolean;
+  /** Cron jobs (mail worker, cleanups). false in e2e tests. */
+  SCHEDULER_ENABLED: boolean;
 
   SEED_SUPER_ADMIN_EMAIL: string;
   SEED_SUPER_ADMIN_PASSWORD: string;
@@ -101,6 +105,9 @@ export const envSchema = Joi.object<EnvVars>({
   DB_USER: Joi.string().required(),
   DB_PASSWORD: Joi.string().required(),
   DB_NAME: Joi.string().required(),
+  DB_NAME_TEST: Joi.string().optional().invalid(Joi.ref('DB_NAME')).messages({
+    'any.invalid': '"DB_NAME_TEST" must be different from DB_NAME',
+  }),
 
   JWT_ACCESS_SECRET: Joi.string().min(MIN_SECRET_LENGTH).required(),
   // Must differ from the access secret, otherwise an access token could be replayed as a refresh token.
@@ -127,6 +134,7 @@ export const envSchema = Joi.object<EnvVars>({
   MAX_UPLOAD_MB: Joi.number().positive().max(50).default(2),
   // Off unless explicitly enabled (SPEC.md §9.14).
   SWAGGER_ENABLED: Joi.boolean().default(false),
+  SCHEDULER_ENABLED: Joi.boolean().default(true),
 
   SEED_SUPER_ADMIN_EMAIL: Joi.string()
     .email({ tlds: false })

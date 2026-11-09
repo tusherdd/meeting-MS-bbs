@@ -1,4 +1,11 @@
-import { Column, Entity, JoinColumn, ManyToOne, type Relation } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  type Relation,
+} from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 import { ConflictStatus } from '../enums/conflict-status.enum';
@@ -10,7 +17,9 @@ import { Meeting } from './meeting.entity';
  * when the clash disappears (SPEC.md §6.4).
  */
 @Entity('meeting_conflicts')
+@Index('IDX_meeting_conflicts_userId_status', ['userId', 'status'])
 export class MeetingConflict extends BaseEntity {
+  @Index('IDX_meeting_conflicts_higherMeetingId')
   @Column({ type: 'uuid' })
   higherMeetingId!: string;
 
@@ -18,6 +27,7 @@ export class MeetingConflict extends BaseEntity {
   @JoinColumn({ name: 'higherMeetingId' })
   higherMeeting!: Relation<Meeting>;
 
+  @Index('IDX_meeting_conflicts_lowerMeetingId')
   @Column({ type: 'uuid' })
   lowerMeetingId!: string;
 

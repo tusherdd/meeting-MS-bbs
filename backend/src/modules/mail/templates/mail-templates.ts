@@ -241,7 +241,11 @@ export function genericNotificationMail(input: {
   link: string | null;
 }): MailContent {
   return renderMail(input.title, input.nameBn, [
-    { kind: 'paragraph', text: input.body },
+    // One paragraph per line, so multi-line bodies (meeting details) stay readable.
+    ...input.body
+      .split('\n')
+      .filter((line) => line.trim() !== '')
+      .map((line) => ({ kind: 'paragraph' as const, text: line })),
     ...(input.link
       ? [{ kind: 'button' as const, label: 'বিস্তারিত দেখুন', url: input.link }]
       : []),

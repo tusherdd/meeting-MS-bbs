@@ -26,3 +26,4 @@ officers*.csv
 
 # Dev-only previews of MAIL_DRY_RUN mails (may contain one-time links)
 backend/tmp/
+!backend/.env.test.example

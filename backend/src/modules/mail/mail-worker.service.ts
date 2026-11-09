@@ -60,7 +60,8 @@ export class MailWorkerService {
 
   @Cron(CronExpression.EVERY_MINUTE, { name: 'mail-outbox' })
   async sendDueMail(): Promise<void> {
-    if (this.config.get('NODE_ENV', { infer: true }) === 'test') return; // tests call processBatch()
+    // Off in e2e tests (SCHEDULER_ENABLED=false); a test calls processBatch() itself.
+    if (!this.config.get('SCHEDULER_ENABLED', { infer: true })) return;
     try {
       const result = await this.processBatch();
       if (result.sent + result.retried + result.failed > 0) {
@@ -77,6 +78,11 @@ export class MailWorkerService {
 
   /** Daily 03:00 Dhaka time: delete SENT rows older than 30 days (and old dev previews). */
   @Cron('0 3 * * *', { name: 'mail-outbox-cleanup', timeZone: 'Asia/Dhaka' })
+  async dailyCleanup(): Promise<void> {
+    if (!this.config.get('SCHEDULER_ENABLED', { infer: true })) return;
+    await this.cleanup();
+  }
+
   async cleanup(now = new Date()): Promise<number> {
     const cutoff = new Date(now.getTime() - SENT_RETENTION_DAYS * 86_400_000);
     const result = await this.dataSource

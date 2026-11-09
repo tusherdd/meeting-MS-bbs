@@ -16,6 +16,7 @@ import { ChangeRequestsModule } from './modules/change-requests/change-requests.
 import { DesignationsModule } from './modules/designations/designations.module';
 import { HealthModule } from './modules/health/health.module';
 import { MailModule } from './modules/mail/mail.module';
+import { MeetingsModule } from './modules/meetings/meetings.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { UsersModule } from './modules/users/users.module';
@@ -67,6 +68,7 @@ import { WingsModule } from './modules/wings/wings.module';
     WingsModule,
     ProfileModule,
     ChangeRequestsModule,
+    MeetingsModule,
     HealthModule,
   ],
   providers: [

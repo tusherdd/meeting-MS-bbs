@@ -39,7 +39,8 @@ There is no separate database project: TypeORM entities, migrations and seeds ar
 | Auth | JWT access + refresh tokens, passwords hashed with argon2id |
 | API docs | Swagger (OpenAPI) at `/api/docs` |
 | Mail | Nodemailer over SMTP (settings in `.env`), sent through a DB outbox |
-| Scheduling | `@nestjs/schedule` (outbox worker, cleanup jobs) |
+| Scheduling | `@nestjs/schedule` (outbox worker every minute, daily outbox cleanup, meeting auto-complete every 15 min); off when `SCHEDULER_ENABLED=false` |
+| Tests | Jest unit tests (mocks) + e2e tests on a separate database `DB_NAME_TEST` (`backend/.env.test`) |
 | PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly |
 | Frontend | Next.js (App Router), TypeScript, Tailwind CSS |
 | Timezone | Store `timestamptz` (UTC). Display and compute "today/week/month" in `Asia/Dhaka`. |
@@ -149,6 +150,11 @@ On re-run, the seed updates the priority of an existing designation to match thi
 - Only the organizer or an admin can edit, cancel or complete a meeting.
 - `end` must be after `start`. Meetings cannot be created in the past.
 - Room is **not** checked for conflicts.
+- People of a meeting = organizer ∪ chair ∪ participants; the organizer always has a `meeting_participants`
+  row (role `ORGANIZER`). Duration at most 12 h; start at most 5 minutes in the past. SUPER_ADMIN (no
+  designation) cannot organize or be invited. Meetings that already ended cannot be edited, only completed.
+- Visibility: only the meeting's people and admins can open a meeting; everyone else gets 404.
+- A job every 15 minutes completes SCHEDULED meetings that ended more than 1 hour ago.
 
 ### 6.4 Conflict engine (the core rule)
 A conflict exists when the **same officer** (organizer, chair or participant) is in two `SCHEDULED`
@@ -167,7 +173,15 @@ meeting **E** that shares at least one officer:
 - A pending conflict is marked `RESOLVED` automatically when E is cancelled, rescheduled out of the
   overlap, or the shared officer is removed from E.
 - Every participant is notified when invited, when time/room changes, and when a meeting is cancelled.
-- The conflict check and the insert run inside one DB transaction to avoid race conditions.
+- The conflict check and the insert run inside one DB transaction to avoid race conditions; the transaction
+  takes `pg_advisory_xact_lock` per person (sorted), so two parallel requests for the same officer cannot both pass.
+- Touching meetings (10:00–11:00 and 11:00–12:00) do not overlap. The engine re-runs on update only when the
+  time or the people change; the meeting never clashes with itself.
+- 409 body: `{ message, blocking: [{ meetingId, title, startAt, endAt, priority, organizer, sharedOfficers }] }`.
+  Titles of other meetings are shown only to their people and admins ("অন্য একটি সভা" otherwise); the same
+  rule applies to the conflict notice (N's title only for N's invitees).
+- A PENDING conflict is also RESOLVED when either meeting is completed or moved, or the shared officer is
+  removed from either meeting.
 
 ### 6.5 Notifications
 - Channels: in-app bell (always) and email (to the notification email).
@@ -387,11 +401,16 @@ MAIL_DRY_RUN=true            # true = log mails instead of sending (development)
 UPLOAD_DIR=./uploads
 MAX_UPLOAD_MB=2
 SWAGGER_ENABLED=true
+SCHEDULER_ENABLED=true          # cron jobs (mail worker, cleanups); false in e2e tests
 
 SEED_SUPER_ADMIN_EMAIL=admin@bbs.gov.bd
 SEED_SUPER_ADMIN_PASSWORD=
 SEED_OFFICER_DEFAULT_PASSWORD=   # development only; leave empty in production
 ```
+
+e2e tests additionally read `backend/.env.test` (copy of the committed `.env.test.example`):
+`DB_NAME_TEST=bbs_meeting_test`, `NODE_ENV=test`, `SCHEDULER_ENABLED=false`, `MAIL_DRY_RUN=true`,
+`UPLOAD_DIR=./tmp/test-uploads`. One-time SQL: `CREATE DATABASE bbs_meeting_test OWNER bbs_meeting;`
 
 ## 11. Seed data
 
