@@ -257,7 +257,17 @@ describe('Auth (e2e)', () => {
         .post(`${API}/auth/login`)
         .send({ loginEmail: 'nobody@e2e.test', password: PASSWORD })
         .expect(401);
-      expect(wrong.body).toEqual(unknown.body);
+      // Identical except the per-request id.
+      const { requestId: _a, ...wrongBody } = wrong.body as Record<
+        string,
+        unknown
+      >;
+      const { requestId: _b, ...unknownBody } = unknown.body as Record<
+        string,
+        unknown
+      >;
+      expect(_a).not.toBe(_b);
+      expect(wrongBody).toEqual(unknownBody);
       expect((wrong.body as { message: string }).message).toBe(
         AUTH_MESSAGES.invalidCredentials,
       );

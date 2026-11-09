@@ -1,0 +1,6415 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/audit-logs": {
+      "get": {
+        "description": "Filters: actorId, action, entityType, entityId, from, to. `before`/`after` never contain secrets; phone numbers are masked.",
+        "operationId": "AuditController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "actorId",
+            "required": false,
+            "in": "query",
+            "description": "Who did it",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "LOGIN_SUCCESS",
+                "LOGIN_FAILED",
+                "REFRESH_TOKEN_REUSE",
+                "PASSWORD_CHANGE",
+                "PASSWORD_RESET_REQUEST",
+                "PASSWORD_RESET",
+                "USER_CREATE",
+                "USER_UPDATE",
+                "USER_STATUS_CHANGE",
+                "USER_ROLE_CHANGE",
+                "USER_PASSWORD_RESET_BY_ADMIN",
+                "DESIGNATION_CREATE",
+                "DESIGNATION_UPDATE",
+                "DESIGNATION_PRIORITY_CHANGE",
+                "DESIGNATION_DELETE",
+                "WING_CREATE",
+                "WING_UPDATE",
+                "WING_DELETE",
+                "PROFILE_UPDATE",
+                "PROFILE_PHOTO_UPDATE",
+                "PROFILE_PHOTO_DELETE",
+                "NOTIFICATION_EMAIL_CHANGE_REQUEST",
+                "NOTIFICATION_EMAIL_VERIFIED",
+                "CHANGE_REQUEST_CREATE",
+                "CHANGE_REQUEST_CANCEL",
+                "CHANGE_REQUEST_APPROVE",
+                "CHANGE_REQUEST_REJECT",
+                "EMAIL_RETRY",
+                "MEETING_CREATE",
+                "MEETING_UPDATE",
+                "MEETING_CANCEL",
+                "MEETING_COMPLETE",
+                "MEETING_DELETE",
+                "CONFLICT_CREATED",
+                "CONFLICT_RESOLVED"
+              ]
+            }
+          },
+          {
+            "name": "entityType",
+            "required": false,
+            "in": "query",
+            "description": "user, meeting, designation, change_request, …",
+            "schema": {
+              "example": "meeting",
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "required": false,
+            "in": "query",
+            "description": "Id of the changed record",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-01T00:00:00+06:00",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31T23:59:59+06:00",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AuditLogItemDto"
+                          }
+                        }
+                      },
+                      "required": [
+                        "items"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Audit trail, newest first (ADMIN)",
+        "tags": [
+          "Admin — audit log"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/admin/email-outbox": {
+      "get": {
+        "description": "Filter with `?status=FAILED`. Shows recipient, subject, status, attempts, last error and dates — never the mail body.",
+        "operationId": "MailAdminController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "FAILED",
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "SENT",
+                "FAILED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/EmailOutboxItemDto"
+                          }
+                        }
+                      },
+                      "required": [
+                        "items"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mail queue status (ADMIN)",
+        "tags": [
+          "Admin — email outbox"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/admin/email-outbox/{id}/retry": {
+      "post": {
+        "description": "Sets it back to PENDING with 0 attempts; the worker sends it within a minute.",
+        "operationId": "MailAdminController_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailOutboxItemDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "404": {
+            "description": "Mail not found"
+          },
+          "409": {
+            "description": "Only FAILED mail can be retried"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retry one FAILED mail (ADMIN)",
+        "tags": [
+          "Admin — email outbox"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "unread",
+            "required": false,
+            "in": "query",
+            "description": "true = only unread notifications",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/NotificationResponseDto"
+                          }
+                        }
+                      },
+                      "required": [
+                        "items"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My notifications, newest first (`?unread=true` = only unread)",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_unreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Number for the bell badge",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "patch": {
+        "operationId": "NotificationsController_readAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkAllReadResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark all my notifications read",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not mine"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark one of my notifications read",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Sets httpOnly cookies and returns the access token. In Swagger: copy `accessToken` → \"Authorize\".\n\n**No account lock.** After 5 consecutive failures for an email, every further attempt is answered\nonly after a delay: 2 s, 4 s, 8 s, 16 s, then 30 s (max). The delay applies before the password is\nchecked (also to a correct one) and equally to emails without an account. A successful login\nresets the counter.",
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Wrong email or password. Same message for every failure (known or unknown email), always suggesting \"forgot password\"."
+          },
+          "403": {
+            "description": "Account deactivated"
+          },
+          "429": {
+            "description": "Too many login requests from this IP"
+          }
+        },
+        "summary": "Log in",
+        "tags": [
+          "Auth"
+        ],
+        "x-access": "public"
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "description": "The old refresh token becomes invalid. Re-using an old one logs the user out everywhere.",
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessTokenResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired, revoked or reused refresh token"
+          },
+          "403": {
+            "description": "Cookie request from a non-allowed Origin"
+          }
+        },
+        "summary": "Rotate the refresh token (from the refresh_token cookie)",
+        "tags": [
+          "Auth"
+        ],
+        "x-access": "public"
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not logged in"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Log out: revoke this refresh token and clear cookies",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not logged in"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Current user with role, designation and priority",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "description": "Ends all other sessions and returns a NEW access token — use it in \"Authorize\" from now on.",
+        "operationId": "AuthController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePasswordResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Wrong current password or weak new password"
+          },
+          "401": {
+            "description": "Not logged in"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change own password (clears mustChangePassword)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "description": "Always returns 200 with the same message (does not reveal if the email exists).",
+        "operationId": "AuthController_forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this IP"
+          }
+        },
+        "summary": "Send a reset link to the notification email",
+        "tags": [
+          "Auth"
+        ],
+        "x-access": "public"
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "description": "Accepts the token of /reset-password links (\"forgot password\", admin reset) and of /set-password links (new account). Single use.",
+        "operationId": "AuthController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid/expired/used token or weak password"
+          },
+          "429": {
+            "description": "Too many requests from this IP"
+          }
+        },
+        "summary": "Set a password with the token from a mail link",
+        "tags": [
+          "Auth"
+        ],
+        "x-access": "public"
+      }
+    },
+    "/api/v1/users/directory": {
+      "get": {
+        "description": "Only id, names, designation (name + priority), wing and photo. No email, phone or role.",
+        "operationId": "UsersController_directory",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Searches nameBn and nameEn only",
+            "schema": {
+              "example": "রহিম",
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Object"
+                }
+              ]
+            }
+          },
+          {
+            "name": "wingId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/DirectoryEntryDto"
+                          }
+                        }
+                      },
+                      "required": [
+                        "items"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Active officer directory for the participant picker (any logged-in user)",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "description": "Example: `?q=rahim&isActive=true&sortBy=nameEn&sortOrder=asc&page=1&limit=20`. `q` matches Bangla/English name, login email and mobile (Bangla digits allowed).",
+        "operationId": "UsersController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Searches nameBn, nameEn, loginEmail and mobile (Bangla digits allowed)",
+            "schema": {
+              "example": "rahim",
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Object"
+                }
+              ]
+            }
+          },
+          {
+            "name": "wingId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "designationId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SUPER_ADMIN",
+                "ADMIN",
+                "OFFICER"
+              ]
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "priority = designation priority (then English name)",
+            "schema": {
+              "default": "priority",
+              "type": "string",
+              "enum": [
+                "priority",
+                "nameEn",
+                "nameBn",
+                "loginEmail",
+                "createdAt",
+                "lastLoginAt"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "asc",
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/UserSummaryDto"
+                          }
+                        }
+                      },
+                      "required": [
+                        "items"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only ADMIN or SUPER_ADMIN"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search / filter / sort / paginate users (ADMIN)",
+        "tags": [
+          "Users"
+        ],
+        "x-access": "ADMIN"
+      },
+      "post": {
+        "description": "Generates a strong temporary password (never returned), sets mustChangePassword = true and queues a Bangla welcome mail with login email + temporary password.",
+        "operationId": "UsersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error / inactive designation or wing"
+          },
+          "403": {
+            "description": "Only ADMIN or SUPER_ADMIN"
+          },
+          "409": {
+            "description": "Login email already used"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an officer (ADMIN)",
+        "tags": [
+          "Users"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "operationId": "UsersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only ADMIN or SUPER_ADMIN"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Full user (ADMIN)",
+        "tags": [
+          "Users"
+        ],
+        "x-access": "ADMIN"
+      },
+      "patch": {
+        "description": "Send only the fields to change. `null` clears an optional field. `additionalCharges` replaces the whole list. Role and status have their own endpoints.",
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error / inactive designation or wing"
+          },
+          "403": {
+            "description": "Not an admin, or a protection rule: SUPER_ADMIN account / own role / own deactivation"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "409": {
+            "description": "Login email already used"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit any profile field, including loginEmail and designation (ADMIN)",
+        "tags": [
+          "Users"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/users/{id}/status": {
+      "patch": {
+        "description": "Deactivation revokes all refresh tokens; the user is blocked immediately.",
+        "operationId": "UsersController_setStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin, or a protection rule: SUPER_ADMIN account / own role / own deactivation"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activate / deactivate (ADMIN)",
+        "tags": [
+          "Users"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/users/{id}/role": {
+      "patch": {
+        "operationId": "UsersController_setRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Role must be ADMIN or OFFICER"
+          },
+          "403": {
+            "description": "Not an admin, or a protection rule: SUPER_ADMIN account / own role / own deactivation"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make ADMIN or OFFICER (ADMIN). SUPER_ADMIN is untouchable.",
+        "tags": [
+          "Users"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/users/{id}/reset-password": {
+      "post": {
+        "description": "The temporary password is mailed to the notification email (never returned). All sessions end.",
+        "operationId": "UsersController_resetPassword",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserMessageResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Account is inactive"
+          },
+          "403": {
+            "description": "Not an admin, or a protection rule: SUPER_ADMIN account / own role / own deactivation"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Generate a temporary password and force a change (ADMIN)",
+        "tags": [
+          "Users"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/designations": {
+      "get": {
+        "operationId": "DesignationsController_list",
+        "parameters": [
+          {
+            "name": "activeOnly",
+            "required": false,
+            "in": "query",
+            "description": "true = only active designations (for pickers)",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DesignationResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List designations ordered by priority (any logged-in user)",
+        "tags": [
+          "Designations"
+        ]
+      },
+      "post": {
+        "operationId": "DesignationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDesignationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DesignationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "409": {
+            "description": "English name already exists (case-insensitive)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a designation (ADMIN)",
+        "tags": [
+          "Designations"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/designations/{id}": {
+      "patch": {
+        "description": "A priority change is audited (DESIGNATION_PRIORITY_CHANGE, old → new). Existing meetings keep their stored priority (snapshot rule).",
+        "operationId": "DesignationsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDesignationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DesignationResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "404": {
+            "description": "Designation not found"
+          },
+          "409": {
+            "description": "English name already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename / change priority / (de)activate (ADMIN)",
+        "tags": [
+          "Designations"
+        ],
+        "x-access": "ADMIN"
+      },
+      "delete": {
+        "operationId": "DesignationsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "404": {
+            "description": "Designation not found"
+          },
+          "409": {
+            "description": "Still used by users — deactivate it instead"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a designation that no user has (ADMIN)",
+        "tags": [
+          "Designations"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/wings": {
+      "get": {
+        "operationId": "WingsController_list",
+        "parameters": [
+          {
+            "name": "activeOnly",
+            "required": false,
+            "in": "query",
+            "description": "true = only active wings",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WingResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List wings ordered by English name (any logged-in user)",
+        "tags": [
+          "Wings"
+        ]
+      },
+      "post": {
+        "operationId": "WingsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WingResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "409": {
+            "description": "English name already exists (case-insensitive)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a wing (ADMIN)",
+        "tags": [
+          "Wings"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/wings/{id}": {
+      "patch": {
+        "operationId": "WingsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WingResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "404": {
+            "description": "Wing not found"
+          },
+          "409": {
+            "description": "English name already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename / (de)activate a wing (ADMIN)",
+        "tags": [
+          "Wings"
+        ],
+        "x-access": "ADMIN"
+      },
+      "delete": {
+        "operationId": "WingsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "404": {
+            "description": "Wing not found"
+          },
+          "409": {
+            "description": "Still used by users — deactivate it instead"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a wing that no user belongs to (ADMIN)",
+        "tags": [
+          "Wings"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/profile": {
+      "get": {
+        "operationId": "ProfileController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My full profile (designation, wing, additional charges)",
+        "tags": [
+          "Profile"
+        ]
+      },
+      "patch": {
+        "description": "Only these fields are accepted; loginEmail, designationId, role, isActive or anything else → 400. Mobile numbers may be typed with Bangla or English digits and +880; they are stored as 01XXXXXXXXX.",
+        "operationId": "ProfileController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Forbidden field, invalid value or inactive wing"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit my names, phones, wing, designation remark, additional charges",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/api/v1/profile/photo": {
+      "post": {
+        "description": "Real type checked by magic bytes; re-encoded to a 512×512 WebP (EXIF/GPS removed). Served at /uploads/<photoPath>. The previous photo is deleted.",
+        "operationId": "ProfileController_uploadPhoto",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoUploadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file, not a real JPEG/PNG/WebP, or unreadable"
+          },
+          "413": {
+            "description": "Larger than MAX_UPLOAD_MB"
+          },
+          "429": {
+            "description": "Too many uploads"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload my photo (JPEG/PNG/WebP)",
+        "tags": [
+          "Profile"
+        ]
+      },
+      "delete": {
+        "operationId": "ProfileController_deletePhoto",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove my photo",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/api/v1/profile/notification-email": {
+      "post": {
+        "description": "Sends a verification link (valid 24 h) to the NEW address and a notice to the current one. Until verified, mail keeps going to the current address. Login email is never changed.",
+        "operationId": "ProfileController_requestNotificationEmail",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeNotificationEmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email or the same as now"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Request a new notification email",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/api/v1/profile/notification-email/verify": {
+      "get": {
+        "description": "Works once; expires 24 h after the request. No login needed.",
+        "operationId": "ProfileController_verifyNotificationEmail",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "query",
+            "description": "Token from the verification link (?token=...)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid, used or expired token"
+          }
+        },
+        "security": [],
+        "summary": "Confirm the new notification email (link from the mail, public)",
+        "tags": [
+          "Profile"
+        ],
+        "x-access": "public"
+      }
+    },
+    "/api/v1/profile/change-requests": {
+      "post": {
+        "description": "LOGIN_EMAIL: send `loginEmail` (valid, not used by anyone). DESIGNATION: send `designationId` (active, different from yours). Only one PENDING request per type.",
+        "operationId": "ProfileController_createChangeRequest",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChangeRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeRequestResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid value / same as now / inactive designation"
+          },
+          "409": {
+            "description": "Email already used, or a request of this type is pending"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Request a login-email or designation change (needs admin approval)",
+        "tags": [
+          "Profile"
+        ]
+      },
+      "get": {
+        "operationId": "ProfileController_myChangeRequests",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChangeRequestResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My change requests (newest first)",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/api/v1/profile/change-requests/{id}": {
+      "delete": {
+        "operationId": "ProfileController_cancelChangeRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeRequestResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such request of mine"
+          },
+          "409": {
+            "description": "Already decided or cancelled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel my own PENDING change request",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/api/v1/change-requests": {
+      "get": {
+        "description": "Example: `?status=PENDING&type=DESIGNATION&page=1&limit=20`",
+        "operationId": "ChangeRequestsController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "PENDING",
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "APPROVED",
+                "REJECTED",
+                "CANCELLED"
+              ]
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "LOGIN_EMAIL",
+                "DESIGNATION"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ChangeRequestResponseDto"
+                          }
+                        }
+                      },
+                      "required": [
+                        "items"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List change requests with current vs requested value (ADMIN)",
+        "tags": [
+          "Change requests (admin)"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/change-requests/{id}/approve": {
+      "post": {
+        "description": "LOGIN_EMAIL: the email must still be free; the user is logged out everywhere and both addresses get a mail. DESIGNATION: the designation must still be active. You cannot approve your own request.",
+        "operationId": "ChangeRequestsController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveChangeRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeRequestResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin, or your own request"
+          },
+          "404": {
+            "description": "Request not found"
+          },
+          "409": {
+            "description": "Already decided, email taken meanwhile, or designation no longer active"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve: re-validate and apply the change (ADMIN)",
+        "tags": [
+          "Change requests (admin)"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/change-requests/{id}/reject": {
+      "post": {
+        "operationId": "ChangeRequestsController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectChangeRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeRequestResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Note missing or too short"
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "404": {
+            "description": "Request not found"
+          },
+          "409": {
+            "description": "Already decided"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reject with a required note (ADMIN)",
+        "tags": [
+          "Change requests (admin)"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/meetings/today": {
+      "get": {
+        "operationId": "MeetingsController_today",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeetingSummaryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My meetings today (Asia/Dhaka day), ordered by start — dashboard default",
+        "tags": [
+          "Meetings"
+        ]
+      }
+    },
+    "/api/v1/meetings": {
+      "get": {
+        "description": "Example: `?from=2026-12-01T00:00:00%2B06:00&to=2026-12-08T00:00:00%2B06:00&status=SCHEDULED&role=organizer`. ADMIN may pass `scope=all`.",
+        "operationId": "MeetingsController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Meetings ending after this",
+            "schema": {
+              "example": "2026-12-01T00:00:00+06:00",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Meetings starting before this",
+            "schema": {
+              "example": "2026-12-31T23:59:59+06:00",
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SCHEDULED",
+                "CANCELLED",
+                "COMPLETED"
+              ]
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "organizer = I organize; participant = I am invited (not organizer)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "organizer",
+                "participant"
+              ]
+            }
+          },
+          {
+            "name": "scope",
+            "required": false,
+            "in": "query",
+            "description": "all = every meeting (ADMIN only)",
+            "schema": {
+              "default": "mine",
+              "type": "string",
+              "enum": [
+                "mine",
+                "all"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/MeetingSummaryDto"
+                          }
+                        }
+                      },
+                      "required": [
+                        "items"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "scope=all without admin rights"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My meetings by range",
+        "tags": [
+          "Meetings"
+        ]
+      },
+      "post": {
+        "description": "Conflict rule: for every overlapping SCHEDULED meeting that shares a person (organizer, chair or participant): if this meeting has a SMALLER priority number (higher rank) it is saved and the other meeting's people are asked to cancel/reschedule; equal or larger number → 409 and nothing is saved. Touching times (11:00–12:00 after 10:00–11:00) do not clash.",
+        "operationId": "MeetingsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeetingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation: times, duration, people"
+          },
+          "403": {
+            "description": "SUPER_ADMIN (system account) cannot organize"
+          },
+          "409": {
+            "description": "Blocked by an equal/higher-priority meeting",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingConflictErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a meeting (you are the organizer; priority = your designation priority now)",
+        "tags": [
+          "Meetings"
+        ]
+      }
+    },
+    "/api/v1/meetings/check-conflicts": {
+      "post": {
+        "description": "Conflict rule: for every overlapping SCHEDULED meeting that shares a person (organizer, chair or participant): if this meeting has a SMALLER priority number (higher rank) it is saved and the other meeting's people are asked to cancel/reschedule; equal or larger number → 409 and nothing is saved. Touching times (11:00–12:00 after 10:00–11:00) do not clash. When editing, send `meetingId`.",
+        "operationId": "MeetingsController_checkConflicts",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckConflictsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckConflictsResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid times or people"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dry run of the conflict engine (nothing is saved)",
+        "tags": [
+          "Meetings"
+        ]
+      }
+    },
+    "/api/v1/meetings/{id}": {
+      "get": {
+        "operationId": "MeetingsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found — also when you are not one of its people"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Meeting detail with people, chair and conflicts (its people and admins only)",
+        "tags": [
+          "Meetings"
+        ]
+      },
+      "patch": {
+        "description": "Re-runs the engine when time or people change. Conflict rule: for every overlapping SCHEDULED meeting that shares a person (organizer, chair or participant): if this meeting has a SMALLER priority number (higher rank) it is saved and the other meeting's people are asked to cancel/reschedule; equal or larger number → 409 and nothing is saved. Touching times (11:00–12:00 after 10:00–11:00) do not clash.",
+        "operationId": "MeetingsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeetingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingDetailDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the organizer / admin"
+          },
+          "404": {
+            "description": "Not found or not visible"
+          },
+          "409": {
+            "description": "Blocked, cancelled/completed, or already ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingConflictErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update (organizer or ADMIN; not after the meeting ended)",
+        "tags": [
+          "Meetings"
+        ]
+      },
+      "delete": {
+        "operationId": "MeetingsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Hard delete (ADMIN); participants and conflicts are deleted too",
+        "tags": [
+          "Meetings"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/meetings/{id}/cancel": {
+      "post": {
+        "operationId": "MeetingsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelMeetingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingDetailDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the organizer / admin"
+          },
+          "404": {
+            "description": "Not found or not visible"
+          },
+          "409": {
+            "description": "Not SCHEDULED"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel with a reason (organizer or ADMIN); resolves its conflicts",
+        "tags": [
+          "Meetings"
+        ]
+      }
+    },
+    "/api/v1/meetings/{id}/complete": {
+      "post": {
+        "operationId": "MeetingsController_complete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteMeetingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingDetailDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the organizer / admin"
+          },
+          "409": {
+            "description": "Not started yet, or cancelled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark completed and save notes/minutes (after the start; organizer or ADMIN)",
+        "tags": [
+          "Meetings"
+        ]
+      }
+    },
+    "/api/v1/conflicts/mine": {
+      "get": {
+        "operationId": "ConflictsController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConflictListItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pending conflicts on meetings I organize (lower meeting) or where I am the shared officer",
+        "tags": [
+          "Conflicts"
+        ]
+      }
+    },
+    "/api/v1/conflicts": {
+      "get": {
+        "operationId": "ConflictsController_all",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "RESOLVED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ConflictListItemDto"
+                          }
+                        }
+                      },
+                      "required": [
+                        "items"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "All conflicts (ADMIN), `?status=PENDING`",
+        "tags": [
+          "Conflicts"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/reports/me": {
+      "get": {
+        "description": "Meetings where I am organizer, chair or participant and that START in the period (Asia/Dhaka). Example: `?period=month&date=2026-12-01`.",
+        "operationId": "ReportsController_me",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "period",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "month",
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "year",
+                "fiscal-year"
+              ]
+            }
+          },
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-01",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalReportDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My report: summary + meeting list for a period",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/me/pdf": {
+      "get": {
+        "operationId": "ReportsController_mePdf",
+        "parameters": [
+          {
+            "name": "period",
+            "required": false,
+            "in": "query",
+            "description": "Week = Sunday–Saturday; fiscal-year = July–June (Asia/Dhaka)",
+            "schema": {
+              "default": "month",
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "year",
+                "fiscal-year"
+              ]
+            }
+          },
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "Any day inside the period (default: today in Dhaka)",
+            "schema": {
+              "example": "2026-12-01",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A4 PDF (Bangla), downloaded as an attachment",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "PDF rendering took longer than 30 s"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My report as PDF",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/office": {
+      "get": {
+        "operationId": "ReportsController_office",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "period",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "month",
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "year",
+                "fiscal-year"
+              ]
+            }
+          },
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "wingId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "designationId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfficeReportDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Office-wide report (ADMIN), filterable by the organizer’s wing and designation",
+        "tags": [
+          "Reports"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/reports/office/pdf": {
+      "get": {
+        "operationId": "ReportsController_officePdf",
+        "parameters": [
+          {
+            "name": "period",
+            "required": false,
+            "in": "query",
+            "description": "Week = Sunday–Saturday; fiscal-year = July–June (Asia/Dhaka)",
+            "schema": {
+              "default": "month",
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "year",
+                "fiscal-year"
+              ]
+            }
+          },
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "Any day inside the period (default: today in Dhaka)",
+            "schema": {
+              "example": "2026-12-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "wingId",
+            "required": false,
+            "in": "query",
+            "description": "Organizer's wing",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "designationId",
+            "required": false,
+            "in": "query",
+            "description": "Organizer's designation",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A4 PDF (Bangla), downloaded as an attachment",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "503": {
+            "description": "PDF rendering took longer than 30 s"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Office report as PDF (ADMIN)",
+        "tags": [
+          "Reports"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/admin/stats": {
+      "get": {
+        "description": "Users, meetings today / this week (Asia/Dhaka), pending conflicts and change requests, failed mails.",
+        "operationId": "AdminController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStatsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dashboard counters (ADMIN)",
+        "tags": [
+          "Admin"
+        ],
+        "x-access": "ADMIN"
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "API is up and the database answers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "Database is unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "API and database status (public)",
+        "tags": [
+          "Health"
+        ],
+        "x-access": "public"
+      }
+    }
+  },
+  "info": {
+    "title": "BBS Meeting Schedule API",
+    "description": "Bangladesh Bureau of Statistics (BBS) and SID — meeting schedule system. Errors: `{ statusCode, message, error, requestId }` (409 meeting clashes add `blocking`).",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "PaginatedResponseDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 136,
+            "description": "Total matching rows"
+          },
+          "page": {
+            "type": "number",
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "example": 20
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 7
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "AuditActorDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn"
+        ]
+      },
+      "AuditLogItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "LOGIN_SUCCESS",
+              "LOGIN_FAILED",
+              "REFRESH_TOKEN_REUSE",
+              "PASSWORD_CHANGE",
+              "PASSWORD_RESET_REQUEST",
+              "PASSWORD_RESET",
+              "USER_CREATE",
+              "USER_UPDATE",
+              "USER_STATUS_CHANGE",
+              "USER_ROLE_CHANGE",
+              "USER_PASSWORD_RESET_BY_ADMIN",
+              "DESIGNATION_CREATE",
+              "DESIGNATION_UPDATE",
+              "DESIGNATION_PRIORITY_CHANGE",
+              "DESIGNATION_DELETE",
+              "WING_CREATE",
+              "WING_UPDATE",
+              "WING_DELETE",
+              "PROFILE_UPDATE",
+              "PROFILE_PHOTO_UPDATE",
+              "PROFILE_PHOTO_DELETE",
+              "NOTIFICATION_EMAIL_CHANGE_REQUEST",
+              "NOTIFICATION_EMAIL_VERIFIED",
+              "CHANGE_REQUEST_CREATE",
+              "CHANGE_REQUEST_CANCEL",
+              "CHANGE_REQUEST_APPROVE",
+              "CHANGE_REQUEST_REJECT",
+              "EMAIL_RETRY",
+              "MEETING_CREATE",
+              "MEETING_UPDATE",
+              "MEETING_CANCEL",
+              "MEETING_COMPLETE",
+              "MEETING_DELETE",
+              "CONFLICT_CREATED",
+              "CONFLICT_RESOLVED"
+            ],
+            "example": "MEETING_CREATE"
+          },
+          "entityType": {
+            "type": "string",
+            "example": "meeting"
+          },
+          "entityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "actor": {
+            "nullable": true,
+            "description": "null = system / unknown user",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuditActorDto"
+              }
+            ]
+          },
+          "before": {
+            "type": "object",
+            "nullable": true,
+            "description": "Secrets removed, phone numbers masked"
+          },
+          "after": {
+            "type": "object",
+            "nullable": true,
+            "description": "Secrets removed, phone numbers masked"
+          },
+          "ip": {
+            "type": "string",
+            "nullable": true,
+            "example": "10.0.0.5"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "entityType",
+          "entityId",
+          "actor",
+          "before",
+          "after",
+          "ip",
+          "createdAt"
+        ]
+      },
+      "EmailOutboxItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "to": {
+            "type": "string",
+            "example": "rahim@bbs.gov.bd"
+          },
+          "subject": {
+            "type": "string",
+            "example": "পাসওয়ার্ড রিসেট"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SENT",
+              "FAILED"
+            ]
+          },
+          "attempts": {
+            "type": "number",
+            "example": 2
+          },
+          "lastError": {
+            "type": "string",
+            "nullable": true,
+            "example": "ECONNECTION Connection timeout"
+          },
+          "nextAttemptAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "to",
+          "subject",
+          "status",
+          "attempts",
+          "lastError",
+          "nextAttemptAt",
+          "sentAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "NotificationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "example": "CHANGE_REQUEST_APPROVED"
+          },
+          "title": {
+            "type": "string",
+            "example": "আপনার পদবি পরিবর্তনের অনুরোধ অনুমোদিত হয়েছে"
+          },
+          "body": {
+            "type": "string",
+            "example": "পরিবর্তনটি কার্যকর করা হয়েছে।"
+          },
+          "link": {
+            "type": "string",
+            "nullable": true,
+            "example": "/profile/change-requests"
+          },
+          "readAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "null = unread"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "title",
+          "body",
+          "link",
+          "readAt",
+          "createdAt"
+        ]
+      },
+      "UnreadCountDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number",
+            "example": 3
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "MarkAllReadResponseDto": {
+        "type": "object",
+        "properties": {
+          "updated": {
+            "type": "number",
+            "example": 5,
+            "description": "How many notifications were marked read"
+          }
+        },
+        "required": [
+          "updated"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "loginEmail": {
+            "type": "string",
+            "example": "admin@bbs.gov.bd",
+            "description": "Login email (case-insensitive)"
+          },
+          "password": {
+            "type": "string",
+            "example": "Secret1234",
+            "format": "password"
+          }
+        },
+        "required": [
+          "loginEmail",
+          "password"
+        ]
+      },
+      "MeDesignationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "উপপরিচালক"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Deputy Director"
+          },
+          "priority": {
+            "type": "number",
+            "example": 6,
+            "description": "Lower = higher priority"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn",
+          "priority"
+        ]
+      },
+      "MeWingDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "কম্পিউটার উইং"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Computer Wing"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn"
+        ]
+      },
+      "MeResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "loginEmail": {
+            "type": "string",
+            "example": "officer@bbs.gov.bd"
+          },
+          "notificationEmail": {
+            "type": "string",
+            "example": "officer@bbs.gov.bd"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SUPER_ADMIN",
+              "ADMIN",
+              "OFFICER"
+            ],
+            "example": "OFFICER"
+          },
+          "mustChangePassword": {
+            "type": "boolean",
+            "example": false
+          },
+          "designation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MeDesignationDto"
+              }
+            ]
+          },
+          "wing": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MeWingDto"
+              }
+            ]
+          },
+          "priority": {
+            "type": "number",
+            "nullable": true,
+            "example": 6,
+            "description": "Meeting priority from the designation (null for the super admin)"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "loginEmail",
+          "notificationEmail",
+          "nameBn",
+          "nameEn",
+          "role",
+          "mustChangePassword",
+          "designation",
+          "wing",
+          "priority",
+          "lastLoginAt"
+        ]
+      },
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "description": "Paste into Swagger \"Authorize\" (also set as httpOnly cookie)"
+          },
+          "tokenType": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "expiresIn": {
+            "type": "number",
+            "example": 900,
+            "description": "Access token lifetime in seconds"
+          },
+          "mustChangePassword": {
+            "type": "boolean",
+            "example": true,
+            "description": "If true, call /auth/change-password first"
+          },
+          "user": {
+            "$ref": "#/components/schemas/MeResponseDto"
+          }
+        },
+        "required": [
+          "accessToken",
+          "tokenType",
+          "expiresIn",
+          "mustChangePassword",
+          "user"
+        ]
+      },
+      "AccessTokenResponseDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "description": "Paste into Swagger \"Authorize\" (also set as httpOnly cookie)"
+          },
+          "tokenType": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "expiresIn": {
+            "type": "number",
+            "example": 900,
+            "description": "Access token lifetime in seconds"
+          }
+        },
+        "required": [
+          "accessToken",
+          "tokenType",
+          "expiresIn"
+        ]
+      },
+      "MessageResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "আপনি লগআউট করেছেন।"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "example": "OldSecret123",
+            "format": "password"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NewSecret456",
+            "format": "password",
+            "description": "At least 8 characters with letters and digits; not equal to the login email"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "ChangePasswordResponseDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "description": "Paste into Swagger \"Authorize\" (also set as httpOnly cookie)"
+          },
+          "tokenType": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "expiresIn": {
+            "type": "number",
+            "example": 900,
+            "description": "Access token lifetime in seconds"
+          },
+          "message": {
+            "type": "string",
+            "example": "পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।"
+          }
+        },
+        "required": [
+          "accessToken",
+          "tokenType",
+          "expiresIn",
+          "message"
+        ]
+      },
+      "ForgotPasswordDto": {
+        "type": "object",
+        "properties": {
+          "loginEmail": {
+            "type": "string",
+            "example": "officer@bbs.gov.bd",
+            "description": "Login email of the account"
+          }
+        },
+        "required": [
+          "loginEmail"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "q3Zr0Vx9mXbH1a2c3d4e5f6g7h8i9j0kLmNoPqRsTuV",
+            "description": "Token from the reset link (?token=...)"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NewSecret456",
+            "format": "password",
+            "description": "At least 8 characters with letters and digits; not equal to the login email"
+          }
+        },
+        "required": [
+          "token",
+          "newPassword"
+        ]
+      },
+      "DirectoryDesignationDto": {
+        "type": "object",
+        "properties": {
+          "nameBn": {
+            "type": "string",
+            "example": "উপপরিচালক"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Deputy Director"
+          },
+          "priority": {
+            "type": "number",
+            "example": 6
+          }
+        },
+        "required": [
+          "nameBn",
+          "nameEn",
+          "priority"
+        ]
+      },
+      "WingRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "কম্পিউটার উইং"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Computer Wing"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn"
+        ]
+      },
+      "DirectoryEntryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "designation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DirectoryDesignationDto"
+              }
+            ]
+          },
+          "wing": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WingRefDto"
+              }
+            ]
+          },
+          "photoPath": {
+            "type": "string",
+            "nullable": true,
+            "description": "Served from step 6 on"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn",
+          "designation",
+          "wing",
+          "photoPath"
+        ]
+      },
+      "Object": {
+        "type": "object",
+        "properties": {}
+      },
+      "DesignationRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "উপপরিচালক"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Deputy Director"
+          },
+          "priority": {
+            "type": "number",
+            "example": 6
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn",
+          "priority"
+        ]
+      },
+      "UserSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "loginEmail": {
+            "type": "string",
+            "example": "rahim.uddin@bbs.gov.bd"
+          },
+          "notificationEmail": {
+            "type": "string",
+            "example": "rahim.uddin@bbs.gov.bd"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "mobile": {
+            "type": "string",
+            "nullable": true,
+            "example": "01712345678"
+          },
+          "designation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DesignationRefDto"
+              }
+            ]
+          },
+          "designationRemark": {
+            "type": "string",
+            "nullable": true,
+            "example": "চলতি দায়িত্ব"
+          },
+          "wing": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WingRefDto"
+              }
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SUPER_ADMIN",
+              "ADMIN",
+              "OFFICER"
+            ],
+            "example": "OFFICER"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "mustChangePassword": {
+            "type": "boolean",
+            "example": true
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "loginEmail",
+          "notificationEmail",
+          "nameBn",
+          "nameEn",
+          "mobile",
+          "designation",
+          "designationRemark",
+          "wing",
+          "role",
+          "isActive",
+          "mustChangePassword",
+          "lastLoginAt",
+          "createdAt"
+        ]
+      },
+      "AdditionalChargeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": {
+            "type": "string",
+            "example": "ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল"
+          }
+        },
+        "required": [
+          "id",
+          "description"
+        ]
+      },
+      "UserDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "loginEmail": {
+            "type": "string",
+            "example": "rahim.uddin@bbs.gov.bd"
+          },
+          "notificationEmail": {
+            "type": "string",
+            "example": "rahim.uddin@bbs.gov.bd"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "mobile": {
+            "type": "string",
+            "nullable": true,
+            "example": "01712345678"
+          },
+          "designation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DesignationRefDto"
+              }
+            ]
+          },
+          "designationRemark": {
+            "type": "string",
+            "nullable": true,
+            "example": "চলতি দায়িত্ব"
+          },
+          "wing": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WingRefDto"
+              }
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SUPER_ADMIN",
+              "ADMIN",
+              "OFFICER"
+            ],
+            "example": "OFFICER"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "mustChangePassword": {
+            "type": "boolean",
+            "example": true
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pendingNotificationEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "mobileAlt": {
+            "type": "string",
+            "nullable": true,
+            "example": "01812345678"
+          },
+          "officePhone": {
+            "type": "string",
+            "nullable": true,
+            "example": "+880 2 55007373"
+          },
+          "fax": {
+            "type": "string",
+            "nullable": true,
+            "example": "+880 2 55007375"
+          },
+          "photoPath": {
+            "type": "string",
+            "nullable": true,
+            "description": "Served from step 6 on"
+          },
+          "organizationBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "বাংলাদেশ পরিসংখ্যান ব্যুরো"
+          },
+          "organizationEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Bangladesh Bureau of Statistics"
+          },
+          "bcsBatch": {
+            "type": "string",
+            "nullable": true,
+            "example": "২৭তম"
+          },
+          "failedLoginCount": {
+            "type": "number",
+            "example": 0,
+            "description": "Consecutive failed logins"
+          },
+          "additionalCharges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdditionalChargeDto"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "loginEmail",
+          "notificationEmail",
+          "nameBn",
+          "nameEn",
+          "mobile",
+          "designation",
+          "designationRemark",
+          "wing",
+          "role",
+          "isActive",
+          "mustChangePassword",
+          "lastLoginAt",
+          "createdAt",
+          "pendingNotificationEmail",
+          "mobileAlt",
+          "officePhone",
+          "fax",
+          "photoPath",
+          "organizationBn",
+          "organizationEn",
+          "bcsBatch",
+          "failedLoginCount",
+          "additionalCharges",
+          "updatedAt"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "loginEmail": {
+            "type": "string",
+            "example": "rahim.uddin@bbs.gov.bd",
+            "description": "Unique, stored lowercase"
+          },
+          "notificationEmail": {
+            "type": "string",
+            "example": "rahim.personal@gmail.com",
+            "description": "Where mail is sent. Defaults to loginEmail."
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "designationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Must be an active designation"
+          },
+          "designationRemark": {
+            "type": "string",
+            "nullable": true,
+            "example": "চলতি দায়িত্ব"
+          },
+          "wingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "mobile": {
+            "type": "string",
+            "nullable": true,
+            "example": "01712345678",
+            "description": "Bangladesh mobile. Bangla/English digits, +880 accepted; stored as 01XXXXXXXXX"
+          },
+          "mobileAlt": {
+            "type": "string",
+            "nullable": true,
+            "example": "01812345678",
+            "description": "Bangladesh mobile. Bangla/English digits, +880 accepted; stored as 01XXXXXXXXX"
+          },
+          "officePhone": {
+            "type": "string",
+            "nullable": true,
+            "example": "+880 2 55007373"
+          },
+          "fax": {
+            "type": "string",
+            "nullable": true,
+            "example": "+880 2 55007375"
+          },
+          "organizationBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "বাংলাদেশ পরিসংখ্যান ব্যুরো"
+          },
+          "organizationEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Bangladesh Bureau of Statistics"
+          },
+          "bcsBatch": {
+            "type": "string",
+            "nullable": true,
+            "example": "২৭তম"
+          },
+          "additionalCharges": {
+            "example": [
+              "ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল"
+            ],
+            "description": "Replaces the whole list. Empty entries and duplicates are removed.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "loginEmail",
+          "nameBn",
+          "nameEn",
+          "designationId"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "loginEmail": {
+            "type": "string",
+            "example": "rahim.uddin@bbs.gov.bd",
+            "description": "Unique, stored lowercase"
+          },
+          "notificationEmail": {
+            "type": "string",
+            "example": "rahim.personal@gmail.com",
+            "description": "Where mail is sent. Defaults to loginEmail."
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "designationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Must be an active designation"
+          },
+          "designationRemark": {
+            "type": "string",
+            "nullable": true,
+            "example": "চলতি দায়িত্ব"
+          },
+          "wingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "mobile": {
+            "type": "string",
+            "nullable": true,
+            "example": "01712345678",
+            "description": "Bangladesh mobile. Bangla/English digits, +880 accepted; stored as 01XXXXXXXXX"
+          },
+          "mobileAlt": {
+            "type": "string",
+            "nullable": true,
+            "example": "01812345678",
+            "description": "Bangladesh mobile. Bangla/English digits, +880 accepted; stored as 01XXXXXXXXX"
+          },
+          "officePhone": {
+            "type": "string",
+            "nullable": true,
+            "example": "+880 2 55007373"
+          },
+          "fax": {
+            "type": "string",
+            "nullable": true,
+            "example": "+880 2 55007375"
+          },
+          "organizationBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "বাংলাদেশ পরিসংখ্যান ব্যুরো"
+          },
+          "organizationEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Bangladesh Bureau of Statistics"
+          },
+          "bcsBatch": {
+            "type": "string",
+            "nullable": true,
+            "example": "২৭তম"
+          },
+          "additionalCharges": {
+            "example": [
+              "ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল"
+            ],
+            "description": "Replaces the whole list. Empty entries and duplicates are removed.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "UpdateUserStatusDto": {
+        "type": "object",
+        "properties": {
+          "isActive": {
+            "type": "boolean",
+            "example": false,
+            "description": "false = deactivate (ends all sessions)"
+          }
+        },
+        "required": [
+          "isActive"
+        ]
+      },
+      "UpdateUserRoleDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "OFFICER"
+            ],
+            "example": "ADMIN"
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "UserMessageResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "অস্থায়ী পাসওয়ার্ড তৈরি করে ব্যবহারকারীর নোটিফিকেশন ইমেইলে পাঠানো হয়েছে। প্রথম লগইনে পাসওয়ার্ড পরিবর্তন করতে হবে।"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "DesignationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "উপপরিচালক"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Deputy Director"
+          },
+          "priority": {
+            "type": "number",
+            "example": 6
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "userCount": {
+            "type": "number",
+            "example": 41,
+            "description": "Users that currently have this designation"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn",
+          "priority",
+          "isActive",
+          "userCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateDesignationDto": {
+        "type": "object",
+        "properties": {
+          "nameBn": {
+            "type": "string",
+            "example": "উপপরিচালক"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Deputy Director",
+            "description": "Unique (case-insensitive)"
+          },
+          "priority": {
+            "type": "number",
+            "example": 6,
+            "minimum": 1,
+            "maximum": 999,
+            "description": "Lower number = higher meeting priority"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "default": true
+          }
+        },
+        "required": [
+          "nameBn",
+          "nameEn",
+          "priority"
+        ]
+      },
+      "UpdateDesignationDto": {
+        "type": "object",
+        "properties": {
+          "nameBn": {
+            "type": "string",
+            "example": "উপপরিচালক"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Deputy Director",
+            "description": "Unique (case-insensitive)"
+          },
+          "priority": {
+            "type": "number",
+            "example": 6,
+            "minimum": 1,
+            "maximum": 999,
+            "description": "Lower number = higher meeting priority"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "default": true
+          }
+        }
+      },
+      "WingResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "কম্পিউটার উইং"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Computer Wing"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "userCount": {
+            "type": "number",
+            "example": 23,
+            "description": "Users that currently belong to this wing"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn",
+          "isActive",
+          "userCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateWingDto": {
+        "type": "object",
+        "properties": {
+          "nameBn": {
+            "type": "string",
+            "example": "কম্পিউটার উইং"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Computer Wing",
+            "description": "Unique (case-insensitive)"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "default": true
+          }
+        },
+        "required": [
+          "nameBn",
+          "nameEn"
+        ]
+      },
+      "UpdateWingDto": {
+        "type": "object",
+        "properties": {
+          "nameBn": {
+            "type": "string",
+            "example": "কম্পিউটার উইং"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Computer Wing",
+            "description": "Unique (case-insensitive)"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "default": true
+          }
+        }
+      },
+      "ProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "loginEmail": {
+            "type": "string",
+            "example": "rahim.uddin@bbs.gov.bd"
+          },
+          "notificationEmail": {
+            "type": "string",
+            "example": "rahim.uddin@bbs.gov.bd"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "mobile": {
+            "type": "string",
+            "nullable": true,
+            "example": "01712345678"
+          },
+          "designation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DesignationRefDto"
+              }
+            ]
+          },
+          "designationRemark": {
+            "type": "string",
+            "nullable": true,
+            "example": "চলতি দায়িত্ব"
+          },
+          "wing": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WingRefDto"
+              }
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SUPER_ADMIN",
+              "ADMIN",
+              "OFFICER"
+            ],
+            "example": "OFFICER"
+          },
+          "mustChangePassword": {
+            "type": "boolean",
+            "example": true
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pendingNotificationEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "mobileAlt": {
+            "type": "string",
+            "nullable": true,
+            "example": "01812345678"
+          },
+          "officePhone": {
+            "type": "string",
+            "nullable": true,
+            "example": "+880 2 55007373"
+          },
+          "fax": {
+            "type": "string",
+            "nullable": true,
+            "example": "+880 2 55007375"
+          },
+          "photoPath": {
+            "type": "string",
+            "nullable": true,
+            "description": "Served from step 6 on"
+          },
+          "organizationBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "বাংলাদেশ পরিসংখ্যান ব্যুরো"
+          },
+          "organizationEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Bangladesh Bureau of Statistics"
+          },
+          "bcsBatch": {
+            "type": "string",
+            "nullable": true,
+            "example": "২৭তম"
+          },
+          "additionalCharges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdditionalChargeDto"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "loginEmail",
+          "notificationEmail",
+          "nameBn",
+          "nameEn",
+          "mobile",
+          "designation",
+          "designationRemark",
+          "wing",
+          "role",
+          "mustChangePassword",
+          "lastLoginAt",
+          "createdAt",
+          "pendingNotificationEmail",
+          "mobileAlt",
+          "officePhone",
+          "fax",
+          "photoPath",
+          "organizationBn",
+          "organizationEn",
+          "bcsBatch",
+          "additionalCharges",
+          "updatedAt"
+        ]
+      },
+      "UpdateProfileDto": {
+        "type": "object",
+        "properties": {
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "designationRemark": {
+            "type": "string",
+            "nullable": true,
+            "example": "চলতি দায়িত্ব"
+          },
+          "wingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "mobile": {
+            "type": "string",
+            "nullable": true,
+            "example": "01712345678",
+            "description": "Bangladesh mobile. Bangla/English digits, +880 accepted; stored as 01XXXXXXXXX"
+          },
+          "mobileAlt": {
+            "type": "string",
+            "nullable": true,
+            "example": "01812345678",
+            "description": "Bangladesh mobile. Bangla/English digits, +880 accepted; stored as 01XXXXXXXXX"
+          },
+          "officePhone": {
+            "type": "string",
+            "nullable": true,
+            "example": "+880 2 55007373"
+          },
+          "fax": {
+            "type": "string",
+            "nullable": true,
+            "example": "+880 2 55007375"
+          },
+          "additionalCharges": {
+            "example": [
+              "ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল"
+            ],
+            "description": "Replaces the whole list. Empty entries and duplicates are removed.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PhotoUploadDto": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "JPEG, PNG or WebP. Re-encoded to a 512×512 WebP; EXIF/GPS removed."
+          }
+        },
+        "required": [
+          "file"
+        ]
+      },
+      "ChangeNotificationEmailDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "rahim.personal@gmail.com",
+            "description": "New address; becomes active only after the link sent to it is clicked"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "CreateChangeRequestDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "LOGIN_EMAIL",
+              "DESIGNATION"
+            ],
+            "example": "DESIGNATION"
+          },
+          "loginEmail": {
+            "type": "string",
+            "example": "rahim.new@bbs.gov.bd",
+            "description": "Required when type = LOGIN_EMAIL. Must not be used by any account."
+          },
+          "designationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required when type = DESIGNATION. Must be active and different from yours."
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "RequesterDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "loginEmail": {
+            "type": "string",
+            "example": "rahim@bbs.gov.bd"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn",
+          "loginEmail"
+        ]
+      },
+      "ChangeValueDto": {
+        "type": "object",
+        "properties": {
+          "loginEmail": {
+            "type": "string",
+            "nullable": true,
+            "example": "rahim@bbs.gov.bd"
+          },
+          "designation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DesignationRefDto"
+              }
+            ]
+          }
+        }
+      },
+      "PersonRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn"
+        ]
+      },
+      "ChangeRequestResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "LOGIN_EMAIL",
+              "DESIGNATION"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "CANCELLED"
+            ]
+          },
+          "requester": {
+            "$ref": "#/components/schemas/RequesterDto"
+          },
+          "currentValue": {
+            "description": "The requester's value right now (after approval = the new value)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChangeValueDto"
+              }
+            ]
+          },
+          "requestedValue": {
+            "$ref": "#/components/schemas/ChangeValueDto"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonRefDto"
+              }
+            ]
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reviewNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "status",
+          "requester",
+          "currentValue",
+          "requestedValue",
+          "reviewedBy",
+          "reviewedAt",
+          "reviewNote",
+          "createdAt"
+        ]
+      },
+      "ApproveChangeRequestDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "example": "যাচাই করে অনুমোদন করা হলো।"
+          }
+        }
+      },
+      "RejectChangeRequestDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "example": "পদোন্নতির আদেশের কপি সংযুক্ত করে আবার আবেদন করুন।",
+            "description": "Required: the officer sees why"
+          }
+        },
+        "required": [
+          "note"
+        ]
+      },
+      "DesignationBriefDto": {
+        "type": "object",
+        "properties": {
+          "nameBn": {
+            "type": "string",
+            "example": "উপপরিচালক"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Deputy Director"
+          },
+          "priority": {
+            "type": "number",
+            "example": 6
+          }
+        },
+        "required": [
+          "nameBn",
+          "nameEn",
+          "priority"
+        ]
+      },
+      "PersonDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "designation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DesignationBriefDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn",
+          "designation"
+        ]
+      },
+      "MeetingSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "বার্ষিক উন্নয়ন কর্মসূচি পর্যালোচনা সভা"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "room": {
+            "type": "string",
+            "nullable": true,
+            "example": "সম্মেলন কক্ষ, ৫ম তলা"
+          },
+          "onlineLink": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://meet.google.com/abc-defg-hij"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SCHEDULED",
+              "CANCELLED",
+              "COMPLETED"
+            ]
+          },
+          "priority": {
+            "type": "number",
+            "example": 6,
+            "description": "Organizer's designation priority when the meeting was created (snapshot)"
+          },
+          "organizer": {
+            "$ref": "#/components/schemas/PersonDto"
+          },
+          "myRole": {
+            "type": "string",
+            "enum": [
+              "ORGANIZER",
+              "CHAIR",
+              "MEMBER"
+            ],
+            "nullable": true,
+            "description": "My role in this meeting (null = admin view)"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "startAt",
+          "endAt",
+          "room",
+          "onlineLink",
+          "status",
+          "priority",
+          "organizer",
+          "myRole"
+        ]
+      },
+      "CheckConflictsDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "বার্ষিক উন্নয়ন কর্মসূচি পর্যালোচনা সভা",
+            "minLength": 3,
+            "maxLength": 200
+          },
+          "agenda": {
+            "type": "string",
+            "nullable": true,
+            "example": "১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি\n২. ২০২৬-২৭ অর্থবছরের এডিপি\n৩. বিবিধ",
+            "maxLength": 5000
+          },
+          "startAt": {
+            "type": "string",
+            "example": "2026-12-01T10:30:00+06:00",
+            "description": "ISO 8601 with offset"
+          },
+          "endAt": {
+            "type": "string",
+            "example": "2026-12-01T12:00:00+06:00",
+            "description": "After startAt, at most 12 h later"
+          },
+          "room": {
+            "type": "string",
+            "nullable": true,
+            "example": "সম্মেলন কক্ষ, ৫ম তলা, পরিসংখ্যান ভবন"
+          },
+          "onlineLink": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://meet.google.com/abc-defg-hij"
+          },
+          "chairId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Chairperson (does not affect priority)"
+          },
+          "participantIds": {
+            "maxItems": 200,
+            "description": "Invited officers (ids from GET /users/directory). The organizer is added automatically.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "meetingId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Set when editing an existing meeting: it is excluded and its stored priority is used"
+          }
+        },
+        "required": [
+          "title",
+          "startAt",
+          "endAt"
+        ]
+      },
+      "ClashOrganizerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "মোঃ করিম উদ্দিন"
+          },
+          "designation": {
+            "type": "string",
+            "nullable": true,
+            "example": "উপপরিচালক"
+          }
+        },
+        "required": [
+          "name",
+          "designation"
+        ]
+      },
+      "OfficerRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ করিম"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn"
+        ]
+      },
+      "ClashDto": {
+        "type": "object",
+        "properties": {
+          "meetingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "অন্য একটি সভা",
+            "description": "Real title only if you are one of its people or an admin"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "priority": {
+            "type": "number",
+            "example": 6
+          },
+          "organizer": {
+            "$ref": "#/components/schemas/ClashOrganizerDto"
+          },
+          "sharedOfficers": {
+            "description": "Officers who are in both meetings",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfficerRefDto"
+            }
+          }
+        },
+        "required": [
+          "meetingId",
+          "title",
+          "startAt",
+          "endAt",
+          "priority",
+          "organizer",
+          "sharedOfficers"
+        ]
+      },
+      "CheckConflictsResponseDto": {
+        "type": "object",
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "example": false,
+            "description": "false = saving would give 409"
+          },
+          "blocking": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClashDto"
+            }
+          },
+          "willNotify": {
+            "description": "Lower meetings whose people would be asked to cancel/reschedule",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClashDto"
+            }
+          }
+        },
+        "required": [
+          "allowed",
+          "blocking",
+          "willNotify"
+        ]
+      },
+      "ParticipantDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "designation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DesignationBriefDto"
+              }
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ORGANIZER",
+              "CHAIR",
+              "MEMBER"
+            ],
+            "example": "MEMBER"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn",
+          "designation",
+          "role"
+        ]
+      },
+      "ConflictMeetingRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "অন্য একটি সভা",
+            "description": "Real title only for its people and admins"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "priority": {
+            "type": "number",
+            "example": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SCHEDULED",
+              "CANCELLED",
+              "COMPLETED"
+            ]
+          },
+          "organizerDesignation": {
+            "type": "object",
+            "example": "সচিব",
+            "description": "Organizer's designation (Bangla)"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "startAt",
+          "endAt",
+          "priority",
+          "status",
+          "organizerDesignation"
+        ]
+      },
+      "MeetingConflictDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RESOLVED"
+            ]
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "HIGHER",
+              "LOWER"
+            ],
+            "description": "HIGHER = this meeting overrode the other one"
+          },
+          "otherMeeting": {
+            "$ref": "#/components/schemas/ConflictMeetingRefDto"
+          },
+          "officer": {
+            "$ref": "#/components/schemas/OfficerRefDto"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "relation",
+          "otherMeeting",
+          "officer",
+          "resolvedAt"
+        ]
+      },
+      "MeetingDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "বার্ষিক উন্নয়ন কর্মসূচি পর্যালোচনা সভা"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "room": {
+            "type": "string",
+            "nullable": true,
+            "example": "সম্মেলন কক্ষ, ৫ম তলা"
+          },
+          "onlineLink": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://meet.google.com/abc-defg-hij"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SCHEDULED",
+              "CANCELLED",
+              "COMPLETED"
+            ]
+          },
+          "priority": {
+            "type": "number",
+            "example": 6,
+            "description": "Organizer's designation priority when the meeting was created (snapshot)"
+          },
+          "organizer": {
+            "$ref": "#/components/schemas/PersonDto"
+          },
+          "myRole": {
+            "type": "string",
+            "enum": [
+              "ORGANIZER",
+              "CHAIR",
+              "MEMBER"
+            ],
+            "nullable": true,
+            "description": "My role in this meeting (null = admin view)"
+          },
+          "agenda": {
+            "type": "string",
+            "nullable": true
+          },
+          "chair": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonDto"
+              }
+            ]
+          },
+          "participants": {
+            "description": "Everyone incl. organizer and chair",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParticipantDto"
+            }
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancelReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetingConflictDto"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "startAt",
+          "endAt",
+          "room",
+          "onlineLink",
+          "status",
+          "priority",
+          "organizer",
+          "myRole",
+          "agenda",
+          "chair",
+          "participants",
+          "notes",
+          "cancelReason",
+          "cancelledAt",
+          "completedAt",
+          "conflicts",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateMeetingDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "বার্ষিক উন্নয়ন কর্মসূচি পর্যালোচনা সভা",
+            "minLength": 3,
+            "maxLength": 200
+          },
+          "agenda": {
+            "type": "string",
+            "nullable": true,
+            "example": "১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি\n২. ২০২৬-২৭ অর্থবছরের এডিপি\n৩. বিবিধ",
+            "maxLength": 5000
+          },
+          "startAt": {
+            "type": "string",
+            "example": "2026-12-01T10:30:00+06:00",
+            "description": "ISO 8601 with offset"
+          },
+          "endAt": {
+            "type": "string",
+            "example": "2026-12-01T12:00:00+06:00",
+            "description": "After startAt, at most 12 h later"
+          },
+          "room": {
+            "type": "string",
+            "nullable": true,
+            "example": "সম্মেলন কক্ষ, ৫ম তলা, পরিসংখ্যান ভবন"
+          },
+          "onlineLink": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://meet.google.com/abc-defg-hij"
+          },
+          "chairId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Chairperson (does not affect priority)"
+          },
+          "participantIds": {
+            "maxItems": 200,
+            "description": "Invited officers (ids from GET /users/directory). The organizer is added automatically.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "startAt",
+          "endAt"
+        ]
+      },
+      "MeetingConflictErrorDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 409
+          },
+          "message": {
+            "type": "string",
+            "example": "নির্বাচিত সময়ে এক বা একাধিক কর্মকর্তার সমান বা উচ্চতর অগ্রাধিকারের সভা আছে। সময় বা অংশগ্রহণকারী পরিবর্তন করুন।"
+          },
+          "error": {
+            "type": "string",
+            "example": "Conflict"
+          },
+          "blocking": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClashDto"
+            }
+          }
+        },
+        "required": [
+          "statusCode",
+          "message",
+          "error",
+          "blocking"
+        ]
+      },
+      "UpdateMeetingDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "বার্ষিক উন্নয়ন কর্মসূচি পর্যালোচনা সভা",
+            "minLength": 3,
+            "maxLength": 200
+          },
+          "agenda": {
+            "type": "string",
+            "nullable": true,
+            "example": "১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি\n২. ২০২৬-২৭ অর্থবছরের এডিপি\n৩. বিবিধ",
+            "maxLength": 5000
+          },
+          "startAt": {
+            "type": "string",
+            "example": "2026-12-01T10:30:00+06:00",
+            "description": "ISO 8601 with offset"
+          },
+          "endAt": {
+            "type": "string",
+            "example": "2026-12-01T12:00:00+06:00",
+            "description": "After startAt, at most 12 h later"
+          },
+          "room": {
+            "type": "string",
+            "nullable": true,
+            "example": "সম্মেলন কক্ষ, ৫ম তলা, পরিসংখ্যান ভবন"
+          },
+          "onlineLink": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://meet.google.com/abc-defg-hij"
+          },
+          "chairId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Chairperson (does not affect priority)"
+          },
+          "participantIds": {
+            "maxItems": 200,
+            "description": "Invited officers (ids from GET /users/directory). The organizer is added automatically.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "CancelMeetingDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "মাননীয় সচিব মহোদয়ের জরুরি সভার কারণে স্থগিত।",
+            "minLength": 3
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "CompleteMeetingDto": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "object",
+            "example": "সিদ্ধান্ত: ১. এডিপি সংশোধনী প্রস্তাব ১৫ ডিসেম্বরের মধ্যে পাঠানো হবে।",
+            "description": "Notes / minutes"
+          }
+        }
+      },
+      "ConflictListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RESOLVED"
+            ]
+          },
+          "officer": {
+            "description": "The officer who is in both meetings",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OfficerRefDto"
+              }
+            ]
+          },
+          "higherMeeting": {
+            "description": "The higher-priority meeting",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConflictMeetingRefDto"
+              }
+            ]
+          },
+          "lowerMeeting": {
+            "description": "The meeting asked to cancel/reschedule",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConflictMeetingRefDto"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "officer",
+          "higherMeeting",
+          "lowerMeeting",
+          "createdAt",
+          "resolvedAt"
+        ]
+      },
+      "PeriodDto": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year",
+              "fiscal-year"
+            ],
+            "example": "month"
+          },
+          "date": {
+            "type": "string",
+            "example": "2026-12-01"
+          },
+          "labelBn": {
+            "type": "string",
+            "example": "ডিসেম্বর ২০২৬"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inclusive start (UTC)"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusive end (UTC)"
+          }
+        },
+        "required": [
+          "period",
+          "date",
+          "labelBn",
+          "from",
+          "to"
+        ]
+      },
+      "ReportOfficerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ ফিরোজ সরকার"
+          },
+          "designationBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "সচিব"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "designationBn"
+        ]
+      },
+      "StatusCountsDto": {
+        "type": "object",
+        "properties": {
+          "SCHEDULED": {
+            "type": "number",
+            "example": 3
+          },
+          "COMPLETED": {
+            "type": "number",
+            "example": 12
+          },
+          "CANCELLED": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "SCHEDULED",
+          "COMPLETED",
+          "CANCELLED"
+        ]
+      },
+      "DayCountDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "example": "2026-12-01"
+          },
+          "meetings": {
+            "type": "number",
+            "example": 2
+          },
+          "hours": {
+            "type": "number",
+            "example": 3.5
+          }
+        },
+        "required": [
+          "date",
+          "meetings",
+          "hours"
+        ]
+      },
+      "PersonalSummaryDto": {
+        "type": "object",
+        "properties": {
+          "totalMeetings": {
+            "type": "number",
+            "example": 16
+          },
+          "organized": {
+            "type": "number",
+            "example": 5
+          },
+          "attended": {
+            "type": "number",
+            "example": 11
+          },
+          "byStatus": {
+            "$ref": "#/components/schemas/StatusCountsDto"
+          },
+          "totalHours": {
+            "type": "number",
+            "example": 21.5,
+            "description": "Cancelled meetings are not counted"
+          },
+          "conflictsRaisedAgainstMyMeetings": {
+            "type": "number",
+            "example": 2,
+            "description": "Conflicts where a higher meeting overrode one of my meetings"
+          },
+          "conflictsIRaised": {
+            "type": "number",
+            "example": 1,
+            "description": "Conflicts my meetings raised against lower meetings"
+          },
+          "byDay": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayCountDto"
+            }
+          }
+        },
+        "required": [
+          "totalMeetings",
+          "organized",
+          "attended",
+          "byStatus",
+          "totalHours",
+          "conflictsRaisedAgainstMyMeetings",
+          "conflictsIRaised",
+          "byDay"
+        ]
+      },
+      "ReportMeetingDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "example": "বার্ষিক উন্নয়ন কর্মসূচি পর্যালোচনা সভা"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "room": {
+            "type": "string",
+            "nullable": true,
+            "example": "সম্মেলন কক্ষ"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SCHEDULED",
+              "CANCELLED",
+              "COMPLETED"
+            ]
+          },
+          "organizerNameBn": {
+            "type": "string",
+            "example": "মোঃ ফিরোজ সরকার"
+          },
+          "organizerDesignationBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "সচিব"
+          },
+          "myRole": {
+            "type": "string",
+            "enum": [
+              "ORGANIZER",
+              "CHAIR",
+              "MEMBER"
+            ],
+            "nullable": true,
+            "description": "Personal report only"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "startAt",
+          "endAt",
+          "room",
+          "status",
+          "organizerNameBn",
+          "organizerDesignationBn",
+          "myRole"
+        ]
+      },
+      "ReportMeetingPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportMeetingDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 16
+          },
+          "page": {
+            "type": "number",
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "example": 20
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "PersonalReportDto": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/PeriodDto"
+          },
+          "officer": {
+            "$ref": "#/components/schemas/ReportOfficerDto"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/PersonalSummaryDto"
+          },
+          "meetings": {
+            "$ref": "#/components/schemas/ReportMeetingPageDto"
+          }
+        },
+        "required": [
+          "period",
+          "officer",
+          "summary",
+          "meetings"
+        ]
+      },
+      "OfficeFiltersDto": {
+        "type": "object",
+        "properties": {
+          "wingBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "কম্পিউটার উইং"
+          },
+          "designationBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "উপপরিচালক"
+          }
+        },
+        "required": [
+          "wingBn",
+          "designationBn"
+        ]
+      },
+      "GroupCountDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "কম্পিউটার উইং"
+          },
+          "meetings": {
+            "type": "number",
+            "example": 7
+          },
+          "hours": {
+            "type": "number",
+            "example": 9.5
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "meetings",
+          "hours"
+        ]
+      },
+      "DesignationCountDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "কম্পিউটার উইং"
+          },
+          "meetings": {
+            "type": "number",
+            "example": 7
+          },
+          "hours": {
+            "type": "number",
+            "example": 9.5
+          },
+          "priority": {
+            "type": "number",
+            "nullable": true,
+            "example": 6
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "meetings",
+          "hours",
+          "priority"
+        ]
+      },
+      "OrganizerCountDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "আকলিমা খাতুন"
+          },
+          "designationBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "উপপরিচালক"
+          },
+          "meetings": {
+            "type": "number",
+            "example": 4
+          },
+          "hours": {
+            "type": "number",
+            "example": 6
+          }
+        },
+        "required": [
+          "userId",
+          "nameBn",
+          "designationBn",
+          "meetings",
+          "hours"
+        ]
+      },
+      "ConflictCountsDto": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "number",
+            "example": 2
+          },
+          "resolved": {
+            "type": "number",
+            "example": 9
+          }
+        },
+        "required": [
+          "pending",
+          "resolved"
+        ]
+      },
+      "OfficeSummaryDto": {
+        "type": "object",
+        "properties": {
+          "totalMeetings": {
+            "type": "number",
+            "example": 120
+          },
+          "byStatus": {
+            "$ref": "#/components/schemas/StatusCountsDto"
+          },
+          "totalHours": {
+            "type": "number",
+            "example": 180.5
+          },
+          "byWing": {
+            "description": "By the organizer's wing",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupCountDto"
+            }
+          },
+          "byDesignation": {
+            "description": "By the organizer's designation, priority order",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DesignationCountDto"
+            }
+          },
+          "topOrganizers": {
+            "description": "Top 10 organizers",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizerCountDto"
+            }
+          },
+          "conflicts": {
+            "$ref": "#/components/schemas/ConflictCountsDto"
+          },
+          "busiestDays": {
+            "description": "Top 5 days by number of meetings",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayCountDto"
+            }
+          }
+        },
+        "required": [
+          "totalMeetings",
+          "byStatus",
+          "totalHours",
+          "byWing",
+          "byDesignation",
+          "topOrganizers",
+          "conflicts",
+          "busiestDays"
+        ]
+      },
+      "OfficeReportDto": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/PeriodDto"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/OfficeFiltersDto"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/OfficeSummaryDto"
+          },
+          "meetings": {
+            "$ref": "#/components/schemas/ReportMeetingPageDto"
+          }
+        },
+        "required": [
+          "period",
+          "filters",
+          "summary",
+          "meetings"
+        ]
+      },
+      "UserStatsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 137
+          },
+          "active": {
+            "type": "number",
+            "example": 135
+          },
+          "inactive": {
+            "type": "number",
+            "example": 2
+          },
+          "admins": {
+            "type": "number",
+            "example": 3,
+            "description": "ADMIN + SUPER_ADMIN"
+          }
+        },
+        "required": [
+          "total",
+          "active",
+          "inactive",
+          "admins"
+        ]
+      },
+      "MeetingStatsDto": {
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "number",
+            "example": 8,
+            "description": "Not cancelled, starting today (Asia/Dhaka)"
+          },
+          "thisWeek": {
+            "type": "number",
+            "example": 41,
+            "description": "Not cancelled, starting this Sunday–Saturday week"
+          }
+        },
+        "required": [
+          "today",
+          "thisWeek"
+        ]
+      },
+      "AdminStatsDto": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "$ref": "#/components/schemas/UserStatsDto"
+          },
+          "meetings": {
+            "$ref": "#/components/schemas/MeetingStatsDto"
+          },
+          "pendingConflicts": {
+            "type": "number",
+            "example": 2
+          },
+          "pendingChangeRequests": {
+            "type": "number",
+            "example": 1
+          },
+          "failedMails": {
+            "type": "number",
+            "example": 0
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "users",
+          "meetings",
+          "pendingConflicts",
+          "pendingChangeRequests",
+          "failedMails",
+          "generatedAt"
+        ]
+      },
+      "DatabaseHealthDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ],
+            "example": "up"
+          },
+          "latencyMs": {
+            "type": "number",
+            "nullable": true,
+            "example": 3,
+            "description": "Round-trip time of SELECT 1 in milliseconds (null when down)"
+          }
+        },
+        "required": [
+          "status",
+          "latencyMs"
+        ]
+      },
+      "HealthResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ],
+            "example": "ok"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-11-08T09:00:00.000Z"
+          },
+          "uptimeSeconds": {
+            "type": "number",
+            "example": 120,
+            "description": "Process uptime in seconds"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DatabaseHealthDto"
+          }
+        },
+        "required": [
+          "status",
+          "timestamp",
+          "uptimeSeconds",
+          "database"
+        ]
+      }
+    }
+  }
+}

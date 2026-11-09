@@ -39,6 +39,11 @@ export interface EnvVars {
   SWAGGER_ENABLED: boolean;
   /** Cron jobs (mail worker, cleanups). false in e2e tests. */
   SCHEDULER_ENABLED: boolean;
+  /** Basic auth for Swagger UI (required in production when SWAGGER_ENABLED). */
+  SWAGGER_USER: string;
+  SWAGGER_PASSWORD: string;
+  /** Express 'trust proxy' (false | true | hop count | 'loopback' …), e.g. 1 behind nginx. */
+  TRUST_PROXY: boolean | number | string;
 
   SEED_SUPER_ADMIN_EMAIL: string;
   SEED_SUPER_ADMIN_PASSWORD: string;
@@ -135,6 +140,15 @@ export const envSchema = Joi.object<EnvVars>({
   // Off unless explicitly enabled (SPEC.md §9.14).
   SWAGGER_ENABLED: Joi.boolean().default(false),
   SCHEDULER_ENABLED: Joi.boolean().default(true),
+  SWAGGER_USER: Joi.string().allow('').default(''),
+  SWAGGER_PASSWORD: Joi.string().allow('').default(''),
+  TRUST_PROXY: Joi.alternatives()
+    .try(
+      Joi.boolean(),
+      Joi.number().integer().min(0).max(10),
+      Joi.string().valid('loopback', 'linklocal', 'uniquelocal'),
+    )
+    .default(false),
 
   SEED_SUPER_ADMIN_EMAIL: Joi.string()
     .email({ tlds: false })
@@ -171,5 +185,51 @@ export function validateEnv(raw: Record<string, unknown>): EnvVars {
     throw new Error(`Invalid environment configuration:\n${details}`);
   }
   // Narrowed by the check above: `value` is the validated, converted EnvVars.
-  return result.value;
+  const env = result.value;
+  const problems = productionProblems(env, raw);
+  if (problems.length > 0) {
+    throw new Error(
+      `Unsafe production configuration:\n${problems.map((p) => `  - ${p}`).join('\n')}`,
+    );
+  }
+  return env;
+}
+
+/**
+ * Extra checks when NODE_ENV=production (step 10): the app refuses to start with settings
+ * that are fine for development but dangerous on a real server.
+ */
+export function productionProblems(
+  env: EnvVars,
+  raw: Record<string, unknown>,
+): string[] {
+  if (env.NODE_ENV !== 'production') return [];
+  const problems: string[] = [];
+  if (
+    env.SWAGGER_ENABLED &&
+    (!env.SWAGGER_USER || env.SWAGGER_PASSWORD.length < 12)
+  ) {
+    problems.push(
+      'SWAGGER_ENABLED=true needs SWAGGER_USER and a SWAGGER_PASSWORD of at least 12 characters',
+    );
+  }
+  if (raw.MAIL_DRY_RUN === undefined || raw.MAIL_DRY_RUN === '') {
+    problems.push('MAIL_DRY_RUN must be set explicitly (true or false)');
+  }
+  const local = env.CORS_ORIGINS.filter((o) =>
+    /localhost|127\.0\.0\.1|\[::1\]/i.test(o),
+  );
+  if (local.length > 0)
+    problems.push(
+      `CORS_ORIGINS must not contain localhost (${local.join(', ')})`,
+    );
+  if (env.SEED_OFFICER_DEFAULT_PASSWORD) {
+    problems.push('SEED_OFFICER_DEFAULT_PASSWORD must be empty');
+  }
+  // Auth cookies are `secure` in production: they only work over HTTPS.
+  for (const key of ['APP_URL', 'FRONTEND_URL'] as const) {
+    if (!env[key].startsWith('https://'))
+      problems.push(`${key} must use https:// (secure cookies)`);
+  }
+  return problems;
 }

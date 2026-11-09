@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { DataSourceOptions } from 'typeorm';
 import { EnvVars } from '../config/env.validation';
+import { SafeTypeOrmLogger } from '../common/logging/safe-typeorm-logger';
 import { ENTITIES } from './entities';
 
 type DbEnv = Pick<
@@ -30,8 +31,10 @@ export function buildDataSourceOptions(env: DbEnv): DataSourceOptions {
     uuidExtension: 'pgcrypto',
     installExtensions: false,
     migrationsTableName: 'typeorm_migrations',
-    // Never log every query: queries can carry personal data.
+    // Never log every query, and never any parameters: they can carry personal data.
     logging: ['error', 'warn', 'migration'],
+    logger: new SafeTypeOrmLogger(),
+    maxQueryExecutionTime: 2000, // slow-query warning (SQL text only)
     extra: {
       // Fail fast instead of hanging when the DB is unreachable.
       connectionTimeoutMillis: 5000,

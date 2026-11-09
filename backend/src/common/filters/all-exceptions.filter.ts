@@ -138,7 +138,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const body = toErrorBody(exception, this.isProduction);
+    const requestId = (request as Request & { requestId?: string }).requestId;
+    const body = {
+      ...toErrorBody(exception, this.isProduction),
+      ...(requestId ? { requestId } : {}),
+    };
 
     if (body.statusCode >= 500) {
       // Log method + path only: never the query string (may hold tokens) or the body (may hold passwords).

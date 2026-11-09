@@ -48,37 +48,44 @@ There is no separate database project: TypeORM entities, migrations and seeds ar
 ## 4. Backend folder structure
 
 ```
-backend/src/
-├── main.ts                      bootstrap: helmet, CORS, cookies, ValidationPipe, Swagger, prefix /api/v1
-├── app.module.ts
-├── config/                      env validation schema + typed config
-├── database/
-│   ├── data-source.ts           TypeORM DataSource for CLI (migrations)
-│   ├── migrations/
-│   └── seeds/                   seed scripts (+ seed data files that are git-ignored)
-├── common/
-│   ├── decorators/              @CurrentUser(), @Roles(), @Public()
-│   ├── guards/                  JwtAuthGuard, RolesGuard
-│   ├── filters/                 global exception filter (Bangla-friendly messages)
-│   ├── interceptors/
-│   ├── dto/                     PaginationQueryDto, PaginatedResponseDto
-│   └── utils/                   time (Asia/Dhaka ranges), phone normalizer (Bangla digits → ASCII)
-└── modules/
-    ├── auth/
-    ├── users/
-    ├── profile/
-    ├── designations/
-    ├── wings/
-    ├── change-requests/
-    ├── meetings/                includes conflict engine (conflict.service.ts)
-    ├── notifications/
-    ├── mail/                    outbox entity, worker, templates
-    ├── reports/                 summaries + PDF
-    ├── audit/
-    └── health/
+backend/
+├── src/
+│   ├── main.ts                  bootstrap; app.setup.ts: prefix /api/v1, helmet/CSP, CORS, cookies, request id,
+│   │                            ValidationPipe, Swagger (+ basic auth in production), /uploads static files
+│   ├── app.module.ts            global guards: Throttler → Origin (CSRF) → JwtAuth → Roles; exception filter
+│   ├── config/                  env validation schema + production safety checks
+│   ├── database/
+│   │   ├── data-source.ts       TypeORM DataSource for CLI (migrations)
+│   │   ├── entities.ts          explicit entity list (app + CLI)
+│   │   ├── migrations/
+│   │   └── seeds/               seed scripts (+ seed data files that are git-ignored)
+│   ├── common/
+│   │   ├── decorators/          @CurrentUser(), @Roles(), @Public(), @AllowPendingPasswordChange()
+│   │   ├── guards/              JwtAuthGuard, RolesGuard, OriginGuard
+│   │   ├── filters/             global exception filter (Bangla messages, requestId, no leaks)
+│   │   ├── interceptors/        upload error translation
+│   │   ├── middleware/          request id + access log
+│   │   ├── logging/             TypeORM logger that never logs query parameters
+│   │   ├── pipes/               ValidationPipe factory, UUID pipe
+│   │   ├── dto/                 PaginationQueryDto, PaginatedResponseDto, transforms
+│   │   └── utils/               time (Asia/Dhaka ranges), phone (01XXXXXXXXX), digits, password, token, html, sql
+│   └── modules/
+│       ├── auth/                login, tokens, password reset / set-password links
+│       ├── users/  profile/  designations/  wings/  change-requests/
+│       ├── meetings/            includes the conflict engine (conflict-engine.service.ts + meeting-rules.ts)
+│       ├── notifications/       NotificationsService.notify + channels (in-app, e-mail)
+│       ├── mail/                outbox entity, worker, templates, admin outbox API
+│       ├── reports/             summaries + PDF (Puppeteer)
+│       ├── admin/               dashboard stats
+│       ├── audit/               audit log (write + read API with redaction)
+│       └── health/
+├── test/                        e2e tests, test-database setup
+└── scripts/                     openapi export, docs/API.md generator
 ```
 
 Each module: `*.module.ts`, `*.controller.ts`, `*.service.ts`, `dto/`, `entities/`.
+Generated docs: `docs/openapi.json` (`npm run openapi:export`), `docs/API.md` (`npm run docs:api`),
+`docs/SECURITY.md` (§9 item by item), `docs/ERD.md`.
 Controllers stay thin; business rules live in services. Every endpoint has Swagger decorators
 (`@ApiTags`, `@ApiOperation`, `@ApiResponse`, DTO `@ApiProperty`).
 
@@ -369,15 +376,20 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 4. Cookies: `httpOnly`, `secure` in production, `sameSite=lax` (access) / `strict` (refresh, path `/api/v1/auth`). Bearer header also accepted for Swagger.
 5. CSRF: for cookie-authenticated unsafe methods, check `Origin` against the allowed frontend origin.
 6. Global `ValidationPipe` with `whitelist`, `forbidNonWhitelisted`, `transform`. Every input has a DTO.
-7. `helmet`, strict CORS allowlist from `.env`, `@nestjs/throttler` globally (stricter on auth routes).
+7. `helmet` (explicit CSP; HSTS in production), strict CORS allowlist from `.env`, `@nestjs/throttler` globally
+   (stricter on auth, mail-sending and PDF routes); `TRUST_PROXY` so the real client IP is used behind nginx.
 8. Env validated at startup; app refuses to start with missing/weak secrets. `.env` is git-ignored; `.env.example` is committed.
+   In production it also refuses: Swagger without basic auth, `MAIL_DRY_RUN` not set explicitly, localhost in
+   `CORS_ORIGINS`, a seed officer password, or non-https `APP_URL`/`FRONTEND_URL` (secure cookies).
 9. Uploads: size limit, mime + magic-byte check, random file names, stored outside `src/`, served read-only.
 10. Authorization checked in services (organizer/admin for meeting edits; SUPER_ADMIN protected).
 11. Only parameterized queries (TypeORM query builder / repositories). No string-built SQL.
 12. All tokens in links (reset, verify) are random 32 bytes, stored hashed, single-use, expiring.
 13. Audit log for: login, user create/update/role/status, change-request decisions, meeting create/update/cancel/delete, designation priority changes.
-14. Swagger enabled only when `SWAGGER_ENABLED=true` (off by default in production).
-15. Errors never leak stack traces or SQL in production.
+14. Swagger enabled only when `SWAGGER_ENABLED=true` (off by default); in production only behind HTTP basic auth
+    (`SWAGGER_USER`, `SWAGGER_PASSWORD`).
+15. Errors never leak stack traces or SQL in production. Every response has an `X-Request-Id` (also in error bodies
+    and error logs). Logs never contain query parameters, request bodies, passwords or tokens.
 16. Personal data seed files (officer list) are git-ignored.
 
 ## 10. Environment variables (`backend/.env.example`)
@@ -413,6 +425,9 @@ UPLOAD_DIR=./uploads
 MAX_UPLOAD_MB=2
 SWAGGER_ENABLED=true
 SCHEDULER_ENABLED=true          # cron jobs (mail worker, cleanups); false in e2e tests
+SWAGGER_USER=                   # production: basic auth for /api/docs (required if SWAGGER_ENABLED=true)
+SWAGGER_PASSWORD=               # production: at least 12 characters
+TRUST_PROXY=false               # behind nginx: 1 (one proxy hop)
 
 SEED_SUPER_ADMIN_EMAIL=admin@bbs.gov.bd
 SEED_SUPER_ADMIN_PASSWORD=
@@ -451,4 +466,4 @@ e2e tests additionally read `backend/.env.test` (copy of the committed `.env.tes
 Backend: 1 scaffold & security baseline → 2 entities & migrations → 3 seeds → 4 auth →
 5 users/designations/wings → 6 profile & change requests → 7 notifications & mail outbox →
 8 meetings & conflict engine → 9 reports & PDF → 10 audit, tests, hardening.
-Frontend afterwards.
+**Status: backend steps 1–10 are complete** (see `docs/API.md`, `docs/SECURITY.md`). Frontend afterwards.

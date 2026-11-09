@@ -45,6 +45,7 @@ describe('Health (e2e)', () => {
     expect(Object.keys(res.body as object).sort()).toEqual([
       'error',
       'message',
+      'requestId', // step 10: matches the X-Request-Id header and the server log
       'statusCode',
     ]);
   });

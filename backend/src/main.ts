@@ -16,7 +16,7 @@ async function bootstrap(): Promise<void> {
 
   const logger = new Logger('Bootstrap');
   logger.log(
-    `API ready at ${appUrl}/${API_PREFIX} (${config.get('NODE_ENV', { infer: true })})`,
+    `API listening on port ${port} — public URL ${appUrl}/${API_PREFIX} (${config.get('NODE_ENV', { infer: true })})`,
   );
   if (config.get('SWAGGER_ENABLED', { infer: true })) {
     logger.log(`Swagger at ${appUrl}/${SWAGGER_PATH}`);

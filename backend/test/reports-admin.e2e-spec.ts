@@ -32,7 +32,7 @@ function binary(
   res.on('end', () => cb(null, Buffer.concat(chunks)));
 }
 
-describe('Reports, admin stats, audit log (e2e)', () => {
+describe('Reports, admin stats, audit log, hardening (e2e)', () => {
   let app: INestApplication<App>;
   let ds: DataSource;
   const tokens: Record<'officer' | 'colleague' | 'admin', string> = {} as never;
@@ -320,6 +320,40 @@ describe('Reports, admin stats, audit log (e2e)', () => {
       expect(
         new Date(list.items[0].createdAt) >= new Date(list.items[1].createdAt),
       ).toBe(true);
+    });
+  });
+
+  // ---------------------------------------------------------------- hardening
+
+  describe('hardening', () => {
+    it('every response has X-Request-Id; error bodies include it; a valid client id is kept', async () => {
+      const res = await http()
+        .get(`${API}/nope`)
+        .set('X-Request-Id', 'client-req-12345')
+        .expect(404);
+      expect(res.headers['x-request-id']).toBe('client-req-12345');
+      expect(res.body).toMatchObject({
+        statusCode: 404,
+        requestId: 'client-req-12345',
+      });
+      const fresh = await http().get(`${API}/health`);
+      expect(fresh.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
+      const unsafe = await http()
+        .get(`${API}/health`)
+        .set('X-Request-Id', 'bad\tid');
+      expect(unsafe.headers['x-request-id']).not.toContain('bad');
+    });
+
+    it('security headers: CSP, no HSTS outside production, nosniff, frame-ancestors none', async () => {
+      const res = await http().get(`${API}/health`);
+      expect(res.headers['content-security-policy']).toContain(
+        "default-src 'self'",
+      );
+      expect(res.headers['content-security-policy']).toContain(
+        "frame-ancestors 'none'",
+      );
+      expect(res.headers['strict-transport-security']).toBeUndefined();
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
     });
   });
 });

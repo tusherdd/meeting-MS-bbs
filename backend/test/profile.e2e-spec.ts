@@ -675,9 +675,14 @@ describe('Profile, photo, notification email, change requests (e2e)', () => {
         .set('Cookie', refreshCookie)
         .expect(401);
 
-      expect((await latestMail(email('officer'))).subject).toContain(
-        'লগইন ইমেইল পরিবর্তিত',
-      );
+      // The old address is also the notification email: it gets this mail AND the decision mail
+      // in the same transaction (same timestamp), so look for the subject among all of them.
+      const toOld = await ds
+        .getRepository(EmailOutbox)
+        .find({ where: { to: email('officer') } });
+      expect(
+        toOld.some((m) => m.subject.includes('লগইন ইমেইল পরিবর্তিত')),
+      ).toBe(true);
       expect((await latestMail(requestEmail)).subject).toContain(
         'লগইন ইমেইল পরিবর্তিত',
       );

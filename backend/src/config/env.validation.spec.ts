@@ -146,8 +146,16 @@ describe('validateEnv', () => {
     });
 
     it('may be empty in production', () => {
+      // A production config that passes the step-10 safety checks.
       expect(() =>
-        validateEnv({ ...validEnv(), NODE_ENV: 'production' }),
+        validateEnv({
+          ...validEnv(),
+          NODE_ENV: 'production',
+          APP_URL: 'https://api.meeting.bbs.gov.bd',
+          FRONTEND_URL: 'https://meeting.bbs.gov.bd',
+          CORS_ORIGINS: 'https://meeting.bbs.gov.bd',
+          SWAGGER_ENABLED: 'false',
+        }),
       ).not.toThrow();
     });
   });
@@ -156,5 +164,77 @@ describe('validateEnv', () => {
     const env = validEnv();
     delete env.SWAGGER_ENABLED;
     expect(validateEnv(env).SWAGGER_ENABLED).toBe(false);
+  });
+
+  describe('production safety checks', () => {
+    const prod = (): Record<string, string> => ({
+      ...validEnv(),
+      NODE_ENV: 'production',
+      APP_URL: 'https://api.meeting.bbs.gov.bd',
+      FRONTEND_URL: 'https://meeting.bbs.gov.bd',
+      CORS_ORIGINS: 'https://meeting.bbs.gov.bd',
+      SWAGGER_ENABLED: 'false',
+      MAIL_DRY_RUN: 'false',
+      SEED_OFFICER_DEFAULT_PASSWORD: '',
+    });
+
+    it('accepts a safe production config', () => {
+      expect(() => validateEnv(prod())).not.toThrow();
+    });
+
+    it.each([
+      [
+        'Swagger without basic auth',
+        { SWAGGER_ENABLED: 'true' },
+        /SWAGGER_ENABLED=true needs SWAGGER_USER/,
+      ],
+      [
+        'MAIL_DRY_RUN not set',
+        { MAIL_DRY_RUN: '' },
+        /MAIL_DRY_RUN must be set explicitly/,
+      ],
+      [
+        'localhost in CORS',
+        { CORS_ORIGINS: 'https://meeting.bbs.gov.bd,http://localhost:3000' },
+        /must not contain localhost/,
+      ],
+      [
+        'http APP_URL',
+        { APP_URL: 'http://api.meeting.bbs.gov.bd' },
+        /APP_URL must use https/,
+      ],
+    ])('refuses: %s', (_label, change, pattern) => {
+      const env: Record<string, string> = { ...prod(), ...change };
+      if (env.MAIL_DRY_RUN === '') delete env.MAIL_DRY_RUN;
+      expect(() => validateEnv(env)).toThrow(pattern);
+    });
+
+    it('allows Swagger in production with basic auth', () => {
+      expect(() =>
+        validateEnv({
+          ...prod(),
+          SWAGGER_ENABLED: 'true',
+          SWAGGER_USER: 'docs',
+          SWAGGER_PASSWORD: 'long-enough-pass',
+        }),
+      ).not.toThrow();
+    });
+
+    it('development is not affected', () => {
+      expect(() =>
+        validateEnv({ ...validEnv(), CORS_ORIGINS: 'http://localhost:3000' }),
+      ).not.toThrow();
+    });
+  });
+
+  it.each([
+    ['false', false],
+    ['true', true],
+    ['1', 1],
+    ['loopback', 'loopback'],
+  ])('TRUST_PROXY=%s', (raw, parsed) => {
+    expect(validateEnv({ ...validEnv(), TRUST_PROXY: raw }).TRUST_PROXY).toBe(
+      parsed,
+    );
   });
 });

@@ -207,7 +207,10 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Set a new password with the token from the reset link',
+    summary: 'Set a password with the token from a mail link',
+    description:
+      'Accepts the token of /reset-password links ("forgot password", admin reset) and of ' +
+      '/set-password links (new account). Single use.',
   })
   @ApiOkResponse({ type: MessageResponseDto })
   @ApiBadRequestResponse({
