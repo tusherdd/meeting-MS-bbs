@@ -10,7 +10,7 @@ import { UserMenu } from "./user-menu";
 
 /**
  * Header + sidebar. On large screens the sidebar is always visible; on phones and tablets it
- * opens as a drawer from the menu button (native <dialog>: focus stays inside, Escape closes).
+ * opens as a drawer from the "মেনু" button (text labels only, no icons) (native <dialog>: focus stays inside, Escape closes).
  * While a password change is required only the header with logout is shown.
  */
 export function AppShell({ children }: { children: ReactNode }) {
@@ -41,18 +41,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
-              aria-label={t.common.openMenu}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 lg:hidden"
               aria-expanded={drawerOpen}
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="size-6" fill="none">
-                <path
-                  d="M4 7h16M4 12h16M4 17h16"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
+              {t.common.menu}
             </button>
           )}
           <Brand compact />
@@ -81,25 +73,19 @@ export function AppShell({ children }: { children: ReactNode }) {
           onClick={(e) => {
             if (e.target === drawerRef.current) setDrawerOpen(false);
           }}
-          aria-label={t.common.menu}
+          aria-labelledby="drawer-title"
           className="m-0 h-full max-h-none w-72 max-w-[85vw] bg-white p-0 shadow-xl backdrop:bg-slate-900/40 lg:hidden"
         >
           <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4">
-            <Brand compact />
+            <h2 id="drawer-title" className="font-semibold text-slate-900">
+              {t.common.menu}
+            </h2>
             <button
               type="button"
               onClick={() => setDrawerOpen(false)}
-              className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
-              aria-label={t.common.closeMenu}
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none">
-                <path
-                  d="M6 6l12 12M18 6 6 18"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
+              {t.common.close}
             </button>
           </div>
           <div className="px-3 py-4">

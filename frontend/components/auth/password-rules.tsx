@@ -17,18 +17,14 @@ export function PasswordRules({ password, email }: { password: string; email?: s
               rule.ok ? "text-brand-800" : "text-slate-600",
             )}
           >
+            <span>{t.passwordRules[rule.key]}</span>
             <span
-              aria-hidden="true"
               className={clsx(
-                "inline-flex size-4 items-center justify-center rounded-full text-[10px] font-bold",
-                rule.ok ? "bg-brand-600 text-white" : "border border-slate-400",
+                "rounded px-1.5 text-[11px] font-semibold",
+                rule.ok ? "bg-brand-100 text-brand-800" : "bg-slate-200 text-slate-600",
               )}
             >
-              {rule.ok ? "✓" : ""}
-            </span>
-            <span>{t.passwordRules[rule.key]}</span>
-            <span className="sr-only">
-              ({rule.ok ? t.passwordRules.met : t.passwordRules.notMet})
+              {rule.ok ? t.passwordRules.met : t.passwordRules.notMet}
             </span>
           </li>
         ))}

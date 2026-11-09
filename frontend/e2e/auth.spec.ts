@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { INVALID_LOGIN_MESSAGE, fillLogin, loginThroughForm, pageAs } from "./support/helpers";
+import {
+  INVALID_LOGIN_MESSAGE,
+  apiAsPage,
+  fillLogin,
+  loginThroughForm,
+  pageAs,
+} from "./support/helpers";
 import { OFFICERS, credentialsOf } from "./support/officers";
 
 test.describe("Login and session", () => {
@@ -41,18 +47,47 @@ test.describe("Login and session", () => {
     const officer = credentialsOf("officer");
     await fillLogin(page, officer.loginEmail, officer.password);
     await expect(page).toHaveURL(/\/reports$/);
-    await expect(page.getByText("শীঘ্রই আসছে")).toBeVisible();
+    // Not built yet: the page stays empty (no placeholder text), the layout is there.
+    await expect(page.locator("#main > div")).toBeEmpty();
+    await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
   });
 
-  test("mustChangePassword sends every (app) page to /change-password", async ({ browser }) => {
+  test("officers on the default password: no redirect, no banner or reminder", async ({
+    browser,
+  }) => {
+    const page = await pageAs(browser, "officer");
+    const me = await apiAsPage<{ passwordIsDefault: boolean; mustChangePassword: boolean }>(
+      page,
+      "GET",
+      "/auth/me",
+    );
+    expect(me).toMatchObject({ passwordIsDefault: true, mustChangePassword: false });
+
+    for (const path of ["/dashboard", "/meetings", "/calendar"]) {
+      await page.goto(path);
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
+      await expect(page.getByText(/ডিফল্ট পাসওয়ার্ড|পাসওয়ার্ড পরিবর্তন করুন/)).toHaveCount(0);
+    }
+    // Changing the password stays possible voluntarily.
+    await page.goto("/change-password");
+    await expect(page.getByRole("heading", { name: "পাসওয়ার্ড পরিবর্তন" })).toBeVisible();
+    await expect(page.getByText("নিরাপত্তার জন্য প্রথমে")).toHaveCount(0);
+    await page.context().close();
+  });
+
+  test("SUPER_ADMIN with mustChangePassword is sent to /change-password", async ({ browser }) => {
     const page = await pageAs(browser, "officer");
 
-    // No API can set mustChangePassword with a known password, so the flag is simulated:
-    // the real /auth/me answer is passed through with mustChangePassword = true.
+    // Only the SUPER_ADMIN can still have a forced change (2026-11-09). Its password is not
+    // used in tests, so its /auth/me answer is simulated on top of a real session.
     await page.route("**/api/v1/auth/me", async (route) => {
       const response = await route.fetch();
       const body = await response.json();
-      await route.fulfill({ response, json: { ...body, mustChangePassword: true } });
+      await route.fulfill({
+        response,
+        json: { ...body, role: "SUPER_ADMIN", mustChangePassword: true },
+      });
     });
 
     await page.goto("/dashboard");
@@ -76,7 +111,7 @@ test.describe("Login and session", () => {
 
   test("logout ends the session", async ({ page }) => {
     await loginThroughForm(page, "officer");
-    await page.getByRole("button", { name: "ব্যবহারকারী মেনু" }).click();
+    await page.getByRole("button", { name: OFFICERS.officer.nameBn }).click();
     await page.getByRole("button", { name: "লগআউট" }).click();
     await expect(page).toHaveURL(/\/login$/);
 

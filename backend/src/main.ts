@@ -18,6 +18,14 @@ async function bootstrap(): Promise<void> {
   logger.log(
     `API listening on port ${port} — public URL ${appUrl}/${API_PREFIX} (${config.get('NODE_ENV', { infer: true })})`,
   );
+  // Owner decision 2026-11-09: a shared default officer password is allowed in production;
+  // say so once at startup (never the value).
+  if (
+    config.get('NODE_ENV', { infer: true }) === 'production' &&
+    config.get('DEFAULT_OFFICER_PASSWORD', { infer: true })
+  ) {
+    logger.warn('Default officer password is enabled');
+  }
   if (config.get('SWAGGER_ENABLED', { infer: true })) {
     logger.log(`Swagger at ${appUrl}/${SWAGGER_PATH}`);
   }

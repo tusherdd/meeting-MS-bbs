@@ -75,9 +75,7 @@ export function ConflictPanel({ state }: { state: ConflictCheckState }) {
       )}
       {state.kind === "ok" && (
         <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-brand-900">
-          <p className="flex items-center gap-2 font-semibold">
-            <span aria-hidden="true">✓</span> {t.conflictPanel.ok}
-          </p>
+          <p className="flex items-center gap-2 font-semibold">{t.conflictPanel.ok}</p>
           <p className="mt-1 text-sm">{t.conflictPanel.okBody}</p>
         </div>
       )}

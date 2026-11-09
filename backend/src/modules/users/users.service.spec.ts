@@ -6,12 +6,11 @@ import {
 import type { ConfigService } from '@nestjs/config';
 import type { DataSource, EntityManager, Repository } from 'typeorm';
 import type { AuthUser } from '../../common/types/auth-user';
-import { sha256Hex } from '../../common/utils/token';
+import * as argon2 from 'argon2';
 import type { EnvVars } from '../../config/env.validation';
 import type { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/enums/audit-action.enum';
 import type { TokenService } from '../auth/token.service';
-import { PasswordTokenPurpose } from '../auth/enums/password-token-purpose.enum';
 import {
   ChannelName,
   type NotificationMessage,
@@ -21,6 +20,8 @@ import { User } from './entities/user.entity';
 import { UserRole } from './enums/user-role.enum';
 import { USER_MESSAGES } from './users.messages';
 import { UsersService, type ActionContext } from './users.service';
+
+const DEFAULT_PASSWORD = 'Officer2026pass';
 
 const admin: AuthUser = {
   id: 'admin',
@@ -81,7 +82,10 @@ function setup() {
     ),
     getRepository: jest.fn(() => lookup),
   };
-  const env: Partial<EnvVars> = { FRONTEND_URL: 'http://localhost:3000' };
+  const env: Partial<EnvVars> = {
+    FRONTEND_URL: 'http://localhost:3000',
+    DEFAULT_OFFICER_PASSWORD: DEFAULT_PASSWORD,
+  };
   const service = new UsersService(
     users as unknown as Repository<User>,
     tokens as unknown as TokenService,
@@ -129,14 +133,18 @@ describe('UsersService.create', () => {
     additionalCharges: ['এসডিজি সেল'],
   };
 
-  it('no password is chosen or mailed: unusable hash + one-time SET_INITIAL link (72 h)', async () => {
+  it('sets the default officer password (no forced change); the mail never contains it', async () => {
     const { service, txUsers, txOther, notifications, audit } = setup();
     const result = await service.create(dto, ctx);
 
     const [inserted] = txUsers.insert.mock.calls[0] as [Partial<User>];
     expect(inserted.passwordHash).toMatch(/^\$argon2id\$/);
+    expect(await argon2.verify(inserted.passwordHash!, DEFAULT_PASSWORD)).toBe(
+      true,
+    );
     expect(inserted).toMatchObject({
-      mustChangePassword: true,
+      mustChangePassword: false,
+      passwordIsDefault: true,
       role: UserRole.OFFICER,
       notificationEmail: dto.loginEmail, // defaults to loginEmail
     });
@@ -144,28 +152,23 @@ describe('UsersService.create', () => {
     const { userIds, channels, mail } = sentMail(notifications);
     expect(userIds).toEqual(['new-user']);
     expect(channels).toEqual([ChannelName.EMAIL]);
-    const token = /set-password\?token=([A-Za-z0-9_-]{43})/.exec(
-      mail.html,
-    )?.[1];
-    expect(token).toBeDefined();
     expect(mail.html).toContain(dto.loginEmail);
-    expect(mail.html).not.toMatch(/পাসওয়ার্ড:|password:/i);
-
-    const [tokenRow] = (
-      txOther.insert.mock.calls as Array<[{ purpose?: string }]>
-    ).find(([row]) => row.purpose !== undefined) as unknown as [
-      { purpose: PasswordTokenPurpose; tokenHash: string; expiresAt: Date },
-    ];
-    expect(tokenRow.purpose).toBe(PasswordTokenPurpose.SET_INITIAL);
-    expect(tokenRow.tokenHash).toBe(sha256Hex(token!));
-    const hours = (tokenRow.expiresAt.getTime() - Date.now()) / 3_600_000;
-    expect(hours).toBeGreaterThan(71.9);
-    expect(hours).toBeLessThanOrEqual(72);
-
+    expect(mail.text).toContain('অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড');
+    expect(mail.html).toContain('href="http://localhost:3000/login"');
+    expect(mail.html + mail.text).not.toContain(DEFAULT_PASSWORD);
+    expect(mail.html + mail.text).not.toMatch(/token=/);
+    // No one-time link is issued any more.
+    expect(
+      (txOther.insert.mock.calls as Array<[{ purpose?: string }]>).some(
+        ([row]) => row.purpose !== undefined,
+      ),
+    ).toBe(false);
     expect(JSON.stringify(result)).not.toMatch(
       /"password"|passwordHash|"token"|tokenHash/,
     );
-    expect(JSON.stringify(audit.log.mock.calls)).not.toContain(token);
+    expect(JSON.stringify(audit.log.mock.calls)).not.toContain(
+      DEFAULT_PASSWORD,
+    );
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({
         action: AuditAction.USER_CREATE,
@@ -337,23 +340,31 @@ describe('UsersService.setStatus / setRole / resetPassword', () => {
     );
   });
 
-  it('admin reset: old password unusable, sessions ended, one-time RESET link mailed', async () => {
+  it('admin reset: default password, no forced change, sessions ended, notice without the password', async () => {
     const { service, txUsers, txOther, tokens, notifications, audit } = setup();
     await service.resetPassword('u1', ctx);
 
     const [, update] = txUsers.update.mock.calls[0] as [string, Partial<User>];
-    expect(update.passwordHash).toMatch(/^\$argon2id\$/);
-    expect(update.mustChangePassword).toBe(true);
+    expect(await argon2.verify(update.passwordHash!, DEFAULT_PASSWORD)).toBe(
+      true,
+    );
+    expect(update).toMatchObject({
+      mustChangePassword: false,
+      passwordIsDefault: true,
+      failedLoginCount: 0,
+    });
     expect(tokens.revokeAllForUser).toHaveBeenCalledWith(
       'u1',
       expect.anything(),
     );
-    expect(txOther.update).toHaveBeenCalled(); // older links closed
+    expect(txOther.update).toHaveBeenCalled(); // open reset links closed
 
     const { userIds, channels, mail } = sentMail(notifications);
     expect(userIds).toEqual(['u1']);
     expect(channels).toEqual([ChannelName.EMAIL]);
-    expect(mail.html).toMatch(/reset-password\?token=[A-Za-z0-9_-]{43}/);
+    expect(mail.text).toContain('অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড');
+    expect(mail.html + mail.text).not.toContain(DEFAULT_PASSWORD);
+    expect(mail.html).not.toMatch(/token=/);
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({
         action: AuditAction.USER_PASSWORD_RESET_BY_ADMIN,

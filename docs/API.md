@@ -46,13 +46,13 @@ Errors always have the shape `{ statusCode, message, error, requestId }` (Bangla
 | Method | Path | Access | Purpose | Main request fields | Responses |
 |---|---|---|---|---|---|
 | GET | `/users/directory` | 👤 | Active officer directory for the participant picker (any logged-in user) | `page` (query), `limit` (query), `q` (query), `wingId` (query) | 200 |
-| GET | `/users` | 🛡 | Search / filter / sort / paginate users (ADMIN) | `page` (query), `limit` (query), `q` (query), `wingId` (query), `designationId` (query), `role` (query), `isActive` (query), `sortBy` (query), `sortOrder` (query) | 200, 403 |
+| GET | `/users` | 🛡 | Search / filter / sort / paginate users (ADMIN) | `page` (query), `limit` (query), `q` (query), `wingId` (query), `designationId` (query), `role` (query), `isActive` (query), `passwordIsDefault` (query), `sortBy` (query), `sortOrder` (query) | 200, 403 |
 | POST | `/users` | 🛡 | Create an officer (ADMIN) | `loginEmail`*, `notificationEmail`, `nameBn`*, `nameEn`*, `designationId`*, `designationRemark`, `wingId`, `mobile`, `mobileAlt`, `officePhone`, `fax`, `organizationBn`, `organizationEn`, `bcsBatch`, `additionalCharges` | 201, 400, 403, 409 |
 | GET | `/users/:id` | 🛡 | Full user (ADMIN) | — | 200, 403, 404 |
 | PATCH | `/users/:id` | 🛡 | Edit any profile field, including loginEmail and designation (ADMIN) | `loginEmail`, `notificationEmail`, `nameBn`, `nameEn`, `designationId`, `designationRemark`, `wingId`, `mobile`, `mobileAlt`, `officePhone`, `fax`, `organizationBn`, `organizationEn`, `bcsBatch`, `additionalCharges` | 200, 400, 403, 404, 409 |
 | PATCH | `/users/:id/status` | 🛡 | Activate / deactivate (ADMIN) | `isActive`* | 200, 403, 404 |
 | PATCH | `/users/:id/role` | 🛡 | Make ADMIN or OFFICER (ADMIN). SUPER_ADMIN is untouchable. | `role`* | 200, 400, 403, 404 |
-| POST | `/users/:id/reset-password` | 🛡 | Generate a temporary password and force a change (ADMIN) | — | 200, 400, 403, 404 |
+| POST | `/users/:id/reset-password` | 🛡 | Reset to the default officer password (ADMIN) | — | 200, 400, 403, 404 |
 
 ## Designations
 

@@ -1,3 +1,4 @@
+import { checkPasswordStrength } from '../common/utils/password';
 import * as Joi from 'joi';
 
 /**
@@ -50,7 +51,11 @@ export interface EnvVars {
   SEED_SUPER_ADMIN_EMAIL: string;
   SEED_SUPER_ADMIN_PASSWORD: string;
   /** Development only: shared password for seeded officers. Empty = random unusable password. */
-  SEED_OFFICER_DEFAULT_PASSWORD: string;
+  /**
+   * The one default password of every officer account (owner decision 2026-11-09, SPEC.md §6.2).
+   * Never logged, printed or returned; allowed in production.
+   */
+  DEFAULT_OFFICER_PASSWORD: string;
 }
 
 const MIN_SECRET_LENGTH = 32;
@@ -158,16 +163,20 @@ export const envSchema = Joi.object<EnvVars>({
     .default('admin@bbs.gov.bd'),
   // Only needed when running seeds (checked by the seed script, not at API startup).
   SEED_SUPER_ADMIN_PASSWORD: Joi.string().allow('').default(''),
-  // A shared known password must never exist in production (SPEC.md §11.4).
-  SEED_OFFICER_DEFAULT_PASSWORD: Joi.string()
-    .allow('')
-    .default('')
-    .when('NODE_ENV', {
-      is: 'production',
-      then: Joi.valid('').messages({
-        'any.only':
-          '"SEED_OFFICER_DEFAULT_PASSWORD" must be empty when NODE_ENV=production',
-      }),
+  // Owner decision 2026-11-09: one default password for officers (also in production).
+  // The messages never contain the value.
+  DEFAULT_OFFICER_PASSWORD: Joi.string()
+    .required()
+    .custom((value: string, helpers) =>
+      checkPasswordStrength(value).length > 0
+        ? helpers.error('password.weak')
+        : value,
+    )
+    .messages({
+      'any.required': '"DEFAULT_OFFICER_PASSWORD" is required',
+      'string.empty': '"DEFAULT_OFFICER_PASSWORD" is required',
+      'password.weak':
+        '"DEFAULT_OFFICER_PASSWORD" does not meet the password rule (at least 8 characters with letters and digits)',
     }),
 });
 
@@ -226,9 +235,6 @@ export function productionProblems(
     problems.push(
       `CORS_ORIGINS must not contain localhost (${local.join(', ')})`,
     );
-  if (env.SEED_OFFICER_DEFAULT_PASSWORD) {
-    problems.push('SEED_OFFICER_DEFAULT_PASSWORD must be empty');
-  }
   // Auth cookies are `secure` in production: they only work over HTTPS.
   for (const key of ['APP_URL', 'FRONTEND_URL'] as const) {
     if (!env[key].startsWith('https://'))

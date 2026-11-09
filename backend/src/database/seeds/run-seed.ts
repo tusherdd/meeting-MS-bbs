@@ -7,12 +7,10 @@
  * - users: inserted only when loginEmail does not exist; existing users are never touched.
  */
 import { EntityManager, In } from 'typeorm';
-import {
-  hashPassword,
-  hashUnusablePassword,
-} from '../../common/utils/password';
+import { hashPassword } from '../../common/utils/password';
 import { Designation } from '../../modules/designations/entities/designation.entity';
 import { UserAdditionalCharge } from '../../modules/users/entities/user-additional-charge.entity';
+import { defaultPasswordColumns } from '../../modules/users/default-password';
 import { User } from '../../modules/users/entities/user.entity';
 import { UserRole } from '../../modules/users/enums/user-role.enum';
 import { Wing } from '../../modules/wings/entities/wing.entity';
@@ -37,6 +35,7 @@ export interface SeedInput {
   superAdminEmail: string;
   superAdminPassword: string;
   /** Empty string = every new officer gets a random unusable password. */
+  /** DEFAULT_OFFICER_PASSWORD: every new officer gets it (no forced change). */
   officerDefaultPassword: string;
 }
 
@@ -56,7 +55,6 @@ export interface SeedSummary {
     skipped: RowNote[];
     warnings: RowNote[];
     additionalChargesCreated: number;
-    passwordMode: 'SEED_OFFICER_DEFAULT_PASSWORD' | 'random unusable';
   };
 }
 
@@ -183,8 +181,9 @@ async function insertOfficers(
   officers: readonly OfficerSeed[],
   defaultPassword: string,
 ): Promise<number> {
-  const hashes = await mapWithConcurrency(officers, HASH_CONCURRENCY, () =>
-    defaultPassword ? hashPassword(defaultPassword) : hashUnusablePassword(),
+  // One argon2 hash (own salt) per officer, all of the default officer password.
+  const passwords = await mapWithConcurrency(officers, HASH_CONCURRENCY, () =>
+    defaultPasswordColumns(defaultPassword),
   );
 
   let chargesCreated = 0;
@@ -204,8 +203,7 @@ async function insertOfficers(
       officePhone: officer.officePhone,
       fax: officer.fax,
       role: officer.role,
-      passwordHash: hashes[i],
-      mustChangePassword: true,
+      ...passwords[i],
       isActive: true,
     });
     const userId = (result.identifiers[0] as { id: string }).id;
@@ -287,9 +285,6 @@ export async function runSeed(
       skipped,
       warnings: warnings.filter((w) => newRows.has(w.row)),
       additionalChargesCreated,
-      passwordMode: input.officerDefaultPassword
-        ? 'SEED_OFFICER_DEFAULT_PASSWORD'
-        : 'random unusable',
     },
   };
 }

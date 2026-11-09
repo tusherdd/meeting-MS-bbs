@@ -136,9 +136,9 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
                           type="button"
                           onClick={() => remove(p.id)}
                           aria-label={t.picker.remove(p.nameBn)}
-                          className="flex size-6 items-center justify-center rounded-full text-slate-500 hover:bg-white hover:text-red-700"
+                          className="rounded-full px-2 py-0.5 text-xs font-medium text-slate-600 hover:bg-white hover:text-red-700"
                         >
-                          ×
+                          {t.picker.removeShort}
                         </button>
                       </li>
                     );
@@ -210,7 +210,7 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
                     const isAdded = selectedIds.has(e.id);
                     return (
                       <li key={e.id} className="flex items-center gap-3 py-2">
-                        <Avatar name={e.nameBn} photoPath={e.photoPath} />
+                        <Avatar photoPath={e.photoPath} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-slate-900">{e.nameBn}</p>
                           <p className="truncate text-xs text-slate-500">

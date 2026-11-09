@@ -9,6 +9,8 @@ const backendUrl = (process.env.BACKEND_URL ?? "http://localhost:4000").replace(
 const nextConfig: NextConfig = {
   reactCompiler: true,
   poweredByHeader: false,
+  // No icon badge from Next.js in development either (no icons in the UI, SPEC.md §13.5).
+  devIndicators: false,
   turbopack: {
     // This folder is the project root (a stray lockfile higher up must not be picked up).
     root: process.cwd(),

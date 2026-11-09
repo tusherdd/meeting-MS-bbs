@@ -111,8 +111,13 @@ export function nameOf(key: OfficerKey): string {
 /** In the meeting form: search the directory and add one person. */
 export async function addParticipant(page: Page, key: OfficerKey) {
   await page.getByLabel("নাম দিয়ে খুঁজুন").fill(nameOf(key));
-  const button = page.getByRole("button", { name: `${nameOf(key)}: যোগ করুন` });
-  await button.click();
+  // The visible "যোগ করুন" button in the result row of that person.
+  await page
+    .getByTestId("people-results")
+    .getByRole("listitem")
+    .filter({ hasText: nameOf(key) })
+    .getByRole("button", { name: /যোগ করুন/ })
+    .click();
   await expect(page.getByTestId("selected-people")).toContainText(nameOf(key));
 }
 

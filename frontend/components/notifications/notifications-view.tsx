@@ -108,24 +108,21 @@ export function NotificationsView() {
                         !n.readAt && "bg-brand-50/50",
                       )}
                     >
-                      <span
-                        aria-hidden="true"
-                        className={clsx(
-                          "mt-2 size-2 shrink-0 rounded-full",
-                          n.readAt ? "bg-transparent" : "bg-brand-600",
-                        )}
-                      />
                       <span className="min-w-0">
-                        <span className="block font-medium text-slate-900">{n.title}</span>
+                        <span className="block font-medium text-slate-900">
+                          {!n.readAt && (
+                            <span className="mr-1.5 rounded bg-brand-700 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                              {t.header.unreadBadge}
+                            </span>
+                          )}
+                          {n.title}
+                        </span>
                         <span className="mt-0.5 block text-sm whitespace-pre-line text-slate-700">
                           {n.body}
                         </span>
                         <span className="mt-1 block text-xs text-slate-500">
                           {formatDateTime(n.createdAt)}
                         </span>
-                        {!n.readAt && (
-                          <span className="sr-only">({t.notificationsPage.unread})</span>
-                        )}
                       </span>
                     </button>
                   </li>

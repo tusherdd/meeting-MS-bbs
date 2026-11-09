@@ -262,7 +262,7 @@ export interface paths {
         put?: never;
         /**
          * Set a password with the token from a mail link
-         * @description Accepts the token of /reset-password links ("forgot password", admin reset) and of /set-password links (new account). Single use.
+         * @description Accepts the token of /reset-password links ("forgot password") and of older /set-password links. Single use. Clears passwordIsDefault.
          */
         post: operations["AuthController_resetPassword"];
         delete?: never;
@@ -306,7 +306,7 @@ export interface paths {
         put?: never;
         /**
          * Create an officer (ADMIN)
-         * @description Generates a strong temporary password (never returned), sets mustChangePassword = true and queues a Bangla welcome mail with login email + temporary password.
+         * @description Sets the default officer password (DEFAULT_OFFICER_PASSWORD, never returned), passwordIsDefault = true, no forced change; the welcome mail names "the default password the office announced" and never contains it.
          */
         post: operations["UsersController_create"];
         delete?: never;
@@ -383,8 +383,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Generate a temporary password and force a change (ADMIN)
-         * @description The temporary password is mailed to the notification email (never returned). All sessions end.
+         * Reset to the default officer password (ADMIN)
+         * @description Sets the default officer password (never returned or mailed), passwordIsDefault = true, no forced change. All sessions end and open reset links close; the user gets a notice mail.
          */
         post: operations["UsersController_resetPassword"];
         delete?: never;
@@ -936,7 +936,7 @@ export interface components {
              * @example MEETING_CREATE
              * @enum {string}
              */
-            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
             /** @example meeting */
             entityType: string;
             entityId: string | null;
@@ -1052,8 +1052,16 @@ export interface components {
              * @enum {string}
              */
             role: "SUPER_ADMIN" | "ADMIN" | "OFFICER";
-            /** @example false */
+            /**
+             * @description Only ever true for the SUPER_ADMIN before its first change (2026-11-09)
+             * @example false
+             */
             mustChangePassword: boolean;
+            /**
+             * @description The account still uses the default officer password (no reminder is shown)
+             * @example true
+             */
+            passwordIsDefault: boolean;
             designation: components["schemas"]["MeDesignationDto"] | null;
             wing: components["schemas"]["MeWingDto"] | null;
             /**
@@ -1214,8 +1222,13 @@ export interface components {
             role: "SUPER_ADMIN" | "ADMIN" | "OFFICER";
             /** @example true */
             isActive: boolean;
-            /** @example true */
+            /** @example false */
             mustChangePassword: boolean;
+            /**
+             * @description Still uses the default officer password (admin view only)
+             * @example true
+             */
+            passwordIsDefault: boolean;
             /** Format: date-time */
             lastLoginAt: string | null;
             /** Format: date-time */
@@ -1251,8 +1264,13 @@ export interface components {
             role: "SUPER_ADMIN" | "ADMIN" | "OFFICER";
             /** @example true */
             isActive: boolean;
-            /** @example true */
+            /** @example false */
             mustChangePassword: boolean;
+            /**
+             * @description Still uses the default officer password (admin view only)
+             * @example true
+             */
+            passwordIsDefault: boolean;
             /** Format: date-time */
             lastLoginAt: string | null;
             /** Format: date-time */
@@ -1531,8 +1549,13 @@ export interface components {
              * @enum {string}
              */
             role: "SUPER_ADMIN" | "ADMIN" | "OFFICER";
-            /** @example true */
+            /** @example false */
             mustChangePassword: boolean;
+            /**
+             * @description Still uses the default officer password (admin view only)
+             * @example true
+             */
+            passwordIsDefault: boolean;
             /** Format: date-time */
             lastLoginAt: string | null;
             /** Format: date-time */
@@ -2245,7 +2268,7 @@ export interface operations {
                 limit?: number;
                 /** @description Who did it */
                 actorId?: string;
-                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
                 /** @description user, meeting, designation, change_request, … */
                 entityType?: string;
                 /** @description Id of the changed record */
@@ -2722,6 +2745,8 @@ export interface operations {
                 designationId?: string;
                 role?: "SUPER_ADMIN" | "ADMIN" | "OFFICER";
                 isActive?: boolean;
+                /** @description true = accounts that still use the default officer password */
+                passwordIsDefault?: boolean;
                 /** @description priority = designation priority (then English name) */
                 sortBy?: "priority" | "nameEn" | "nameBn" | "loginEmail" | "createdAt" | "lastLoginAt";
                 sortOrder?: "asc" | "desc";

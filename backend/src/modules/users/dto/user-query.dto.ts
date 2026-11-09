@@ -56,6 +56,15 @@ export class UsersQueryDto extends PaginationQueryDto {
   isActive?: boolean;
 
   @ApiPropertyOptional({
+    example: true,
+    description: 'true = accounts that still use the default officer password',
+  })
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean({ message: 'passwordIsDefault true অথবা false হতে হবে।' })
+  passwordIsDefault?: boolean;
+
+  @ApiPropertyOptional({
     enum: UserSortField,
     default: UserSortField.PRIORITY,
     description: 'priority = designation priority (then English name)',

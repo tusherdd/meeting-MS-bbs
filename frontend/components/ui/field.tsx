@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import type { ReactNode } from "react";
+import { t } from "@/messages";
 
 /** Label + control + hint/error, with the ids wired for screen readers. */
 export function Field({
@@ -22,9 +23,9 @@ export function Field({
       <label htmlFor={id} className="block text-sm font-medium text-slate-800">
         {label}
         {required && (
-          <span aria-hidden="true" className="text-red-600">
-            {" "}
-            *
+          // Screen readers already hear "required" from the field itself.
+          <span aria-hidden="true" className="ml-1 text-xs font-normal text-slate-500">
+            {t.common.required}
           </span>
         )}
       </label>

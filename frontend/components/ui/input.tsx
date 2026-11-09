@@ -28,7 +28,7 @@ export function Input({
           required={required}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy(id, error, hint)}
-          className={controlClass(!!error, `h-10 ${trailing ? "pr-12" : ""} ${className ?? ""}`)}
+          className={controlClass(!!error, `h-10 ${trailing ? "pr-16" : ""} ${className ?? ""}`)}
           {...rest}
         />
         {trailing && <div className="absolute inset-y-0 right-1 flex items-center">{trailing}</div>}

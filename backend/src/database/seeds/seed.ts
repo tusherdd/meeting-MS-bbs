@@ -35,10 +35,9 @@ function checkSeedPasswords(
       problems.push(`SEED_SUPER_ADMIN_PASSWORD: ${p}`);
     }
   }
-  if (officerDefaultPassword) {
-    for (const p of checkPasswordStrength(officerDefaultPassword)) {
-      problems.push(`SEED_OFFICER_DEFAULT_PASSWORD: ${p}`);
-    }
+  // Already validated at startup (env.validation); checked again for a clear seed message.
+  for (const p of checkPasswordStrength(officerDefaultPassword)) {
+    problems.push(`DEFAULT_OFFICER_PASSWORD: ${p}`);
   }
   if (problems.length > 0) throw new SeedDataError(problems);
 }
@@ -60,7 +59,7 @@ function printSummary(s: SeedSummary, csvRowCount: number): void {
   ];
   if (o.created > 0) {
     lines.push(
-      `Passwords    : new officers got ${o.passwordMode} password (mustChangePassword = true)`,
+      'Passwords    : new officers got the default officer password (no forced change)',
     );
   }
   if (o.skipped.length > 0) {
@@ -96,7 +95,7 @@ async function main(): Promise<void> {
   checkSeedPasswords(
     env.SEED_SUPER_ADMIN_EMAIL,
     env.SEED_SUPER_ADMIN_PASSWORD,
-    env.SEED_OFFICER_DEFAULT_PASSWORD,
+    env.DEFAULT_OFFICER_PASSWORD,
   );
   const csvRows = readOfficerCsv(CSV_PATH);
 
@@ -112,7 +111,7 @@ async function main(): Promise<void> {
         csvRows,
         superAdminEmail: env.SEED_SUPER_ADMIN_EMAIL,
         superAdminPassword: env.SEED_SUPER_ADMIN_PASSWORD,
-        officerDefaultPassword: env.SEED_OFFICER_DEFAULT_PASSWORD,
+        officerDefaultPassword: env.DEFAULT_OFFICER_PASSWORD,
       }),
     );
     printSummary(summary, csvRows.length);

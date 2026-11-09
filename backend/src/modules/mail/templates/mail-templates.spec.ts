@@ -1,8 +1,10 @@
 import {
+  DEFAULT_PASSWORD_HINT_BN,
+  accountCreatedMail,
+  adminResetNoticeMail,
   changeRequestDecisionMail,
   genericNotificationMail,
   maskEmail,
-  setPasswordMail,
 } from './mail-templates';
 import { MAIL_FOOTER_BN, MAIL_HEADER_BN, renderMail } from './render';
 
@@ -57,25 +59,26 @@ describe('mail rendering', () => {
     expect(mail.subject).toBe('Hi Bcc: evil@x.test');
   });
 
-  it('set-password mail has the link (HTML + text) and never a password', () => {
-    const mail = setPasswordMail({
-      nameBn: 'রহিম',
-      loginEmail: 'rahim@bbs.gov.bd',
-      link: 'http://localhost:3000/set-password?token=abc_DEF-123',
-      validHours: 72,
-    });
-    expect(mail.html).toContain(
-      'href="http://localhost:3000/set-password?token=abc_DEF-123"',
-    );
-    expect(mail.text).toContain(
-      'http://localhost:3000/set-password?token=abc_DEF-123',
-    );
-    expect(mail.text).toContain('rahim@bbs.gov.bd');
-    expect(mail.text).toContain('72 ঘণ্টা');
-    expect(mail.html + mail.text).not.toMatch(
-      /অস্থায়ী পাসওয়ার্ড|temporary password/i,
-    );
-  });
+  it.each([
+    ['account created', accountCreatedMail],
+    ['admin reset notice', adminResetNoticeMail],
+  ])(
+    '%s mail: login link + login email, the default-password hint, never the password',
+    (_name, build) => {
+      const secret = 'Default2026pass';
+      const mail = build({
+        nameBn: 'রহিম',
+        loginEmail: 'rahim@bbs.gov.bd',
+        loginUrl: 'http://localhost:3000/login',
+      });
+      expect(mail.html).toContain('href="http://localhost:3000/login"');
+      expect(mail.text).toContain('rahim@bbs.gov.bd');
+      expect(mail.text).toContain(DEFAULT_PASSWORD_HINT_BN);
+      // The template has no way to receive the password, and no token link either.
+      expect(mail.html + mail.text).not.toContain(secret);
+      expect(mail.html + mail.text).not.toMatch(/token=/);
+    },
+  );
 
   it('masks emails', () => {
     expect(maskEmail('rahim.uddin@gmail.com')).toBe('ra***@gmail.com');

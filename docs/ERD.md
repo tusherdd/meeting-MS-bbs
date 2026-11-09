@@ -65,6 +65,7 @@ erDiagram
         varchar role "SUPER_ADMIN | ADMIN | OFFICER"
         boolean isActive
         boolean mustChangePassword
+        boolean passwordIsDefault
         int failedLoginCount
         timestamptz lockedUntil "unused (no account lock)"
         timestamptz lastLoginAt

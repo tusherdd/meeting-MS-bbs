@@ -28,7 +28,7 @@ const validEnv = (): Record<string, string> => ({
   SWAGGER_ENABLED: 'true',
   SEED_SUPER_ADMIN_EMAIL: 'admin@bbs.gov.bd',
   SEED_SUPER_ADMIN_PASSWORD: '',
-  SEED_OFFICER_DEFAULT_PASSWORD: '',
+  DEFAULT_OFFICER_PASSWORD: 'Officer2026pass',
 });
 
 describe('validateEnv', () => {
@@ -120,33 +120,35 @@ describe('validateEnv', () => {
     ).toThrow(/JWT_ACCESS_TTL/);
   });
 
-  describe('SEED_OFFICER_DEFAULT_PASSWORD', () => {
-    it('is optional and defaults to empty', () => {
+  describe('DEFAULT_OFFICER_PASSWORD (owner decision 2026-11-09)', () => {
+    it('is required', () => {
       const env = validEnv();
-      delete env.SEED_OFFICER_DEFAULT_PASSWORD;
-      expect(validateEnv(env).SEED_OFFICER_DEFAULT_PASSWORD).toBe('');
-    });
-
-    it('may be set in development', () => {
-      const env = validateEnv({
-        ...validEnv(),
-        SEED_OFFICER_DEFAULT_PASSWORD: 'Officer2026',
-      });
-      expect(env.SEED_OFFICER_DEFAULT_PASSWORD).toBe('Officer2026');
-    });
-
-    it('must be empty in production', () => {
+      delete env.DEFAULT_OFFICER_PASSWORD;
+      expect(() => validateEnv(env)).toThrow(
+        /DEFAULT_OFFICER_PASSWORD" is required/,
+      );
       expect(() =>
-        validateEnv({
-          ...validEnv(),
-          NODE_ENV: 'production',
-          SEED_OFFICER_DEFAULT_PASSWORD: 'Officer2026',
-        }),
-      ).toThrow(/must be empty when NODE_ENV=production/);
+        validateEnv({ ...validEnv(), DEFAULT_OFFICER_PASSWORD: '' }),
+      ).toThrow(/DEFAULT_OFFICER_PASSWORD" is required/);
     });
 
-    it('may be empty in production', () => {
-      // A production config that passes the step-10 safety checks.
+    it.each(['short1', 'onlyletters', '1234567890'])(
+      'must satisfy the password rule, and the error never shows the value (%s)',
+      (weak) => {
+        let message = '';
+        try {
+          validateEnv({ ...validEnv(), DEFAULT_OFFICER_PASSWORD: weak });
+        } catch (err) {
+          message = (err as Error).message;
+        }
+        expect(message).toMatch(
+          /DEFAULT_OFFICER_PASSWORD" does not meet the password rule/,
+        );
+        expect(message).not.toContain(weak);
+      },
+    );
+
+    it('is allowed in production', () => {
       expect(() =>
         validateEnv({
           ...validEnv(),
@@ -155,6 +157,7 @@ describe('validateEnv', () => {
           FRONTEND_URL: 'https://meeting.bbs.gov.bd',
           CORS_ORIGINS: 'https://meeting.bbs.gov.bd',
           SWAGGER_ENABLED: 'false',
+          DEFAULT_OFFICER_PASSWORD: 'Officer2026pass',
         }),
       ).not.toThrow();
     });
@@ -185,7 +188,6 @@ describe('validateEnv', () => {
       CORS_ORIGINS: 'https://meeting.bbs.gov.bd',
       SWAGGER_ENABLED: 'false',
       MAIL_DRY_RUN: 'false',
-      SEED_OFFICER_DEFAULT_PASSWORD: '',
     });
 
     it('accepts a safe production config', () => {

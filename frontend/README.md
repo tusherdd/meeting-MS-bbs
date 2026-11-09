@@ -66,7 +66,7 @@ Requirements:
 - the backend runs on `BACKEND_URL` against its normal dev database, with:
   - `MAIL_DRY_RUN=true`, `NODE_ENV=development`, `SCHEDULER_ENABLED=true`;
   - `THROTTLE_LIMIT=1000` (the suite sends more than the default 100 requests per minute from one IP);
-- `.env.e2e` holds an ADMIN/SUPER_ADMIN login that has already changed its first password.
+- `.env.e2e` holds an ADMIN/SUPER_ADMIN login that has already changed its first password (needed to create the test officers).
 
 ```bash
 cp .env.e2e.example .env.e2e      # fill in the admin login
@@ -76,7 +76,7 @@ npm run test:e2e                  # starts `npm run dev` if it is not running ye
 
 How it works:
 
-- `e2e/global-setup.ts` creates **dedicated test officers** through the admin API. They are never real officers:
+- `e2e/global-setup.ts` makes sure the **dedicated test officers** exist, using the admin API only. They are never real officers:
 
   | Key          | Login                                        | Designation (priority)  |
   | ------------ | -------------------------------------------- | ----------------------- |
@@ -84,20 +84,20 @@ How it works:
   | `dd1`, `dd2` | `e2e-dd1@example.com`, `e2e-dd2@example.com` | Deputy Director (6)     |
   | `dg`         | `e2e-dg@example.com`                         | Director General (2)    |
   | `so`         | `e2e-so@example.com`                         | Statistical Officer (7) |
-  - The setup reads the one-time password links from the dry-run mail previews (`backend/tmp/mail-preview/`).
-  - It sets random passwords, stored only in the git-ignored `e2e/.state/`.
-  - It saves one logged-in session per officer, so the tests do not log in over and over (the backend allows 10 logins per minute per IP).
-  - The first run waits up to about a minute for the mail worker.
+  - Since 2026-11-09 new accounts and admin resets get the **default officer password**, so no mail link is needed.
+  - The tests read that password from `E2E_OFFICER_PASSWORD`, or else only the `DEFAULT_OFFICER_PASSWORD` line of `backend/.env`. It is never printed.
+  - The setup saves one logged-in session per officer in the git-ignored `e2e/.state/`, so the tests do not log in over and over (the backend allows 10 logins per minute per IP).
 
 - The tests only put test officers into meetings, so they never clash with real officers. Every meeting they create is cancelled again.
-- `auth.spec.ts`: login failure/success, `?next=` redirect, forced `/change-password`, logout.
+- `auth.spec.ts`:
+  - login failure and success, the `?next=` redirect, logout;
+  - officers on the default password get no redirect and see no banner;
+  - the forced `/change-password` (SUPER_ADMIN only, simulated).
 - `dashboard.spec.ts`: today's meeting, the week/month tabs, the phone menu.
-- `meetings.spec.ts`:
-  - create through the form, then see it on the dashboard, calendar and list;
-  - equal priority → red panel, submit disabled, a touching slot → green;
-  - higher priority → amber panel; the lower organizer sees the notification and the conflict, cancels, and the conflict moves to "মীমাংসিত";
-  - an outsider gets "সভাটি পাওয়া যায়নি".
-- Wait a minute before running the whole suite twice in a row (login limit). The saved sessions are valid for 15 minutes (access token).
+- `meetings.spec.ts`: the form, the clash panels (red / green / amber), the conflict flow, and the outsider getting "সভাটি পাওয়া যায়নি".
+- `no-icons.spec.ts`: no `<svg>`, icon element or icon symbol in the layout, header, sidebar, menus and pages, and every button has visible text.
+- Public pages only (no test officers needed): `E2E_SKIP_SETUP=1 npm run test:e2e -- --grep public`.
+- Wait a minute before running the whole suite twice in a row (login limit). The saved sessions are valid for 15 minutes.
 
 ## 6. Conventions
 

@@ -25,7 +25,7 @@ export function buttonClass(variant: Variant = "primary", size: Size = "md", cla
 interface ButtonProps extends ComponentProps<"button"> {
   variant?: Variant;
   size?: Size;
-  /** Shows a spinner, disables the button and (optionally) swaps the text. */
+  /** Disables the button and (optionally) swaps the text, e.g. "সংরক্ষণ হচ্ছে…". */
   loading?: boolean;
   loadingText?: ReactNode;
 }
@@ -49,12 +49,6 @@ export function Button({
       aria-busy={loading || undefined}
       {...rest}
     >
-      {loading && (
-        <span
-          aria-hidden="true"
-          className="inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent"
-        />
-      )}
       {loading && loadingText ? loadingText : children}
     </button>
   );

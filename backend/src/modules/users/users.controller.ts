@@ -106,7 +106,7 @@ export class UsersController {
   @ApiOperation({
     summary: 'Create an officer (ADMIN)',
     description:
-      'Generates a strong temporary password (never returned), sets mustChangePassword = true and queues a Bangla welcome mail with login email + temporary password.',
+      'Sets the default officer password (DEFAULT_OFFICER_PASSWORD, never returned), passwordIsDefault = true, no forced change; the welcome mail names "the default password the office announced" and never contains it.',
   })
   @ApiCreatedResponse({ type: UserDetailDto })
   @ApiBadRequestResponse({
@@ -187,9 +187,9 @@ export class UsersController {
   @Post(':id/reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Generate a temporary password and force a change (ADMIN)',
+    summary: 'Reset to the default officer password (ADMIN)',
     description:
-      'The temporary password is mailed to the notification email (never returned). All sessions end.',
+      'Sets the default officer password (never returned or mailed), passwordIsDefault = true, no forced change. All sessions end and open reset links close; the user gets a notice mail.',
   })
   @ApiOkResponse({ type: UserMessageResponseDto })
   @ApiBadRequestResponse({ description: 'Account is inactive' })

@@ -22,22 +22,17 @@ import type { AuthUser } from '../../common/types/auth-user';
 import { pickChanges } from '../../common/utils/changes';
 import { isUniqueViolation } from '../../common/utils/db-errors';
 import { toAsciiDigits } from '../../common/utils/digits';
-import { hashUnusablePassword } from '../../common/utils/password';
 import { escapeLike } from '../../common/utils/sql';
 import { EnvVars } from '../../config/env.validation';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/enums/audit-action.enum';
-import {
-  ADMIN_RESET_TOKEN_TTL_HOURS,
-  SET_INITIAL_TOKEN_TTL_HOURS,
-} from '../auth/auth.constants';
-import { PasswordTokenPurpose } from '../auth/enums/password-token-purpose.enum';
-import { issuePasswordToken } from '../auth/password-tokens';
+import { closeOpenPasswordTokens } from '../auth/password-tokens';
 import { TokenService } from '../auth/token.service';
 import { Designation } from '../designations/entities/designation.entity';
 import {
-  adminResetMail,
-  setPasswordMail,
+  DEFAULT_PASSWORD_HINT_BN,
+  accountCreatedMail,
+  adminResetNoticeMail,
 } from '../mail/templates/mail-templates';
 import { ChannelName } from '../notifications/channels/notification-channel';
 import { NotificationType } from '../notifications/enums/notification-type.enum';
@@ -59,6 +54,7 @@ import type {
   UserDetailDto,
   UserSummaryDto,
 } from './dto/user-response.dto';
+import { defaultPasswordColumns } from './default-password';
 import { User } from './entities/user.entity';
 import { UserRole } from './enums/user-role.enum';
 import {
@@ -121,6 +117,8 @@ export interface ActionContext {
 @Injectable()
 export class UsersService {
   private readonly frontendUrl: string;
+  /** Never logged or returned (SPEC.md §6.2). */
+  private readonly defaultPassword: string;
 
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
@@ -133,6 +131,9 @@ export class UsersService {
     this.frontendUrl = config
       .get('FRONTEND_URL', { infer: true })
       .replace(/\/+$/, '');
+    this.defaultPassword = config.get('DEFAULT_OFFICER_PASSWORD', {
+      infer: true,
+    });
   }
 
   // ---------------------------------------------------------------- reads
@@ -167,6 +168,11 @@ export class UsersService {
       });
     }
     if (query.role) qb.andWhere('u.role = :role', { role: query.role });
+    if (query.passwordIsDefault !== undefined) {
+      qb.andWhere('u.passwordIsDefault = :passwordIsDefault', {
+        passwordIsDefault: query.passwordIsDefault,
+      });
+    }
     if (query.isActive !== undefined) {
       qb.andWhere('u.isActive = :isActive', { isActive: query.isActive });
     }
@@ -250,16 +256,16 @@ export class UsersService {
   // ---------------------------------------------------------------- writes
 
   /**
-   * Creates an officer. No password is chosen by the admin and none is mailed: the account
-   * gets an unusable random hash and the officer receives a one-time "set your password" link
-   * (SET_INITIAL, 72 h).
+   * Creates an officer with the default officer password (owner decision 2026-11-09): no forced
+   * change. The welcome mail names "the default password the office announced" — never the
+   * password itself.
    */
   async create(dto: CreateUserDto, ctx: ActionContext): Promise<UserDetailDto> {
     await this.assertDesignationUsable(dto.designationId);
     if (dto.wingId) await this.assertWingUsable(dto.wingId);
     await this.assertLoginEmailFree(dto.loginEmail);
 
-    const passwordHash = await hashUnusablePassword();
+    const password = await defaultPasswordColumns(this.defaultPassword);
     const notificationEmail = dto.notificationEmail ?? dto.loginEmail;
     const charges = dto.additionalCharges ?? [];
 
@@ -268,7 +274,7 @@ export class UsersService {
         const result = await manager.getRepository(User).insert({
           loginEmail: dto.loginEmail,
           notificationEmail,
-          passwordHash,
+          ...password,
           nameBn: dto.nameBn,
           nameEn: dto.nameEn,
           designationId: dto.designationId,
@@ -283,16 +289,10 @@ export class UsersService {
           bcsBatch: dto.bcsBatch ?? null,
           role: UserRole.OFFICER,
           isActive: true,
-          mustChangePassword: true,
         });
         const userId = (result.identifiers[0] as { id: string }).id;
         await replaceAdditionalCharges(manager, userId, charges);
-        await this.sendPasswordLink(
-          manager,
-          userId,
-          dto.loginEmail,
-          PasswordTokenPurpose.SET_INITIAL,
-        );
+        await this.sendAccountMail(manager, userId, dto.loginEmail, 'created');
         await this.audit.log(
           {
             actorId: ctx.actor.id,
@@ -447,9 +447,9 @@ export class UsersService {
   }
 
   /**
-   * Admin reset: the current password stops working at once (unusable hash), every session
-   * ends, and the user gets a one-time link (72 h) to choose a new password. No password is
-   * generated, returned or mailed.
+   * Admin reset (owner decision 2026-11-09): the password becomes the default officer password,
+   * every session ends, open reset links are closed, and the user gets a notice by e-mail — the
+   * mail never contains the password. No forced change afterwards.
    */
   async resetPassword(id: string, ctx: ActionContext): Promise<void> {
     const target = await this.loadWithRelations(id);
@@ -457,26 +457,22 @@ export class UsersService {
     if (!target.isActive)
       throw new BadRequestException(USER_MESSAGES.resetInactive);
 
-    const passwordHash = await hashUnusablePassword();
+    const password = await defaultPasswordColumns(this.defaultPassword);
     await this.dataSource.transaction(async (manager) => {
       await manager.getRepository(User).update(id, {
-        passwordHash,
-        mustChangePassword: true,
+        ...password,
         failedLoginCount: 0,
       });
       await this.tokens.revokeAllForUser(id, manager);
-      await this.sendPasswordLink(
-        manager,
-        id,
-        target.loginEmail,
-        PasswordTokenPurpose.RESET,
-      );
+      await closeOpenPasswordTokens(manager, id);
+      await this.sendAccountMail(manager, id, target.loginEmail, 'reset');
       await this.audit.log(
         {
           actorId: ctx.actor.id,
           action: AuditAction.USER_PASSWORD_RESET_BY_ADMIN,
           entityType: 'user',
           entityId: id,
+          after: { passwordIsDefault: true },
           ip: ctx.ip,
         },
         manager,
@@ -484,38 +480,28 @@ export class UsersService {
     });
   }
 
-  /** One-time password link by e-mail (closes older links). Used by create and reset. */
-  private async sendPasswordLink(
+  /** Bell + e-mail after create / admin reset. Never contains the password. */
+  private async sendAccountMail(
     manager: EntityManager,
     userId: string,
     loginEmail: string,
-    purpose: PasswordTokenPurpose,
+    kind: 'created' | 'reset',
   ): Promise<void> {
-    const initial = purpose === PasswordTokenPurpose.SET_INITIAL;
-    const validHours = initial
-      ? SET_INITIAL_TOKEN_TTL_HOURS
-      : ADMIN_RESET_TOKEN_TTL_HOURS;
-    const rawToken = await issuePasswordToken(
-      manager,
-      userId,
-      purpose,
-      validHours * 3_600_000,
-    );
-    const link = `${this.frontendUrl}/${initial ? 'set-password' : 'reset-password'}?token=${encodeURIComponent(rawToken)}`;
+    const created = kind === 'created';
+    const loginUrl = `${this.frontendUrl}/login`;
     await this.notifications.notify(
       [userId],
       {
-        type: initial
+        type: created
           ? NotificationType.ACCOUNT_CREATED
-          : NotificationType.PASSWORD_RESET_LINK,
-        title: initial ? 'অ্যাকাউন্ট তৈরি হয়েছে' : 'পাসওয়ার্ড রিসেট',
-        body: 'পাসওয়ার্ড সেট করার লিংক পাঠানো হয়েছে।',
+          : NotificationType.PASSWORD_RESET_BY_ADMIN,
+        title: created ? 'অ্যাকাউন্ট তৈরি হয়েছে' : 'পাসওয়ার্ড রিসেট',
+        body: `${DEFAULT_PASSWORD_HINT_BN} দিয়ে লগইন করুন।`,
         email: (r) =>
-          (initial ? setPasswordMail : adminResetMail)({
+          (created ? accountCreatedMail : adminResetNoticeMail)({
             nameBn: r.nameBn,
             loginEmail,
-            link,
-            validHours,
+            loginUrl,
           }),
       },
       [ChannelName.EMAIL],

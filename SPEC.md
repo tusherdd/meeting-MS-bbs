@@ -60,7 +60,7 @@ backend/
 │   │   ├── migrations/
 │   │   └── seeds/               seed scripts (+ seed data files that are git-ignored)
 │   ├── common/
-│   │   ├── decorators/          @CurrentUser(), @Roles(), @Public(), @AllowPendingPasswordChange()
+│   │   ├── decorators/          @CurrentUser(), @Roles(), @Public(), @AllowPendingPasswordChange() (SUPER_ADMIN)
 │   │   ├── guards/              JwtAuthGuard, RolesGuard, OriginGuard
 │   │   ├── filters/             global exception filter (Bangla messages, requestId, no leaks)
 │   │   ├── interceptors/        upload error translation
@@ -99,6 +99,7 @@ Controllers stay thin; business rules live in services. Every endpoint has Swagg
 
 - Accounts are created **only by admins**. No self-registration.
 - Seeded super admin has `mustChangePassword = true`; until changed, only `/auth/change-password`, `/auth/me` and `/auth/logout` work.
+  Since 2026-11-09 this forced change exists **only for the SUPER_ADMIN**: officers and admins never get it (§6.2).
 - Admins can promote/demote other officers to/from `ADMIN` from the dashboard.
 
 ## 6. Domain rules
@@ -141,6 +142,16 @@ On re-run, the seed updates the priority of an existing designation to match thi
 - Officer can edit directly: name (bn/en), photo, mobile, office phone, fax, wing, designation remark,
   additional charges, password, notification email (with verification).
 - **Designation change** needs admin approval (it changes priority). Until approved, the old designation applies.
+- **Default password (owner decision 2026-11-09):** every officer account (OFFICER and ADMIN, never the
+  SUPER_ADMIN) uses one default password, `DEFAULT_OFFICER_PASSWORD` from the environment (never in code,
+  docs, logs or mails). Seeded officers, accounts created by an admin (`POST /users`) and admin resets
+  (`POST /users/:id/reset-password`, which also ends all sessions) get it with `mustChangePassword = false`
+  and `users.passwordIsDefault = true`. There is **no forced change and no reminder** in the UI. Officers may
+  still change their password voluntarily (`/change-password`); that, or a forgot-password link, sets
+  `passwordIsDefault = false`. Mails say "অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড" — never the password.
+  Admins see `passwordIsDefault` in `GET /users` (filter `?passwordIsDefault=true`) and the user detail.
+  Existing data: `npm run users:apply-default-password -- --dry-run | --yes` (OFFICER/ADMIN, not the SUPER_ADMIN,
+  not test accounts ending in `@example.com`; revokes their sessions; one audit entry with the count).
 - Change request flow: officer submits → admins get bell notification + email → admin approves (optional
   note) or rejects (**note required**, owner decision 2026-11-09) → on approve the change is re-validated and
   applied automatically → officer is notified (for login email: both old and new addresses are notified,
@@ -236,7 +247,8 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
   mobile, mobileAlt, officePhone, fax, photoPath, designationId → designations (nullable only for the
   SUPER_ADMIN system account), designationRemark, wingId → wings (nullable),
   organizationBn, organizationEn (e.g. "বাংলাদেশ পরিসংখ্যান ব্যুরো" / "Bangladesh Bureau of Statistics"),
-  bcsBatch, role (enum), isActive, mustChangePassword, failedLoginCount, lockedUntil, lastLoginAt
+  bcsBatch, role (enum), isActive, mustChangePassword, passwordIsDefault, failedLoginCount, lockedUntil,
+  lastLoginAt
 - **user_additional_charges**: userId, description
 - **refresh_tokens**: userId, tokenHash, expiresAt, revokedAt, replacedById, userAgent, ip
 - **password_reset_tokens**: userId, tokenHash, purpose (`RESET` | `SET_INITIAL`), expiresAt, usedAt
@@ -293,11 +305,11 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | GET | `/users/directory` | 👤 | Minimal active officer list (id, names, designation, wing, photo) for the participant picker |
 | GET | `/users` | 🛡 | Search/filter/paginate (q, wingId, designationId, role, isActive) |
 | GET | `/users/:id` | 🛡 | Full user |
-| POST | `/users` | 🛡 | Create officer: no password is set or mailed; a one-time "set your password" link (`FRONTEND_URL/set-password?token=`, 72 h) is mailed |
+| POST | `/users` | 🛡 | Create officer with the default officer password (no forced change); the welcome mail never contains the password |
 | PATCH | `/users/:id` | 🛡 | Edit any field including loginEmail and designation |
 | PATCH | `/users/:id/status` | 🛡 | Activate / deactivate |
 | PATCH | `/users/:id/role` | 🛡 | Make ADMIN / OFFICER (SUPER_ADMIN untouchable) |
-| POST | `/users/:id/reset-password` | 🛡 | Old password stops working, all sessions end, a one-time reset link (72 h) is mailed |
+| POST | `/users/:id/reset-password` | 🛡 | Reset to the default officer password, end all sessions, mail a notice (without the password) |
 
 ### Designations & wings
 | Method | Path | Access | Purpose |
@@ -364,7 +376,8 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 ## 9. Security requirements (must all be implemented)
 
 1. Passwords: argon2id; min 8 chars with letters + digits; not equal to the email; never returned by any API
-   and never sent by mail (new accounts and admin resets get a one-time link instead).
+   and never sent by mail. New accounts and admin resets get the default officer password (§6.2, owner decision
+   2026-11-09); the mail only refers to "the default password the office announced".
 2. Login: **no account lock** (owner decision, 2026-11-09).
    - One generic error for every failed login, known or unknown email, always suggesting "forgot password".
    - Progressive delay: after 5 consecutive failures for an email, each further attempt is answered only
@@ -380,7 +393,9 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
    (stricter on auth, mail-sending and PDF routes); `TRUST_PROXY` so the real client IP is used behind nginx.
 8. Env validated at startup; app refuses to start with missing/weak secrets. `.env` is git-ignored; `.env.example` is committed.
    In production it also refuses: Swagger without basic auth, `MAIL_DRY_RUN` not set explicitly, localhost in
-   `CORS_ORIGINS`, a seed officer password, or non-https `APP_URL`/`FRONTEND_URL` (secure cookies).
+   `CORS_ORIGINS`, or non-https `APP_URL`/`FRONTEND_URL` (secure cookies). `DEFAULT_OFFICER_PASSWORD` is
+   required everywhere and must meet the password rule; it is allowed in production (owner decision
+   2026-11-09), where startup logs one warning line "Default officer password is enabled" (never the value).
 9. Uploads: size limit, mime + magic-byte check, random file names, stored outside `src/`, served read-only.
 10. Authorization checked in services (organizer/admin for meeting edits; SUPER_ADMIN protected).
 11. Only parameterized queries (TypeORM query builder / repositories). No string-built SQL.
@@ -432,7 +447,7 @@ THROTTLE_LIMIT=100              # requests per minute per IP (auth routes stay s
 
 SEED_SUPER_ADMIN_EMAIL=admin@bbs.gov.bd
 SEED_SUPER_ADMIN_PASSWORD=
-SEED_OFFICER_DEFAULT_PASSWORD=   # development only; leave empty in production
+DEFAULT_OFFICER_PASSWORD=        # required: the one default officer password (letters + digits, ≥ 8); never commit it
 ```
 
 e2e tests additionally read `backend/.env.test` (copy of the committed `.env.test.example`):
@@ -455,8 +470,8 @@ e2e tests additionally read `backend/.env.test` (copy of the committed `.env.tes
    additional_charges (" | "-separated), role`.
    - Rows without `login_email` are skipped and listed in the seed report.
    - notificationEmail = loginEmail (already verified).
-   - Password: `SEED_OFFICER_DEFAULT_PASSWORD` if set (development only), otherwise a random unusable
-     password so officers must use "forgot password". mustChangePassword = true either way.
+   - Password: `DEFAULT_OFFICER_PASSWORD` with `passwordIsDefault = true` and `mustChangePassword = false`
+     (owner decision 2026-11-09; before that: forced change).
    - additional_charges → `user_additional_charges` rows.
 5. Seeds are idempotent: designations and wings are upserted; users are inserted only if their
    loginEmail does not exist yet (an existing user is never overwritten).
@@ -503,12 +518,15 @@ frontend/
 | Path | Group | F1 |
 |---|---|---|
 | `/login`, `/forgot-password`, `/reset-password?token=`, `/set-password?token=`, `/verify-email?token=` | public | built |
-| `/change-password` | app (also the only page while `mustChangePassword`) | built |
+| `/change-password` | app (voluntary; forced only for the SUPER_ADMIN while `mustChangePassword`) | built |
 | `/dashboard` (default after login): today's meetings, week/month tabs, today's summary, pending-conflict warning | app | built |
 | `/meetings` (filters, admin "সকল সভা"), `/meetings/new?start=&end=`, `/meetings/:id`, `/meetings/:id/edit` | app | F2 |
 | `/calendar` (week 08–18 grid / month / phone day list), `/conflicts` (pending, resolved, admin all), `/notifications` | app | F2 |
-| `/reports`, `/profile` | app | placeholder "শীঘ্রই আসছে" |
-| `/admin/*` (users, designations & wings, change requests, audit log) | app, ADMIN/SUPER_ADMIN only | placeholder |
+| `/reports`, `/profile` | app | empty page (built in F3) |
+| `/admin/*` (users, designations & wings, change requests, audit log) | app, ADMIN/SUPER_ADMIN only | empty page (F3) |
+
+Pages not built yet stay **empty**: layout, header and sidebar only, nothing in the main area (owner decision
+2026-11-09; no "coming soon" text).
 
 ### 13.4 Auth handling
 - The browser talks only to the Next.js server. `next.config.ts` rewrites `/api/v1/*` and `/uploads/*` to
@@ -517,7 +535,8 @@ frontend/
 - `lib/api.ts`: `credentials: "include"`, JSON parsing, errors → `ApiError` (Bangla backend message + `requestId`).
   On 401 it calls `POST /auth/refresh` once (one refresh in flight, shared) and retries the request once.
 - `AuthProvider` loads `GET /auth/me`. `(app)` layout guard: no session → `/login?next=<path>` (only same-site
-  paths are accepted); `mustChangePassword` → `/change-password` with a reduced layout. Logout calls
+  paths are accepted); `mustChangePassword` → `/change-password` with a reduced layout (since 2026-11-09 only the
+  SUPER_ADMIN can have it; officers on the default password see **no banner or reminder**). Logout calls
   `POST /auth/logout` and clears the React Query cache. Role helpers in `lib/roles.ts` (`isAdmin`); the backend
   checks every permission again.
 - The browser's `Origin` is `FRONTEND_URL`, which must be listed in the backend's `CORS_ORIGINS` (CSRF check).
@@ -528,6 +547,11 @@ frontend/
 - Simple and clean; BBS green (`#006a4e`, `brand-*` colours) as the accent, slate neutrals.
 - Responsive: sidebar on large screens, a menu button with a drawer on phones and tablets.
 - Accessible: visible keyboard focus everywhere, labels on every field, native `<dialog>` for modals/drawer.
+- **No icons in the UI; use short Bangla text labels instead** (owner decision 2026-11-09): no SVG icons, icon
+  components or libraries, no emoji or symbols used as icons, no icon-only buttons. Examples: "নোটিফিকেশন (৩)",
+  "মেনু", "বন্ধ করুন", "আগের" / "পরের", the user's name as the user-menu button, status and conflicts as coloured
+  text badges, the protected SUPER_ADMIN as the text badge "সুরক্ষিত". The browser-tab favicon stays; charts are
+  allowed.
 - Every data view has loading, empty and error states; errors show the backend message and the `requestId`.
 
 ### 13.6 Meeting form and live conflict check (F2)

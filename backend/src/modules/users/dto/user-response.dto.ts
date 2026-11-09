@@ -69,8 +69,14 @@ export class UserSummaryDto {
   @ApiProperty({ example: true })
   isActive!: boolean;
 
-  @ApiProperty({ example: true })
+  @ApiProperty({ example: false })
   mustChangePassword!: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: 'Still uses the default officer password (admin view only)',
+  })
+  passwordIsDefault!: boolean;
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   lastLoginAt!: Date | null;

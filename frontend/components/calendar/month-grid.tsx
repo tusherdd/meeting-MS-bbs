@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { formatNumber, toBanglaDigits } from "@/lib/format";
+import { formatNumber, formatPlainDate, toBanglaDigits } from "@/lib/format";
 import { addDays, dhakaToday } from "@/lib/time";
 import type { MeetingSummary } from "@/lib/types";
 import { t } from "@/messages";
@@ -65,7 +65,7 @@ export function MonthGrid({ gridStart, month, weeks, meetings, conflictIds, onOp
                       ? "text-slate-800 hover:bg-slate-200"
                       : "text-slate-400",
                 )}
-                aria-label={d}
+                aria-label={formatPlainDate(d)}
               >
                 {toBanglaDigits(Number(d.slice(8, 10)))}
               </button>

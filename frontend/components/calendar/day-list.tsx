@@ -45,7 +45,7 @@ export function DayList({
                 className="rounded px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50"
                 aria-label={`${formatPlainDate(d)}: ${t.dashboard.newMeeting}`}
               >
-                + {t.dashboard.newMeeting}
+                {t.dashboard.newMeeting}
               </Link>
             </div>
             {list.length === 0 ? (

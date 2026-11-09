@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { t } from "@/messages";
 import { useAuth } from "@/providers/auth-provider";
-import { NavIcon } from "./nav-icon";
 import { isActivePath, navFor } from "./nav-items";
 
 /** Menu links by role. Used in the desktop sidebar and in the mobile drawer. */
@@ -25,16 +24,12 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 onClick={onNavigate}
                 aria-current={pathname === item.href ? "page" : undefined}
                 className={clsx(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-[15px] font-medium",
+                  "block rounded-lg px-3 py-2 text-[15px] font-medium",
                   active
                     ? "bg-brand-50 text-brand-800"
                     : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
                 )}
               >
-                <NavIcon
-                  name={item.icon}
-                  className={clsx("size-5", active ? "text-brand-700" : "text-slate-500")}
-                />
                 {item.label}
               </Link>
               {item.children && (

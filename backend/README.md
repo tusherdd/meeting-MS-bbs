@@ -42,7 +42,7 @@ Edit `.env`:
 | `DB_PASSWORD` | the password from 1.2 |
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | two **different** values, each from `openssl rand -base64 48` |
 | `SEED_SUPER_ADMIN_PASSWORD` | initial super admin password (letters + digits, ≥ 8) |
-| `SEED_OFFICER_DEFAULT_PASSWORD` | development only: one known password for all seeded officers (leave empty → random unusable passwords) |
+| `DEFAULT_OFFICER_PASSWORD` | the one default password of all officer accounts (letters + digits, ≥ 8). Seed, new accounts and admin resets use it; no forced change (SPEC §6.2, owner decision 2026-11-09) |
 
 The app **refuses to start** with missing or weak settings. Examples:
 - a JWT secret shorter than 32 characters (the `.env.example` placeholders are too short on purpose);
@@ -85,6 +85,7 @@ npm run start:dev                   # http://localhost:4000/api/v1
 | `migration:run` / `migration:revert` / `migration:show` | apply / undo last / list (TypeScript sources) |
 | `migration:run:prod` / `migration:show:prod` | the same on the compiled `dist/` (production, no ts-node) |
 | `seed` | designations, wings, super admin, officers (SPEC §11) |
+| `users:apply-default-password -- --dry-run` / `-- --yes` | one-off: give every OFFICER/ADMIN (not the SUPER_ADMIN, not `@example.com` test accounts) the default officer password; counts only, one audit entry |
 | `openapi:export` | writes `../docs/openapi.json` from the real controllers (no DB needed) |
 | `docs:api` | regenerates `../docs/API.md` from `openapi.json` |
 
@@ -145,7 +146,7 @@ npm run seed                    # once, with the officer CSV in src/database/see
 | `MAIL_DRY_RUN` | `false` (must be set explicitly) |
 | `SWAGGER_ENABLED` | `false`, or `true` together with `SWAGGER_USER` + `SWAGGER_PASSWORD` (≥ 12 chars) |
 | `TRUST_PROXY` | `1` (one nginx in front), so throttling and audit see the real client IP |
-| `SEED_OFFICER_DEFAULT_PASSWORD` | empty (the app refuses to start otherwise) |
+| `DEFAULT_OFFICER_PASSWORD` | the office's default officer password (allowed in production; startup logs one warning line, never the value) |
 | `SEED_SUPER_ADMIN_PASSWORD` | strong initial password; it must be changed at first login |
 | `UPLOAD_DIR` | a persistent folder outside the code, e.g. `/var/lib/bbs-meeting/uploads` |
 

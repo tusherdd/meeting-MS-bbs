@@ -31,6 +31,7 @@ export function toUserSummary(u: User): UserSummaryDto {
     role: u.role,
     isActive: u.isActive,
     mustChangePassword: u.mustChangePassword,
+    passwordIsDefault: u.passwordIsDefault,
     lastLoginAt: u.lastLoginAt,
     createdAt: u.createdAt,
   };

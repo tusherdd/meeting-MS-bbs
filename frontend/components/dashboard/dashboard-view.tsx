@@ -92,12 +92,7 @@ export function DashboardView() {
             {t.dashboard.greeting(user.nameBn)} · {formatDateWithWeekday(new Date())}
           </p>
         </div>
-        <LinkButton href="/meetings/new">
-          <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4" fill="currentColor">
-            <path d="M10 4a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2h-4v4a1 1 0 1 1-2 0v-4H5a1 1 0 1 1 0-2h4V5a1 1 0 0 1 1-1Z" />
-          </svg>
-          {t.dashboard.newMeeting}
-        </LinkButton>
+        <LinkButton href="/meetings/new">{t.dashboard.newMeeting}</LinkButton>
       </div>
 
       {conflicts.isError ? (

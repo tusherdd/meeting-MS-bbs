@@ -84,10 +84,18 @@ describe('Auth (e2e)', () => {
     const passwordHash = await hashPassword(PASSWORD);
     const fixtures: Array<[Fixture, Partial<User>]> = [
       ['active', {}],
-      ['pending', { mustChangePassword: true }],
+      // Since 2026-11-09 only the SUPER_ADMIN can still have a forced change.
+      [
+        'pending',
+        {
+          mustChangePassword: true,
+          role: UserRole.SUPER_ADMIN,
+          designationId: null,
+        },
+      ],
       ['hint', {}],
       ['reuse', {}],
-      ['reset', {}],
+      ['reset', { passwordIsDefault: true }],
       ['admin', { role: UserRole.ADMIN }],
     ];
     for (const [name, extra] of fixtures) {
@@ -365,7 +373,7 @@ describe('Auth (e2e)', () => {
     });
   });
 
-  describe('mustChangePassword', () => {
+  describe('mustChangePassword (SUPER_ADMIN only since 2026-11-09)', () => {
     it('allows only me / change-password / logout until the password is changed', async () => {
       const res = await login('pending').expect(200);
       const { accessToken, mustChangePassword } = res.body as {
@@ -409,6 +417,34 @@ describe('Auth (e2e)', () => {
 
       await login('pending', PASSWORD).expect(401);
       await login('pending', 'Brand1New2').expect(200);
+    });
+
+    it('an own password change clears passwordIsDefault', async () => {
+      await ds
+        .getRepository(User)
+        .update(userIds.reuse, { passwordIsDefault: true });
+      const res = await login('reuse').expect(200);
+      const bearer = {
+        Authorization: `Bearer ${(res.body as { accessToken: string }).accessToken}`,
+      };
+      const me = await http().get(`${API}/auth/me`).set(bearer).expect(200);
+      expect(me.body).toMatchObject({
+        passwordIsDefault: true,
+        mustChangePassword: false,
+      });
+      await http()
+        .post(`${API}/auth/change-password`)
+        .set(bearer)
+        .send({ currentPassword: PASSWORD, newPassword: 'Hint1Changed' })
+        .expect(200);
+      const user = await ds
+        .getRepository(User)
+        .findOneByOrFail({ id: userIds.reuse });
+      expect(user.passwordIsDefault).toBe(false);
+      // Restore for the other tests of this file.
+      await ds
+        .getRepository(User)
+        .update(userIds.reuse, { passwordHash: await hashPassword(PASSWORD) });
     });
 
     it('rejects unknown body fields (whitelist + forbidNonWhitelisted)', async () => {
@@ -546,6 +582,11 @@ describe('Auth (e2e)', () => {
 
       await login('reset', PASSWORD).expect(401);
       await login('reset', 'Reset1Pass').expect(200);
+      // A reset link means the user chose the password: no longer the default one.
+      expect(
+        (await ds.getRepository(User).findOneByOrFail({ id: userIds.reset }))
+          .passwordIsDefault,
+      ).toBe(false);
       await http()
         .post(`${API}/auth/refresh`)
         .set('Origin', ORIGIN)

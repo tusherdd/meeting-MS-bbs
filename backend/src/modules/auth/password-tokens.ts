@@ -15,7 +15,7 @@ export async function issuePasswordToken(
   validForMs: number,
 ): Promise<string> {
   const repo = manager.getRepository(PasswordResetToken);
-  await repo.update({ userId, usedAt: IsNull() }, { usedAt: new Date() });
+  await closeOpenPasswordTokens(manager, userId);
   const rawToken = generateSecureToken();
   await repo.insert({
     userId,
@@ -24,4 +24,14 @@ export async function issuePasswordToken(
     expiresAt: new Date(Date.now() + validForMs),
   });
   return rawToken;
+}
+
+/** Closes every unused password link of the user (e.g. after an admin reset). */
+export async function closeOpenPasswordTokens(
+  manager: EntityManager,
+  userId: string,
+): Promise<void> {
+  await manager
+    .getRepository(PasswordResetToken)
+    .update({ userId, usedAt: IsNull() }, { usedAt: new Date() });
 }

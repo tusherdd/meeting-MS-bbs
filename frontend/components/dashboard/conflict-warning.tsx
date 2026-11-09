@@ -25,16 +25,8 @@ export function ConflictWarning({ conflicts }: { conflicts: ConflictListItem[] }
       aria-labelledby="conflict-box-title"
       className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 sm:p-5"
     >
-      <div className="flex items-start gap-3">
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          className="mt-0.5 size-6 shrink-0 text-amber-600"
-          fill="currentColor"
-        >
-          <path d="M12 2 1 21h22L12 2Zm-1 7h2v6h-2V9Zm0 8h2v2h-2v-2Z" />
-        </svg>
-        <div className="min-w-0 flex-1">
+      <div>
+        <div className="min-w-0">
           <h2 id="conflict-box-title" className="font-semibold">
             {t.dashboard.conflictBoxTitle}
           </h2>

@@ -16,7 +16,7 @@ import { useDismiss } from "./use-dismiss";
 const UNREAD_POLL_MS = 60_000;
 
 /**
- * Bell with the unread count (GET /notifications/unread-count every 60 s and when the window
+ * "নোটিফিকেশন (৩)" text button with the unread count (GET /notifications/unread-count every 60 s and when the window
  * gets focus). The dropdown loads the latest 10 only when it is opened.
  */
 export function NotificationBell() {
@@ -65,30 +65,12 @@ export function NotificationBell() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={
-          count > 0
-            ? `${t.header.notifications}: ${t.header.unread(formatNumber(count))}`
-            : t.header.notifications
-        }
-        className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+        data-testid="notifications-button"
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="size-6" fill="none">
-          <path
-            d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9Zm4 11a2 2 0 0 0 4 0"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        {count > 0 && (
-          <span
-            data-testid="unread-count"
-            className="absolute -top-0.5 -right-0.5 flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] leading-5 font-semibold text-white"
-          >
-            {count > 99 ? "৯৯+" : formatNumber(count)}
-          </span>
-        )}
+        {count > 0
+          ? t.header.notificationsWithCount(count > 99 ? "৯৯+" : formatNumber(count))
+          : t.header.notifications}
       </button>
 
       {open && (
@@ -106,7 +88,7 @@ export function NotificationBell() {
           </div>
           <div className="max-h-[60vh] overflow-y-auto">
             {latest.isPending ? (
-              <div className="flex justify-center py-6 text-brand-700">
+              <div className="flex justify-center py-6">
                 <Spinner />
               </div>
             ) : latest.isError ? (
@@ -129,15 +111,15 @@ export function NotificationBell() {
                         !n.readAt && "bg-brand-50/50",
                       )}
                     >
-                      <span
-                        aria-hidden="true"
-                        className={clsx(
-                          "mt-2 size-2 shrink-0 rounded-full",
-                          n.readAt ? "bg-transparent" : "bg-brand-600",
-                        )}
-                      />
                       <span className="min-w-0">
-                        <span className="block text-sm font-medium text-slate-900">{n.title}</span>
+                        <span className="block text-sm font-medium text-slate-900">
+                          {!n.readAt && (
+                            <span className="mr-1.5 rounded bg-brand-700 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                              {t.header.unreadBadge}
+                            </span>
+                          )}
+                          {n.title}
+                        </span>
                         <span className="mt-0.5 line-clamp-2 block text-sm text-slate-600">
                           {n.body}
                         </span>

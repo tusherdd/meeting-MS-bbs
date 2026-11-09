@@ -13,10 +13,8 @@ import { configureApp } from '../src/app.setup';
 import { hashPassword } from '../src/common/utils/password';
 import { AuditLog } from '../src/modules/audit/entities/audit-log.entity';
 import { AuditAction } from '../src/modules/audit/enums/audit-action.enum';
-import { AUTH_MESSAGES } from '../src/modules/auth/auth.messages';
 import { PasswordResetToken } from '../src/modules/auth/entities/password-reset-token.entity';
 import { RefreshToken } from '../src/modules/auth/entities/refresh-token.entity';
-import { PasswordTokenPurpose } from '../src/modules/auth/enums/password-token-purpose.enum';
 import { DESIGNATION_MESSAGES } from '../src/modules/designations/designations.messages';
 import { Designation } from '../src/modules/designations/entities/designation.entity';
 import { EmailOutbox } from '../src/modules/mail/entities/email-outbox.entity';
@@ -29,6 +27,8 @@ import { Wing } from '../src/modules/wings/entities/wing.entity';
 const API = '/api/v1';
 const DOMAIN = '@e2e-users.test';
 const PASSWORD = 'E2ePass1234';
+/** From backend/.env (loaded by test/e2e-env.ts); never printed. */
+const DEFAULT_PASSWORD = process.env.DEFAULT_OFFICER_PASSWORD ?? '';
 
 type Fixture = 'super' | 'admin' | 'admin2' | 'officer' | 'inactive';
 const email = (name: string) => `${name}${DOMAIN}`;
@@ -65,10 +65,8 @@ describe('Users, designations, wings (e2e)', () => {
   }
 
   /** Raw token from a one-time link in a queued mail (e.g. "set-password"). */
-  const linkToken = (
-    mail: EmailOutbox,
-    path: 'set-password' | 'reset-password',
-  ) => new RegExp(`${path}\\?token=([A-Za-z0-9_-]+)`).exec(mail.html ?? '')![1];
+  const linkToken = (mail: EmailOutbox, path: 'reset-password') =>
+    new RegExp(`${path}\\?token=([A-Za-z0-9_-]+)`).exec(mail.html ?? '')![1];
 
   async function cleanup(): Promise<void> {
     const users = await ds.getRepository(User).find({
@@ -324,7 +322,7 @@ describe('Users, designations, wings (e2e)', () => {
   // ------------------------------------------------------------------ create / update
 
   describe('POST /users and PATCH /users/:id', () => {
-    it('creates an officer: no password anywhere, a one-time set-password link (72 h) instead', async () => {
+    it('creates an officer with the default password; the mail never contains it', async () => {
       const res = await http()
         .post(`${API}/users`)
         .set(as('admin'))
@@ -351,48 +349,51 @@ describe('Users, designations, wings (e2e)', () => {
       const userId = (res.body as { id: string }).id;
 
       const mail = await latestMailTo(email('new.officer'));
-      expect(mail.subject).toContain('পাসওয়ার্ড সেট করুন');
+      expect(mail.subject).toContain('অ্যাকাউন্ট তৈরি হয়েছে');
       expect(mail.html).toContain(email('new.officer'));
-      expect(`${mail.html}${mail.text}`).not.toMatch(
-        /অস্থায়ী পাসওয়ার্ড|temporary password/i,
-      );
-      const token = linkToken(mail, 'set-password');
-      expect(mail.text).toContain(token); // plain-text version carries the link too
-
-      const row = await ds
-        .getRepository(PasswordResetToken)
-        .findOneByOrFail({ userId });
-      expect(row.purpose).toBe(PasswordTokenPurpose.SET_INITIAL);
-      const hours = (row.expiresAt.getTime() - Date.now()) / 3_600_000;
-      expect(hours).toBeGreaterThan(71.9);
-      expect(hours).toBeLessThanOrEqual(72);
-
-      // Nobody knows a password yet: login is impossible until the link is used.
-      expect((await loginToken(email('new.officer'), PASSWORD)).status).toBe(
-        401,
-      );
-
-      const set = await http()
-        .post(`${API}/auth/reset-password`)
-        .send({ token, newPassword: 'MyFirst123' })
-        .expect(200);
-      expect(body(set).message).toBe(AUTH_MESSAGES.passwordSet);
-      await http()
-        .post(`${API}/auth/reset-password`)
-        .send({ token, newPassword: 'Again1234' })
-        .expect(400); // single use
-
-      const login = await loginToken(email('new.officer'), 'MyFirst123');
-      expect(login.status).toBe(200);
+      expect(mail.text).toContain('অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড');
+      // The mail never contains the password (HTML or text), and no link token.
+      expect(`${mail.html}${mail.text}`).not.toContain(DEFAULT_PASSWORD);
+      expect(`${mail.html}${mail.text}`).not.toMatch(/token=/);
       expect(
-        (login.body as { mustChangePassword: boolean }).mustChangePassword,
-      ).toBe(false);
+        await ds.getRepository(PasswordResetToken).countBy({ userId }),
+      ).toBe(0);
+
+      // The officer logs in with the default password; no forced change.
+      const login = await loginToken(email('new.officer'), DEFAULT_PASSWORD);
+      expect(login.status).toBe(200);
+      expect(login.body).toMatchObject({
+        mustChangePassword: false,
+        user: { passwordIsDefault: true },
+      });
+
+      // Admin views show the flag and can filter by it.
+      const detail = await http()
+        .get(`${API}/users/${userId}`)
+        .set(as('admin'))
+        .expect(200);
+      expect(detail.body).toMatchObject({ passwordIsDefault: true });
+      const onDefault = await http()
+        .get(`${API}/users?passwordIsDefault=true&limit=100`)
+        .set(as('admin'))
+        .expect(200);
+      const items = (
+        onDefault.body as {
+          items: Array<{ id: string; passwordIsDefault: boolean }>;
+        }
+      ).items;
+      expect(items.some((u) => u.id === userId)).toBe(true);
+      expect(items.every((u) => u.passwordIsDefault)).toBe(true);
+      await http()
+        .get(`${API}/users?passwordIsDefault=true`)
+        .set(as('officer'))
+        .expect(403);
 
       const audit = await ds.getRepository(AuditLog).findOneByOrFail({
         action: AuditAction.USER_CREATE,
         entityId: userId,
       });
-      expect(JSON.stringify(audit)).not.toContain(token);
+      expect(JSON.stringify(audit)).not.toContain(DEFAULT_PASSWORD);
     });
 
     it('rejects a duplicate login email (case-insensitive) with 409', async () => {
@@ -612,7 +613,7 @@ describe('Users, designations, wings (e2e)', () => {
       ]);
     });
 
-    it('admin reset: old password stops at once, sessions end, a one-time link is mailed', async () => {
+    it('admin reset: default password at once, sessions end, notice mailed without the password', async () => {
       const session = await loginToken(email('officer'), PASSWORD);
       const access = (session.body as { accessToken: string }).accessToken;
 
@@ -636,17 +637,44 @@ describe('Users, designations, wings (e2e)', () => {
 
       const mail = await latestMailTo(email('officer'));
       expect(mail.subject).toContain('রিসেট');
-      const token = linkToken(mail, 'reset-password');
-      const reset = await http()
+      expect(mail.text).toContain('অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড');
+      expect(`${mail.html}${mail.text}`).not.toContain(DEFAULT_PASSWORD);
+      expect(`${mail.html}${mail.text}`).not.toMatch(/token=/);
+
+      const user = await ds
+        .getRepository(User)
+        .findOneByOrFail({ id: ids.officer });
+      expect(user).toMatchObject({
+        passwordIsDefault: true,
+        mustChangePassword: false,
+      });
+
+      const login = await loginToken(email('officer'), DEFAULT_PASSWORD);
+      expect(login.status).toBe(200);
+      expect(login.body).toMatchObject({ mustChangePassword: false });
+      tokens.officer = (login.body as { accessToken: string }).accessToken;
+      await http().get(`${API}/designations`).set(as('officer')).expect(200);
+
+      // Forgot-password links keep working and end the "default" state.
+      await http()
+        .post(`${API}/auth/forgot-password`)
+        .send({ loginEmail: email('officer') })
+        .expect(200);
+      const resetMail = await latestMailTo(email('officer'));
+      const token = linkToken(resetMail, 'reset-password');
+      await http()
         .post(`${API}/auth/reset-password`)
         .send({ token, newPassword: PASSWORD })
         .expect(200);
-      expect(body(reset).message).toBe(AUTH_MESSAGES.passwordReset);
-
-      const login = await loginToken(email('officer'), PASSWORD);
-      expect(login.status).toBe(200);
-      tokens.officer = (login.body as { accessToken: string }).accessToken;
-      await http().get(`${API}/designations`).set(as('officer')).expect(200);
+      expect(
+        (await ds.getRepository(User).findOneByOrFail({ id: ids.officer }))
+          .passwordIsDefault,
+      ).toBe(false);
+      tokens.officer = (
+        (await loginToken(email('officer'), PASSWORD)).body as {
+          accessToken: string;
+        }
+      ).accessToken;
     });
 
     it('refuses to reset an inactive account', async () => {

@@ -24,6 +24,7 @@
     "migration:revert": "typeorm-ts-node-commonjs -d src/database/data-source.ts migration:revert",
     "migration:show": "typeorm-ts-node-commonjs -d src/database/data-source.ts migration:show",
     "seed": "ts-node --transpile-only src/database/seeds/seed.ts",
+    "users:apply-default-password": "ts-node --transpile-only src/database/commands/apply-default-password.ts",
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "openapi:export": "ts-node --transpile-only scripts/export-openapi.ts",
     "docs:api": "ts-node --transpile-only scripts/generate-api-docs.ts",

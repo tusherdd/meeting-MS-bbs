@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
 import { AdminOnly } from "@/components/layout/admin-only";
-import { ComingSoon } from "@/components/layout/coming-soon";
 import { t } from "@/messages";
 
 export const metadata: Metadata = { title: t.placeholders.admin };
 
+/** Built in F3. Until then the page stays empty for admins (owner decision 2026-11-09). */
 export default function Page() {
-  return (
-    <AdminOnly>
-      <ComingSoon title={t.placeholders.admin} />
-    </AdminOnly>
-  );
+  return <AdminOnly>{null}</AdminOnly>;
 }

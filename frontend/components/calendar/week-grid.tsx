@@ -151,9 +151,14 @@ export function WeekGrid({ sunday, meetings, conflictIds }: Props) {
                     type="button"
                     onClick={() => newMeetingAt(d, h)}
                     aria-label={`${t.calendar.weekdaysShort[i]} ${formatPlainDate(d)}, ${t.calendar.newAt(hourLabel(h))}`}
-                    className="absolute inset-x-0 border-t border-slate-100 hover:bg-brand-50/60"
+                    className="group absolute inset-x-0 border-t border-slate-100 text-left hover:bg-brand-50/60 focus-visible:bg-brand-50"
                     style={{ top: slot * HOUR_PX, height: HOUR_PX }}
-                  />
+                  >
+                    {/* Always a visible (faint) text label: no icon-only or empty buttons. */}
+                    <span className="px-1.5 text-[11px] text-slate-400 group-hover:font-medium group-hover:text-brand-800 group-focus-visible:font-medium group-focus-visible:text-brand-800">
+                      {t.calendar.newSlot}
+                    </span>
+                  </button>
                 ))}
                 {placed.map((p) => {
                   const c = columns.get(p.meeting.id) ?? { col: 0, cols: 1 };
@@ -175,12 +180,13 @@ export function WeekGrid({ sunday, meetings, conflictIds }: Props) {
                 })}
                 {showNow && (
                   <div
-                    aria-label={`${t.calendar.now}: ${formatTime(now)}`}
-                    role="img"
+                    title={`${t.calendar.now}: ${formatTime(now)}`}
                     className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-red-500"
                     style={{ top: ((nowMin - GRID_START_MIN) / 60) * HOUR_PX }}
                   >
-                    <span className="absolute -top-1.5 -left-1 size-3 rounded-full bg-red-500" />
+                    <span className="absolute -top-2.5 left-1 rounded bg-red-500 px-1 text-[10px] leading-4 font-semibold text-white">
+                      {t.calendar.now}
+                    </span>
                   </div>
                 )}
               </div>

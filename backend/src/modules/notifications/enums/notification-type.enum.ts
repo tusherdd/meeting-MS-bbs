@@ -3,6 +3,8 @@ export enum NotificationType {
   // e-mail only (account / security)
   ACCOUNT_CREATED = 'ACCOUNT_CREATED',
   PASSWORD_RESET_LINK = 'PASSWORD_RESET_LINK',
+  /** Admin reset the password to the default officer password (2026-11-09). */
+  PASSWORD_RESET_BY_ADMIN = 'PASSWORD_RESET_BY_ADMIN',
   NOTIFICATION_EMAIL_CHANGE_REQUESTED = 'NOTIFICATION_EMAIL_CHANGE_REQUESTED',
   // bell + e-mail
   CHANGE_REQUEST_SUBMITTED = 'CHANGE_REQUEST_SUBMITTED',

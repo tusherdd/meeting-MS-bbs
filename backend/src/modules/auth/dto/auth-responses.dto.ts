@@ -67,8 +67,19 @@ export class MeResponseDto {
   @ApiProperty({ enum: UserRole, example: UserRole.OFFICER })
   role!: UserRole;
 
-  @ApiProperty({ example: false })
+  @ApiProperty({
+    example: false,
+    description:
+      'Only ever true for the SUPER_ADMIN before its first change (2026-11-09)',
+  })
   mustChangePassword!: boolean;
+
+  @ApiProperty({
+    example: true,
+    description:
+      'The account still uses the default officer password (no reminder is shown)',
+  })
+  passwordIsDefault!: boolean;
 
   @ApiProperty({ type: MeDesignationDto, nullable: true })
   designation!: MeDesignationDto | null;

@@ -24,6 +24,8 @@ for rules, data model, API list and security requirements. If a request conflict
 Follow SPEC.md §9 in every step. Never commit `.env` or files under `backend/src/database/seeds/data/`.
 Never log passwords, tokens or full request bodies of auth routes.
 Never print passwords, secrets, tokens or .env values in chat explanations or reports — refer to the variable name instead.
+Default officer password (owner decision 2026-11-09): only in `DEFAULT_OFFICER_PASSWORD` (env) — never in code,
+docs, logs, mails or test files; no forced change and no reminder for officers (SPEC.md §6.2).
 
 ## Commands (backend)
 - `npm run start:dev` — run API with watch mode (http://localhost:4000, Swagger at /api/docs)
@@ -38,3 +40,5 @@ Never print passwords, secrets, tokens or .env values in chat explanations or re
 - `npm run gen:api` — regenerate `lib/api-schema.ts` from `docs/openapi.json` (after backend API changes)
 - `npm run test:e2e` — Playwright (backend running with `MAIL_DRY_RUN=true`; admin login in `frontend/.env.e2e`)
 - UI text only in `messages/bn.ts`; numbers/dates only through `lib/format.ts`; backend calls only through `lib/api.ts`.
+- No icons in the UI; use short Bangla text labels instead (no SVG/icon components/emoji icons, no icon-only buttons; owner decision 2026-11-09).
+- Pages that are not built yet stay empty (no placeholder text).

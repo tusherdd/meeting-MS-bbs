@@ -1,6 +1,6 @@
 /**
- * Every mail of the system (step 7). No mail ever contains a password: accounts get a
- * one-time "set your password" link instead (SPEC.md §9.1).
+ * Every mail of the system (step 7). No mail ever contains a password (SPEC.md §9.1): new
+ * accounts and admin resets point to the default password the office announced (2026-11-09).
  */
 import { renderMail, type MailContent } from './render';
 
@@ -15,58 +15,53 @@ export function maskEmail(email: string): string {
 
 // ------------------------------------------------------------------ accounts / passwords
 
-/** New account (admin created it): choose the first password. */
-export function setPasswordMail(input: {
+/** Shown instead of the password itself (owner decision 2026-11-09, SPEC.md §6.2). */
+export const DEFAULT_PASSWORD_HINT_BN = 'অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড';
+
+/** New account (admin created it): log in with the default password the office announced. */
+export function accountCreatedMail(input: {
   nameBn: string;
   loginEmail: string;
-  link: string;
-  validHours: number;
+  loginUrl: string;
 }): MailContent {
-  return renderMail(
-    'আপনার অ্যাকাউন্ট তৈরি হয়েছে — পাসওয়ার্ড সেট করুন',
-    input.nameBn,
-    [
-      {
-        kind: 'paragraph',
-        text: 'বাংলাদেশ পরিসংখ্যান ব্যুরোর সভা সূচি ব্যবস্থাপনায় আপনার জন্য একটি অ্যাকাউন্ট তৈরি করা হয়েছে।',
-      },
-      { kind: 'table', rows: [['লগইন ইমেইল', input.loginEmail]] },
-      {
-        kind: 'paragraph',
-        text: 'নিচের বাটনে ক্লিক করে নিজের পাসওয়ার্ড সেট করুন:',
-      },
-      { kind: 'button', label: 'পাসওয়ার্ড সেট করুন', url: input.link },
-      {
-        kind: 'note',
-        text: `লিংকটি ${input.validHours} ঘণ্টা কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে। মেয়াদ শেষ হলে লগইন পাতার "পাসওয়ার্ড ভুলে গেছেন?" ব্যবহার করুন।`,
-      },
-    ],
-  );
+  return renderMail('আপনার অ্যাকাউন্ট তৈরি হয়েছে', input.nameBn, [
+    {
+      kind: 'paragraph',
+      text: 'বাংলাদেশ পরিসংখ্যান ব্যুরোর সভা সূচি ব্যবস্থাপনায় আপনার জন্য একটি অ্যাকাউন্ট তৈরি করা হয়েছে।',
+    },
+    {
+      kind: 'table',
+      rows: [
+        ['লগইন ইমেইল', input.loginEmail],
+        ['পাসওয়ার্ড', DEFAULT_PASSWORD_HINT_BN],
+      ],
+    },
+    { kind: 'button', label: 'লগইন করুন', url: input.loginUrl },
+    {
+      kind: 'note',
+      text: 'চাইলে লগইনের পর "পাসওয়ার্ড পরিবর্তন" থেকে নিজের পাসওয়ার্ড দিতে পারেন।',
+    },
+  ]);
 }
 
-/** An admin reset the password: the old one no longer works. */
-export function adminResetMail(input: {
+/** An admin reset the password to the default one; all sessions were ended. */
+export function adminResetNoticeMail(input: {
   nameBn: string;
   loginEmail: string;
-  link: string;
-  validHours: number;
+  loginUrl: string;
 }): MailContent {
-  return renderMail(
-    'আপনার পাসওয়ার্ড রিসেট করা হয়েছে — নতুন পাসওয়ার্ড সেট করুন',
-    input.nameBn,
-    [
-      {
-        kind: 'paragraph',
-        text: 'একজন প্রশাসক আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করেছেন। আগের পাসওয়ার্ড আর কাজ করবে না এবং সব ডিভাইস থেকে আপনাকে লগআউট করা হয়েছে।',
-      },
-      { kind: 'table', rows: [['লগইন ইমেইল', input.loginEmail]] },
-      { kind: 'button', label: 'নতুন পাসওয়ার্ড সেট করুন', url: input.link },
-      {
-        kind: 'note',
-        text: `লিংকটি ${input.validHours} ঘণ্টা কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে। আপনি এমন অনুরোধ না করে থাকলে দ্রুত প্রশাসকের সাথে যোগাযোগ করুন।`,
-      },
-    ],
-  );
+  return renderMail('আপনার পাসওয়ার্ড রিসেট করা হয়েছে', input.nameBn, [
+    {
+      kind: 'paragraph',
+      text: `একজন প্রশাসক আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করেছেন। এখন ${DEFAULT_PASSWORD_HINT_BN} দিয়ে লগইন করুন। সব ডিভাইস থেকে আপনাকে লগআউট করা হয়েছে।`,
+    },
+    { kind: 'table', rows: [['লগইন ইমেইল', input.loginEmail]] },
+    { kind: 'button', label: 'লগইন করুন', url: input.loginUrl },
+    {
+      kind: 'note',
+      text: 'আপনি এমন অনুরোধ না করে থাকলে দ্রুত প্রশাসকের সাথে যোগাযোগ করুন।',
+    },
+  ]);
 }
 
 /** "Forgot password" requested by the user. */

@@ -126,6 +126,10 @@ export class User extends BaseEntity {
   @Column({ type: 'boolean', default: true })
   mustChangePassword!: boolean;
 
+  /** The account still uses DEFAULT_OFFICER_PASSWORD (SPEC.md §6.2, owner decision 2026-11-09). */
+  @Column({ type: 'boolean', default: false })
+  passwordIsDefault!: boolean;
+
   @Column({ type: 'int', default: 0 })
   failedLoginCount!: number;
 

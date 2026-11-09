@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/layout/coming-soon";
 import { t } from "@/messages";
 
 export const metadata: Metadata = { title: t.placeholders.reports };
 
+/** Built in F3. Until then the page stays empty (owner decision 2026-11-09). */
 export default function Page() {
-  return <ComingSoon title={t.placeholders.reports} />;
+  return null;
 }

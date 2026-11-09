@@ -76,24 +76,14 @@ export function CalendarView() {
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 pt-3 sm:px-5">
           <div className="flex flex-wrap items-center gap-2 pb-3">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => move(-1)}
-              aria-label={t.calendar.prev}
-            >
-              ‹ {t.calendar.prev}
+            <Button variant="secondary" size="sm" onClick={() => move(-1)}>
+              {t.calendar.prev}
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setAnchor(dhakaToday())}>
               {t.calendar.today}
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => move(1)}
-              aria-label={t.calendar.next}
-            >
-              {t.calendar.next} ›
+            <Button variant="secondary" size="sm" onClick={() => move(1)}>
+              {t.calendar.next}
             </Button>
             <h2 className="ml-1 text-base font-semibold text-slate-900" aria-live="polite">
               {title}

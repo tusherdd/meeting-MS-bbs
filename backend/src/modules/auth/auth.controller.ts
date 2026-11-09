@@ -209,8 +209,8 @@ export class AuthController {
   @ApiOperation({
     summary: 'Set a password with the token from a mail link',
     description:
-      'Accepts the token of /reset-password links ("forgot password", admin reset) and of ' +
-      '/set-password links (new account). Single use.',
+      'Accepts the token of /reset-password links ("forgot password") and of older /set-password ' +
+      'links. Single use. Clears passwordIsDefault.',
   })
   @ApiOkResponse({ type: MessageResponseDto })
   @ApiBadRequestResponse({

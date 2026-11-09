@@ -47,12 +47,9 @@ export function Modal({
         <button
           type="button"
           onClick={onClose}
-          className="-m-1 rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-          aria-label={t.common.close}
+          className="shrink-0 rounded px-2 py-1 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
         >
-          <svg aria-hidden="true" viewBox="0 0 20 20" className="size-5" fill="currentColor">
-            <path d="M5.3 5.3a1 1 0 0 1 1.4 0L10 8.6l3.3-3.3a1 1 0 1 1 1.4 1.4L11.4 10l3.3 3.3a1 1 0 0 1-1.4 1.4L10 11.4l-3.3 3.3a1 1 0 0 1-1.4-1.4L8.6 10 5.3 6.7a1 1 0 0 1 0-1.4Z" />
-          </svg>
+          {t.common.close}
         </button>
       </div>
       <div className="px-5 py-4">{children}</div>

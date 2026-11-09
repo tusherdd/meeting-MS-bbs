@@ -19,10 +19,6 @@ export const UNKNOWN_EMAIL_TRACKING_MAX_ENTRIES = 10_000;
 
 /** SPEC.md §9.12: "forgot password" links live 30 minutes. */
 export const RESET_TOKEN_TTL_MINUTES = 30;
-/** Step 7: first-password link of a new account. */
-export const SET_INITIAL_TOKEN_TTL_HOURS = 72;
-/** Step 7: link after an admin reset (the user may not read mail within 30 minutes). */
-export const ADMIN_RESET_TOKEN_TTL_HOURS = 72;
 
 /**
  * Stricter per-IP limits for sensitive routes (global default: 100/min).

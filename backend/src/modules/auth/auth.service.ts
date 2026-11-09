@@ -155,6 +155,7 @@ export class AuthService {
       nameEn: user.nameEn,
       role: user.role,
       mustChangePassword: user.mustChangePassword,
+      passwordIsDefault: user.passwordIsDefault,
       designation: user.designation
         ? {
             id: user.designation.id,
@@ -200,9 +201,11 @@ export class AuthService {
 
     const passwordHash = await hashPassword(dto.newPassword);
     return this.dataSource.transaction(async (manager) => {
-      await manager
-        .getRepository(User)
-        .update(user.id, { passwordHash, mustChangePassword: false });
+      await manager.getRepository(User).update(user.id, {
+        passwordHash,
+        mustChangePassword: false,
+        passwordIsDefault: false, // the user chose their own password
+      });
       await this.tokens.revokeAllForUser(user.id, manager);
       const pair = await this.tokens.issuePair(user.id, meta, manager);
       await this.audit.log(
@@ -304,6 +307,7 @@ export class AuthService {
       await manager.getRepository(User).update(user.id, {
         passwordHash: await hashPassword(dto.newPassword),
         mustChangePassword: false, // the user chose this password themselves
+        passwordIsDefault: false,
         failedLoginCount: 0,
       });
       await resetTokens.update(
