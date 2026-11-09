@@ -22,7 +22,8 @@
     "migration:generate": "typeorm-ts-node-commonjs -d src/database/data-source.ts migration:generate",
     "migration:run": "typeorm-ts-node-commonjs -d src/database/data-source.ts migration:run",
     "migration:revert": "typeorm-ts-node-commonjs -d src/database/data-source.ts migration:revert",
-    "migration:show": "typeorm-ts-node-commonjs -d src/database/data-source.ts migration:show"
+    "migration:show": "typeorm-ts-node-commonjs -d src/database/data-source.ts migration:show",
+    "seed": "ts-node --transpile-only src/database/seeds/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -32,9 +33,11 @@
     "@nestjs/swagger": "^11.4.8",
     "@nestjs/throttler": "^6.7.1",
     "@nestjs/typeorm": "^11.0.3",
+    "argon2": "^0.45.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
+    "csv-parse": "^7.0.3",
     "dotenv": "^18.0.9",
     "helmet": "^8.3.0",
     "joi": "^18.3.2",

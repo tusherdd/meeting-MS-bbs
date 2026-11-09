@@ -38,6 +38,8 @@ export interface EnvVars {
 
   SEED_SUPER_ADMIN_EMAIL: string;
   SEED_SUPER_ADMIN_PASSWORD: string;
+  /** Development only: shared password for seeded officers. Empty = random unusable password. */
+  SEED_OFFICER_DEFAULT_PASSWORD: string;
 }
 
 const MIN_SECRET_LENGTH = 32;
@@ -131,6 +133,17 @@ export const envSchema = Joi.object<EnvVars>({
     .default('admin@bbs.gov.bd'),
   // Only needed when running seeds (checked by the seed script, not at API startup).
   SEED_SUPER_ADMIN_PASSWORD: Joi.string().allow('').default(''),
+  // A shared known password must never exist in production (SPEC.md §11.4).
+  SEED_OFFICER_DEFAULT_PASSWORD: Joi.string()
+    .allow('')
+    .default('')
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.valid('').messages({
+        'any.only':
+          '"SEED_OFFICER_DEFAULT_PASSWORD" must be empty when NODE_ENV=production',
+      }),
+    }),
 });
 
 /**

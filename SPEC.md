@@ -102,7 +102,7 @@ Controllers stay thin; business rules live in services. Every endpoint has Swagg
   `designationRemark` on the user. They do **not** change priority.
 - Roles such as "Focal Point Officer" are additional charges, not designations.
 
-Initial seed (draft, the owner will finalize later from the admin panel):
+Initial seed (final list approved by the owner; admins can still change it later from the admin panel):
 
 | Priority | Designation (bn) | Designation (en) |
 |---|---|---|
@@ -111,16 +111,18 @@ Initial seed (draft, the owner will finalize later from the admin panel):
 | 3 | উপমহাপরিচালক | Deputy Director General |
 | 4 | পরিচালক | Director |
 | 5 | যুগ্মপরিচালক | Joint Director |
+| 5 | সিস্টেম এনালিস্ট | System Analyst |
+| 5 | সিনিয়র প্রোগ্রামার | Senior Programmer |
 | 6 | উপপরিচালক | Deputy Director |
-| 6 | সিস্টেম এনালিস্ট | System Analyst |
-| 7 | সিনিয়র প্রোগ্রামার | Senior Programmer |
-| 7 | মেইন্টেন্যান্স ইঞ্জিনিয়ার | Maintenance Engineer |
-| 8 | প্রোগ্রামার | Programmer |
-| 9 | পরিসংখ্যান কর্মকর্তা | Statistical Officer |
-| 9 | সহকারী প্রোগ্রামার | Assistant Programmer |
-| 9 | কার্টোগ্রাফার | Cartographer |
-| 9 | গ্রাফিক রিপ্রোডাকশন অফিসার | Graphic Reproduction Officer |
-| 9 | স্টাফ অফিসার | Staff Officer |
+| 6 | মেইন্টেন্যান্স ইঞ্জিনিয়ার | Maintenance Engineer |
+| 6 | প্রোগ্রামার | Programmer |
+| 7 | পরিসংখ্যান কর্মকর্তা | Statistical Officer |
+| 7 | সহকারী প্রোগ্রামার | Assistant Programmer |
+| 7 | কার্টোগ্রাফার | Cartographer |
+| 7 | গ্রাফিক রিপ্রোডাকশন অফিসার | Graphic Reproduction Officer |
+| 7 | স্টাফ অফিসার | Staff Officer |
+
+On re-run, the seed updates the priority of an existing designation to match this table.
 
 ### 6.2 Profiles
 - **Login email** = user id. Unique, never edited directly. Change only via a change request approved by an admin.
@@ -184,8 +186,9 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
 - **wings**: nameBn, nameEn, isActive
 - **users**: loginEmail (unique, citext/lowercased), notificationEmail, pendingNotificationEmail,
   notificationEmailTokenHash, notificationEmailTokenExpiresAt, passwordHash, nameBn, nameEn,
-  mobile, officePhone, fax, photoPath, designationId → designations, designationRemark, wingId → wings,
-  organization (text, e.g. "Bangladesh Bureau of Statistics" / "Statistics and Informatics Division"),
+  mobile, mobileAlt, officePhone, fax, photoPath, designationId → designations (nullable only for the
+  SUPER_ADMIN system account), designationRemark, wingId → wings (nullable),
+  organizationBn, organizationEn (e.g. "বাংলাদেশ পরিসংখ্যান ব্যুরো" / "Bangladesh Bureau of Statistics"),
   bcsBatch, role (enum), isActive, mustChangePassword, failedLoginCount, lockedUntil, lastLoginAt
 - **user_additional_charges**: userId, description
 - **refresh_tokens**: userId, tokenHash, expiresAt, revokedAt, replacedById, userAgent, ip
@@ -363,18 +366,31 @@ SWAGGER_ENABLED=true
 
 SEED_SUPER_ADMIN_EMAIL=admin@bbs.gov.bd
 SEED_SUPER_ADMIN_PASSWORD=
+SEED_OFFICER_DEFAULT_PASSWORD=   # development only; leave empty in production
 ```
 
 ## 11. Seed data
 
-1. Designations (table in 6.1) and wings found in the officer list.
-2. Super admin `admin@bbs.gov.bd` (password from `.env`, mustChangePassword = true).
-3. Secretary: Md. Firoz Sarker / মোঃ ফিরোজ সরকার, Secretary, Statistics and Informatics Division,
-   secy@sid.gov.bd, office phone +880 2 55007373, fax +880 2 55007375.
-4. Officers from `backend/src/database/seeds/data/officers.csv` (git-ignored, provided separately).
-   One account per unique email; duplicate rows become additional charges; Bangla digits in phone
-   numbers converted to ASCII; rows without email are skipped and reported.
-5. Seeds are idempotent (safe to run twice).
+1. Designations: the table in 6.1 (upsert by nameEn).
+2. Wings: every distinct `wing_bn`/`wing_en` in the CSV, plus these cells (upsert by nameEn):
+   ECDS Cell, SDG Cell, Planning and Development Cell, R&D Cell, PLS Cell (Bangla names as in the CSV's
+   `additional_charges` column).
+3. Super admin `admin@bbs.gov.bd` — a system account, not an officer: no designation, no wing,
+   password from `SEED_SUPER_ADMIN_PASSWORD`, mustChangePassword = true. It cannot organize meetings
+   (no designation = no priority).
+4. Officers from `backend/src/database/seeds/data/officers.csv` (git-ignored, already cleaned; the
+   Secretary is the first row). CSV columns:
+   `source_sl, name_bn, name_en, designation_bn, designation_en, designation_remark, wing_bn, wing_en,
+   organization_bn, organization_en, login_email, mobile, mobile_alt, office_phone, fax,
+   additional_charges (" | "-separated), role`.
+   - Rows without `login_email` are skipped and listed in the seed report.
+   - notificationEmail = loginEmail (already verified).
+   - Password: `SEED_OFFICER_DEFAULT_PASSWORD` if set (development only), otherwise a random unusable
+     password so officers must use "forgot password". mustChangePassword = true either way.
+   - additional_charges → `user_additional_charges` rows.
+5. Seeds are idempotent: designations and wings are upserted; users are inserted only if their
+   loginEmail does not exist yet (an existing user is never overwritten).
+6. `npm run seed` prints a summary: created / skipped / already existing, with reasons.
 
 ## 12. Build order
 

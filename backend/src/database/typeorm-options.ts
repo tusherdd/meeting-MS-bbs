@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { DataSourceOptions } from 'typeorm';
 import { EnvVars } from '../config/env.validation';
+import { ENTITIES } from './entities';
 
 type DbEnv = Pick<
   EnvVars,
@@ -22,8 +23,12 @@ export function buildDataSourceOptions(env: DbEnv): DataSourceOptions {
     // Schema changes only through migrations (SPEC.md §3, CLAUDE.md).
     synchronize: false,
     migrationsRun: false,
-    entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
+    entities: ENTITIES,
     migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
+    // ids default to gen_random_uuid(), built into PostgreSQL 13+, so no extension is needed
+    // (and the app user does not need CREATE EXTENSION rights).
+    uuidExtension: 'pgcrypto',
+    installExtensions: false,
     migrationsTableName: 'typeorm_migrations',
     // Never log every query: queries can carry personal data.
     logging: ['error', 'warn', 'migration'],

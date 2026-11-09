@@ -28,6 +28,7 @@ const validEnv = (): Record<string, string> => ({
   SWAGGER_ENABLED: 'true',
   SEED_SUPER_ADMIN_EMAIL: 'admin@bbs.gov.bd',
   SEED_SUPER_ADMIN_PASSWORD: '',
+  SEED_OFFICER_DEFAULT_PASSWORD: '',
 });
 
 describe('validateEnv', () => {
@@ -117,6 +118,38 @@ describe('validateEnv', () => {
     expect(() =>
       validateEnv({ ...validEnv(), JWT_ACCESS_TTL: '15 minutes' }),
     ).toThrow(/JWT_ACCESS_TTL/);
+  });
+
+  describe('SEED_OFFICER_DEFAULT_PASSWORD', () => {
+    it('is optional and defaults to empty', () => {
+      const env = validEnv();
+      delete env.SEED_OFFICER_DEFAULT_PASSWORD;
+      expect(validateEnv(env).SEED_OFFICER_DEFAULT_PASSWORD).toBe('');
+    });
+
+    it('may be set in development', () => {
+      const env = validateEnv({
+        ...validEnv(),
+        SEED_OFFICER_DEFAULT_PASSWORD: 'Officer2026',
+      });
+      expect(env.SEED_OFFICER_DEFAULT_PASSWORD).toBe('Officer2026');
+    });
+
+    it('must be empty in production', () => {
+      expect(() =>
+        validateEnv({
+          ...validEnv(),
+          NODE_ENV: 'production',
+          SEED_OFFICER_DEFAULT_PASSWORD: 'Officer2026',
+        }),
+      ).toThrow(/must be empty when NODE_ENV=production/);
+    });
+
+    it('may be empty in production', () => {
+      expect(() =>
+        validateEnv({ ...validEnv(), NODE_ENV: 'production' }),
+      ).not.toThrow();
+    });
   });
 
   it('defaults SWAGGER_ENABLED to false', () => {
