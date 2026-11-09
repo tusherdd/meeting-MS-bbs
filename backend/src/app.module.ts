@@ -10,6 +10,7 @@ import { OriginGuard } from './common/guards/origin.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { EnvVars, validateEnv } from './config/env.validation';
 import { buildDataSourceOptions } from './database/typeorm-options';
+import { AdminModule } from './modules/admin/admin.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ChangeRequestsModule } from './modules/change-requests/change-requests.module';
@@ -19,6 +20,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { MeetingsModule } from './modules/meetings/meetings.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { UsersModule } from './modules/users/users.module';
 import { WingsModule } from './modules/wings/wings.module';
 
@@ -69,6 +71,8 @@ import { WingsModule } from './modules/wings/wings.module';
     ProfileModule,
     ChangeRequestsModule,
     MeetingsModule,
+    ReportsModule,
+    AdminModule,
     HealthModule,
   ],
   providers: [

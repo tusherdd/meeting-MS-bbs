@@ -41,7 +41,7 @@ There is no separate database project: TypeORM entities, migrations and seeds ar
 | Mail | Nodemailer over SMTP (settings in `.env`), sent through a DB outbox |
 | Scheduling | `@nestjs/schedule` (outbox worker every minute, daily outbox cleanup, meeting auto-complete every 15 min); off when `SCHEDULER_ENABLED=false` |
 | Tests | Jest unit tests (mocks) + e2e tests on a separate database `DB_NAME_TEST` (`backend/.env.test`) |
-| PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly |
+| PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly; Bangla font bundled from `@fontsource/noto-sans-bengali` (no internet fonts) |
 | Frontend | Next.js (App Router), TypeScript, Tailwind CSS |
 | Timezone | Store `timestamptz` (UTC). Display and compute "today/week/month" in `Asia/Dhaka`. |
 
@@ -206,6 +206,17 @@ meeting **E** that shares at least one officer:
 - Admin report: same, across the office, filterable by wing and designation.
 - PDF download for every report, Bangla text, BBS header, generated date.
 - The dashboard opens on **today's meetings** by default.
+- A meeting belongs to a period when its **start** lies in the Asia/Dhaka range `[start, end)` from
+  `common/utils/time`; `?period=day|week|month|year|fiscal-year&date=YYYY-MM-DD` (default: month, today).
+- Hours count SCHEDULED and COMPLETED meetings (cancelled meetings take no time).
+- Officer report: totalMeetings, organized, attended, byStatus, totalHours, conflictsRaisedAgainstMyMeetings,
+  conflictsIRaised, byDay, plus a paginated meeting list with my role.
+- Office report: same totals plus byWing, byDesignation (the **organizer's** wing/designation), top 10
+  organizers, pending/resolved conflicts and the 5 busiest days; filters `wingId`, `designationId`.
+- PDF: A4, header "বাংলাদেশ পরিসংখ্যান ব্যুরো — সভা প্রতিবেদন", officer or filters, period in Bangla, generation
+  time (Asia/Dhaka), summary and meeting tables, footer "পৃষ্ঠা X / Y", Bangla digits. One shared browser,
+  max 2 renders at once, 30 s timeout, JavaScript off and all network requests blocked; file name like
+  `meeting-report-2026-11.pdf`.
 
 ## 7. Data model (TypeORM entities)
 
