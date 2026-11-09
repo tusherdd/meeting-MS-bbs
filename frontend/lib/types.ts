@@ -1,0 +1,80 @@
+/**
+ * Friendly names for the backend DTOs. The source of truth is lib/api-schema.ts, generated from
+ * docs/openapi.json (`npm run gen:api`) — never edit that file by hand.
+ */
+import type { components } from "./api-schema";
+
+type S = components["schemas"];
+
+// Errors -----------------------------------------------------------------------------------------
+/** Every backend error: `{ statusCode, message, error, requestId }` (+ extra fields like `blocking`). */
+export interface ApiErrorBody {
+  statusCode: number;
+  message: string | string[];
+  error?: string;
+  requestId?: string;
+  [extra: string]: unknown;
+}
+export type MeetingConflictError = S["MeetingConflictErrorDto"];
+
+// Auth -------------------------------------------------------------------------------------------
+export type Me = S["MeResponseDto"];
+export type Role = Me["role"];
+export type LoginInput = S["LoginDto"];
+export type LoginResponse = S["LoginResponseDto"];
+export type ChangePasswordInput = S["ChangePasswordDto"];
+export type ChangePasswordResponse = S["ChangePasswordResponseDto"];
+export type ForgotPasswordInput = S["ForgotPasswordDto"];
+export type ResetPasswordInput = S["ResetPasswordDto"];
+export type MessageResponse = S["MessageResponseDto"];
+export type AccessTokenResponse = S["AccessTokenResponseDto"];
+
+// Users, designations, wings, profile ------------------------------------------------------------
+export type DirectoryEntry = S["DirectoryEntryDto"];
+export type UserSummary = S["UserSummaryDto"];
+export type UserDetail = S["UserDetailDto"];
+export type CreateUserInput = S["CreateUserDto"];
+export type UpdateUserInput = S["UpdateUserDto"];
+export type Designation = S["DesignationResponseDto"];
+export type Wing = S["WingResponseDto"];
+export type WingRef = S["WingRefDto"];
+export type Profile = S["ProfileResponseDto"];
+export type UpdateProfileInput = S["UpdateProfileDto"];
+export type ChangeRequest = S["ChangeRequestResponseDto"];
+export type CreateChangeRequestInput = S["CreateChangeRequestDto"];
+
+// Meetings and conflicts -------------------------------------------------------------------------
+export type MeetingSummary = S["MeetingSummaryDto"];
+export type MeetingDetail = S["MeetingDetailDto"];
+export type MeetingStatus = MeetingSummary["status"];
+export type MeetingRole = NonNullable<MeetingSummary["myRole"]>;
+export type Person = S["PersonDto"];
+export type Participant = S["ParticipantDto"];
+export type CreateMeetingInput = S["CreateMeetingDto"];
+export type UpdateMeetingInput = S["UpdateMeetingDto"];
+export type CheckConflictsInput = S["CheckConflictsDto"];
+export type CheckConflictsResponse = S["CheckConflictsResponseDto"];
+export type Clash = S["ClashDto"];
+export type CancelMeetingInput = S["CancelMeetingDto"];
+export type CompleteMeetingInput = S["CompleteMeetingDto"];
+export type MeetingConflict = S["MeetingConflictDto"];
+export type ConflictListItem = S["ConflictListItemDto"];
+export type ConflictMeetingRef = S["ConflictMeetingRefDto"];
+export type ConflictStatus = ConflictListItem["status"];
+
+// Notifications ----------------------------------------------------------------------------------
+export type AppNotification = S["NotificationResponseDto"];
+export type UnreadCount = S["UnreadCountDto"];
+
+// Reports and admin ------------------------------------------------------------------------------
+export type ReportPeriod = S["PeriodDto"]["period"];
+export type PersonalReport = S["PersonalReportDto"];
+export type PersonalSummary = S["PersonalSummaryDto"];
+export type OfficeReport = S["OfficeReportDto"];
+export type AdminStats = S["AdminStatsDto"];
+export type AuditLogItem = S["AuditLogItemDto"];
+export type EmailOutboxItem = S["EmailOutboxItemDto"];
+
+// Pagination -------------------------------------------------------------------------------------
+export type PageMeta = S["PaginatedResponseDto"];
+export type Paginated<T> = PageMeta & { items: T[] };

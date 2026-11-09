@@ -1,0 +1,5 @@
+lib/api-schema.ts
+.next
+node_modules
+playwright-report
+test-results

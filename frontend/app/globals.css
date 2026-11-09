@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/* BBS green (Bangladesh flag green #006a4e) as the accent; neutral slate for everything else. */
+@theme {
+  --font-sans: var(--font-hind-siliguri), "Noto Sans Bengali", system-ui, sans-serif;
+
+  --color-brand-50: #e9f7f1;
+  --color-brand-100: #c9ebdc;
+  --color-brand-200: #96d7bc;
+  --color-brand-300: #5ebd98;
+  --color-brand-400: #2f9f78;
+  --color-brand-500: #14855f;
+  --color-brand-600: #087553;
+  --color-brand-700: #006a4e;
+  --color-brand-800: #00553f;
+  --color-brand-900: #003d2d;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  line-height: 1.6;
+}
+
+/* Visible keyboard focus everywhere (mouse clicks do not show the ring). */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-brand-500);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+:where(input, select, textarea):focus-visible {
+  outline-offset: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

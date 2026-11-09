@@ -31,3 +31,10 @@ Never print passwords, secrets, tokens or .env values in chat explanations or re
 - `npm run migration:run` — apply migrations
 - `npm run seed` — run seeds
 - `npm run lint` / `npm run test` / `npm run test:e2e`
+
+## Commands (frontend, in `frontend/`)
+- `npm run dev` — Next.js on http://localhost:3000 (backend must run; `/api/v1/*` is proxied to `BACKEND_URL`)
+- `npm run lint` / `npm run typecheck` / `npm run build`
+- `npm run gen:api` — regenerate `lib/api-schema.ts` from `docs/openapi.json` (after backend API changes)
+- `npm run test:e2e` — Playwright (backend running with `MAIL_DRY_RUN=true`; admin login in `frontend/.env.e2e`)
+- UI text only in `messages/bn.ts`; numbers/dates only through `lib/format.ts`; backend calls only through `lib/api.ts`.

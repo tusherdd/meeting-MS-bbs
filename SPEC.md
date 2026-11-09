@@ -22,7 +22,7 @@ bbs-meeting/
 ├── SPEC.md            ← this file
 ├── CLAUDE.md          ← working rules for the AI assistant
 ├── backend/           ← NestJS API + database (entities, migrations, seeds live here)
-└── frontend/          ← Next.js app (built after the backend is finished)
+└── frontend/          ← Next.js app (see §13)
 ```
 
 There is no separate database project: TypeORM entities, migrations and seeds are inside `backend/`.
@@ -323,7 +323,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 |---|---|---|---|
 | GET | `/meetings/today` | 👤 | My meetings today (dashboard default) |
 | GET | `/meetings` | 👤 | My meetings by range (`from`, `to`, `status`, `role=organizer|participant`, page). Admin may pass `scope=all`. |
-| GET | `/meetings/:id` | 👤 | Detail (organizer, participants, admins only) |
+| GET | `/meetings/:id` | 👤 | Detail (organizer, participants, admins only); people with designation and wing |
 | POST | `/meetings/check-conflicts` | 👤 | Dry run of the conflict engine |
 | POST | `/meetings` | 👤 | Create (409 on blocking conflict) |
 | PATCH | `/meetings/:id` | 👤 | Update (organizer/admin; re-runs conflict engine) |
@@ -334,7 +334,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 ### Conflicts
 | Method | Path | Access | Purpose |
 |---|---|---|---|
-| GET | `/conflicts/mine` | 👤 | Pending conflicts on meetings I organize or attend |
+| GET | `/conflicts/mine` | 👤 | Conflicts on meetings I organize or attend (`?status=PENDING` default, `RESOLVED` = history); each meeting carries `organizedByMe` |
 | GET | `/conflicts` | 🛡 | All conflicts (filter by status) |
 
 ### Notifications
@@ -428,6 +428,7 @@ SCHEDULER_ENABLED=true          # cron jobs (mail worker, cleanups); false in e2
 SWAGGER_USER=                   # production: basic auth for /api/docs (required if SWAGGER_ENABLED=true)
 SWAGGER_PASSWORD=               # production: at least 12 characters
 TRUST_PROXY=false               # behind nginx: 1 (one proxy hop)
+THROTTLE_LIMIT=100              # requests per minute per IP (auth routes stay stricter); frontend e2e: 1000
 
 SEED_SUPER_ADMIN_EMAIL=admin@bbs.gov.bd
 SEED_SUPER_ADMIN_PASSWORD=
@@ -466,4 +467,76 @@ e2e tests additionally read `backend/.env.test` (copy of the committed `.env.tes
 Backend: 1 scaffold & security baseline → 2 entities & migrations → 3 seeds → 4 auth →
 5 users/designations/wings → 6 profile & change requests → 7 notifications & mail outbox →
 8 meetings & conflict engine → 9 reports & PDF → 10 audit, tests, hardening.
-**Status: backend steps 1–10 are complete** (see `docs/API.md`, `docs/SECURITY.md`). Frontend afterwards.
+**Status: backend steps 1–10 are complete** (see `docs/API.md`, `docs/SECURITY.md`; tag `backend-v1.0`).
+
+Frontend: F1 scaffold, auth pages, app layout, dashboard → F2 and later: meetings (form with live conflict
+check, detail, cancel/complete), calendar, conflicts, reports + PDF, profile, admin pages.
+**Status: F1 and F2 (meetings, calendar, conflicts, notifications) are complete.**
+
+## 13. Frontend (`frontend/`)
+
+### 13.1 Stack
+Next.js 16 (App Router), React 19, TypeScript strict, Tailwind CSS 4, ESLint, npm.
+Server data: `@tanstack/react-query`. Forms: `react-hook-form` + `zod` (rules mirror the backend DTOs).
+Dates: `date-fns` + `date-fns-tz`, always shown in Asia/Dhaka. Font: Hind Siliguri (`next/font/google`,
+self-hosted at build time). No UI kit: small own components in `components/ui`. e2e tests: Playwright.
+
+### 13.2 Folder structure
+```
+frontend/
+├── app/
+│   ├── (public)/        login, forgot-password, reset-password, set-password, verify-email
+│   ├── (app)/           pages that need a session (layout = AuthGuard + AppShell)
+│   └── layout.tsx       font, providers (React Query, toasts, AuthProvider)
+├── components/
+│   ├── ui/              Button, Input, Select, Textarea, Modal, Badge, Card, Table, Spinner, EmptyState, Toast, Alert
+│   ├── layout/          header, sidebar/drawer, notification bell, user menu, guard, placeholders
+│   ├── auth/  dashboard/
+├── lib/                 api.ts (fetch client), endpoints.ts, api-schema.ts (generated), types.ts,
+│                        schemas.ts (zod), format.ts (Bangla digits/dates), time.ts (Dhaka ranges), roles.ts
+├── messages/bn.ts       every UI text (one typed object; English can be added later)
+├── providers/           AppProviders, AuthProvider
+└── e2e/                 Playwright tests + global setup (dedicated test officer)
+```
+
+### 13.3 Pages
+| Path | Group | F1 |
+|---|---|---|
+| `/login`, `/forgot-password`, `/reset-password?token=`, `/set-password?token=`, `/verify-email?token=` | public | built |
+| `/change-password` | app (also the only page while `mustChangePassword`) | built |
+| `/dashboard` (default after login): today's meetings, week/month tabs, today's summary, pending-conflict warning | app | built |
+| `/meetings` (filters, admin "সকল সভা"), `/meetings/new?start=&end=`, `/meetings/:id`, `/meetings/:id/edit` | app | F2 |
+| `/calendar` (week 08–18 grid / month / phone day list), `/conflicts` (pending, resolved, admin all), `/notifications` | app | F2 |
+| `/reports`, `/profile` | app | placeholder "শীঘ্রই আসছে" |
+| `/admin/*` (users, designations & wings, change requests, audit log) | app, ADMIN/SUPER_ADMIN only | placeholder |
+
+### 13.4 Auth handling
+- The browser talks only to the Next.js server. `next.config.ts` rewrites `/api/v1/*` and `/uploads/*` to
+  `BACKEND_URL` (`frontend/.env.local`), so the backend's httpOnly cookies are same-origin. Tokens are never
+  read by JavaScript and never stored in localStorage/sessionStorage.
+- `lib/api.ts`: `credentials: "include"`, JSON parsing, errors → `ApiError` (Bangla backend message + `requestId`).
+  On 401 it calls `POST /auth/refresh` once (one refresh in flight, shared) and retries the request once.
+- `AuthProvider` loads `GET /auth/me`. `(app)` layout guard: no session → `/login?next=<path>` (only same-site
+  paths are accepted); `mustChangePassword` → `/change-password` with a reduced layout. Logout calls
+  `POST /auth/logout` and clears the React Query cache. Role helpers in `lib/roles.ts` (`isAdmin`); the backend
+  checks every permission again.
+- The browser's `Origin` is `FRONTEND_URL`, which must be listed in the backend's `CORS_ORIGINS` (CSRF check).
+
+### 13.5 Design rules
+- All UI text in Bangla from `messages/bn.ts`; numbers and dates with Bangla digits via `lib/format.ts`; all
+  times in Asia/Dhaka (week Sunday–Saturday, same as the backend).
+- Simple and clean; BBS green (`#006a4e`, `brand-*` colours) as the accent, slate neutrals.
+- Responsive: sidebar on large screens, a menu button with a drawer on phones and tablets.
+- Accessible: visible keyboard focus everywhere, labels on every field, native `<dialog>` for modals/drawer.
+- Every data view has loading, empty and error states; errors show the backend message and the `requestId`.
+
+### 13.6 Meeting form and live conflict check (F2)
+- One form for create and edit; Dhaka date + start/end time (quick 30 min / 1 h / 2 h), room, https link,
+  participants from `GET /users/directory` (search, wing filter, "add the whole wing" with a count), chair
+  chosen from the meeting's people. The priority is shown before saving (my designation now; on edit the
+  stored snapshot).
+- Whenever the time or the people change, `POST /meetings/check-conflicts` runs 600 ms later (older requests
+  aborted): green = no clash, amber = lower meetings will be asked to move, red = blocked (submit disabled,
+  clashing people highlighted). A 409 on save shows the same red panel and keeps the form data.
+- After create/edit/cancel/complete/delete, every cached "meetings", "conflicts", "notifications" and "reports"
+  query is refreshed (`lib/invalidate.ts`).
