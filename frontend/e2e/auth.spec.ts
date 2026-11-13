@@ -16,7 +16,11 @@ test.describe("Login and session", () => {
     await page.goto("/login");
     await fillLogin(page, officer.loginEmail, `${officer.password}x`);
 
-    await expect(page.getByRole("alert")).toHaveText(INVALID_LOGIN_MESSAGE);
+    // The alert shows the backend's message (+ the request number). Next.js also has an
+    // empty role="alert" route announcer, so pick the alert that has text.
+    await expect(
+      page.getByRole("alert").filter({ hasText: /\S/ }).getByRole("paragraph").first(),
+    ).toHaveText(INVALID_LOGIN_MESSAGE);
     await expect(page).toHaveURL(/\/login$/);
     // The password field is emptied, the email stays.
     await expect(page.getByLabel("পাসওয়ার্ড", { exact: true })).toHaveValue("");
@@ -47,8 +51,7 @@ test.describe("Login and session", () => {
     const officer = credentialsOf("officer");
     await fillLogin(page, officer.loginEmail, officer.password);
     await expect(page).toHaveURL(/\/reports$/);
-    // Not built yet: the page stays empty (no placeholder text), the layout is there.
-    await expect(page.locator("#main > div")).toBeEmpty();
+    await expect(page.getByRole("heading", { name: "রিপোর্ট", level: 1 })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
   });
 
@@ -107,6 +110,28 @@ test.describe("Login and session", () => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.context().close();
+  });
+
+  test("a session that ends while working goes to /login?next=… with a Bangla note", async ({
+    browser,
+  }) => {
+    const page = await pageAs(browser, "officer");
+    try {
+      await page.goto("/dashboard");
+      await expect(page.getByRole("heading", { name: "ড্যাশবোর্ড", level: 1 })).toBeVisible();
+      // The session disappears (as if it expired): no cookies any more.
+      await page.context().clearCookies();
+      await page
+        .getByRole("navigation", { name: "প্রধান মেনু" })
+        .getByRole("link", { name: "রিপোর্ট" })
+        .click();
+      await expect(page).toHaveURL(/\/login\?next=%2Freports&reason=expired$/);
+      await expect(
+        page.getByText("সেশনের মেয়াদ শেষ হয়েছে। অনুগ্রহ করে আবার লগইন করুন।"),
+      ).toBeVisible();
+    } finally {
+      await page.context().close();
+    }
   });
 
   test("logout ends the session", async ({ page }) => {

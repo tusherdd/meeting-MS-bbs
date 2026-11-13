@@ -166,7 +166,8 @@ describe('validateEnv', () => {
   it('THROTTLE_USER_LIMIT defaults to 300 and must stay between 10 and 10000', () => {
     expect(validateEnv(validEnv()).THROTTLE_USER_LIMIT).toBe(300);
     expect(
-      validateEnv({ ...validEnv(), THROTTLE_USER_LIMIT: '600' }).THROTTLE_USER_LIMIT,
+      validateEnv({ ...validEnv(), THROTTLE_USER_LIMIT: '600' })
+        .THROTTLE_USER_LIMIT,
     ).toBe(600);
     expect(() =>
       validateEnv({ ...validEnv(), THROTTLE_USER_LIMIT: '5' }),

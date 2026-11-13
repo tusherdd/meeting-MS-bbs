@@ -12,6 +12,10 @@ export function safeNextPath(next: string | null | undefined): string {
   return next;
 }
 
-export function loginUrlFor(path: string): string {
-  return `/login?next=${encodeURIComponent(path)}`;
+/** Why the user is sent to /login (shown as a Bangla note there). */
+export type LoginReason = "expired";
+
+export function loginUrlFor(path: string, reason?: LoginReason): string {
+  const url = `/login?next=${encodeURIComponent(path)}`;
+  return reason ? `${url}&reason=${reason}` : url;
 }

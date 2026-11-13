@@ -123,7 +123,7 @@ export function NotificationBell() {
                         <span className="mt-0.5 line-clamp-2 block text-sm text-slate-600">
                           {n.body}
                         </span>
-                        <span className="mt-1 block text-xs text-slate-400">
+                        <span className="mt-1 block text-xs text-slate-500">
                           {formatDateTime(n.createdAt)}
                         </span>
                       </span>

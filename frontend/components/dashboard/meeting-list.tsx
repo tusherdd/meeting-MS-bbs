@@ -91,7 +91,7 @@ export function MeetingList({ meetings, conflictIds, showDate = false }: Props) 
                     </span>
                   )}
                 </Td>
-                <Td>{m.room ?? <span className="text-slate-400">{t.meeting.noRoom}</span>}</Td>
+                <Td>{m.room ?? <span className="text-slate-500">{t.meeting.noRoom}</span>}</Td>
                 <Td>{organizerText(m)}</Td>
                 <Td>
                   <RoleBadge role={m.myRole} />

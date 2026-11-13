@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { OfflineBanner } from "@/components/layout/offline-banner";
 import { ToastProvider } from "@/components/ui/toast";
 import { isApiError } from "@/lib/api";
 import { AuthProvider } from "./auth-provider";
@@ -26,6 +27,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
+        <OfflineBanner />
         <AuthProvider>{children}</AuthProvider>
       </ToastProvider>
     </QueryClientProvider>

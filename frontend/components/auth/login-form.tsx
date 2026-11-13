@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { ErrorAlert } from "@/components/ui/alert";
+import { Alert, ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authApi } from "@/lib/endpoints";
@@ -19,7 +19,9 @@ import { PasswordInput } from "./password-input";
 
 export function LoginForm() {
   const router = useRouter();
-  const nextPath = safeNextPath(useSearchParams().get("next"));
+  const params = useSearchParams();
+  const nextPath = safeNextPath(params.get("next"));
+  const expired = params.get("reason") === "expired";
   const { user, setLoggedIn } = useAuth();
 
   // Already logged in (e.g. opened /login in a new tab) → go on.
@@ -50,6 +52,7 @@ export function LoginForm() {
         className="space-y-4"
         onSubmit={form.handleSubmit((values) => login.mutate(values))}
       >
+        {expired && !login.isError && <Alert tone="warning">{t.errors.sessionExpired}</Alert>}
         {/* The backend's own text, unchanged (same message for every failed login). */}
         {login.isError && <ErrorAlert error={login.error} />}
 

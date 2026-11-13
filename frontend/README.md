@@ -29,7 +29,7 @@ The frontend has **no secrets**. Nothing from `.env.local` reaches the browser (
 | Script                     | What it does                                                                               |
 | -------------------------- | ------------------------------------------------------------------------------------------ |
 | `dev`                      | development server on port 3000                                                            |
-| `build` / `start`          | production build / run it                                                                  |
+| `build` / `start`          | production build (`output: "standalone"`, see `../README.md` §4) / run it                  |
 | `lint`                     | ESLint                                                                                     |
 | `typecheck`                | route types + `tsc --noEmit`                                                               |
 | `format`                   | Prettier                                                                                   |
@@ -96,9 +96,18 @@ How it works:
   - the forced `/change-password` (SUPER_ADMIN only, simulated).
 - `dashboard.spec.ts`: today's meeting, the week/month tabs, the phone menu.
 - `meetings.spec.ts`: the form, the clash panels (red / green / amber), the conflict flow, and the outsider getting "সভাটি পাওয়া যায়নি".
-- `no-icons.spec.ts`: no `<svg>`, icon element or icon symbol in the layout, header, sidebar, menus and pages, and every button has visible text.
+- `no-icons.spec.ts`: no `<svg>`, icon element or icon symbol in the layout, header, sidebar, menus and pages (admin pages too), and every button has visible text.
+- `reports.spec.ts`: period selector, Bangla ranges, PDF download with the server's file name.
+- `profile.spec.ts`: edit with Bangla digits, charges list, photo upload/remove, pending notification email, change request create/cancel.
+- `admin.spec.ts` (test admin `e2e-admin@example.com`):
+  - an officer gets the 404 page on `/admin`;
+  - the admin creates an officer who then logs in with the default password;
+  - the SUPER_ADMIN cannot be touched, and an admin cannot deactivate or demote themselves;
+  - a designation change request is approved; an own request cannot be approved.
+- `a11y.spec.ts`: a label on every field, modal keyboard handling (focus stays inside, Escape, focus returns), offline message, 404 page.
 - Public pages only (no test officers needed): `E2E_SKIP_SETUP=1 npm run test:e2e -- --grep public`.
-- Wait a minute before running the whole suite twice in a row (login limit). The saved sessions are valid for 15 minutes.
+- Login limit (10 per minute per IP): the setup reuses saved sessions that are valid for at least 10 more minutes. After a cold start (all officers logged in again) it waits 60 s before the tests begin.
+- The suite also passes against the production build: `npm run build`, copy `public` and `.next/static` into `.next/standalone`, run `PORT=3000 node .next/standalone/server.js`, then `npm run test:e2e`.
 
 ## 6. Conventions
 
@@ -106,3 +115,13 @@ How it works:
 - Backend calls only through `lib/api.ts` / `lib/endpoints.ts`.
 - Forms: zod schema in `lib/schemas.ts` with the same rules as the backend DTO.
 - Small own components in `components/ui`. Keep keyboard focus visible, and label every field.
+
+## 7. Browser security
+
+- `proxy.ts` sends a Content-Security-Policy with a fresh nonce per request (only this origin; no frames, no
+  plugins). Development also allows `'unsafe-eval'` and inline styles, which React and the Next.js dev overlay need.
+- `next.config.ts` sends `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`
+  and `Cross-Origin-Opener-Policy` on every response.
+- Error pages: `app/not-found.tsx` (404), `app/error.tsx` and `app/global-error.tsx` (500); an offline banner
+  appears when the browser loses its connection. A session that ends sends the user to
+  `/login?next=…&reason=expired`.

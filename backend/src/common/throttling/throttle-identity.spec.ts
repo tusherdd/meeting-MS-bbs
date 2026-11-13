@@ -17,7 +17,10 @@ class DemoController {
   login(): void {}
 }
 
-function request(token?: string, where: 'cookie' | 'bearer' = 'cookie'): AppRequest {
+function request(
+  token?: string,
+  where: 'cookie' | 'bearer' = 'cookie',
+): AppRequest {
   return {
     ip: '10.0.0.7',
     headers:
@@ -32,6 +35,8 @@ function context(
 ): ExecutionContext {
   return {
     switchToHttp: () => ({ getRequest: () => req }),
+    // Only used as a metadata key by the Reflector, never called.
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     getHandler: () => DemoController.prototype[handler],
     getClass: () => DemoController,
   } as unknown as ExecutionContext;
@@ -63,7 +68,10 @@ describe('ThrottleIdentity', () => {
   });
 
   it.each([
-    ['a forged token (wrong secret)', sign({ sub: USER_ID, typ: 'access' }, 'b'.repeat(40))],
+    [
+      'a forged token (wrong secret)',
+      sign({ sub: USER_ID, typ: 'access' }, 'b'.repeat(40)),
+    ],
     ['an expired token', sign({ sub: USER_ID, typ: 'access' }, SECRET, -10)],
     ['a refresh token', sign({ sub: USER_ID, typ: 'refresh' })],
     ['garbage', 'not-a-jwt'],

@@ -2,8 +2,16 @@
 
 import { hashKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
-import { isApiError } from "@/lib/api";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from "react";
+import { isApiError, onSessionExpired } from "@/lib/api";
 import { authApi, queryKeys } from "@/lib/endpoints";
 import { isAdmin } from "@/lib/roles";
 import type { LoginResponse, Me } from "@/lib/types";
@@ -21,6 +29,8 @@ interface AuthState {
   reload: () => Promise<void>;
   /** POST /auth/logout, then forget every cached server answer. */
   logout: () => Promise<void>;
+  /** True after the user clicked "লগআউট" (the guard then goes to /login without ?next=). */
+  isLoggingOut: () => boolean;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -49,6 +59,7 @@ async function loadMe(): Promise<Me | null> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const loggingOut = useRef(false);
 
   const me = useQuery({
     queryKey: queryKeys.me,
@@ -58,8 +69,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: true,
   });
 
+  // A request got 401 even after a refresh: the session ended (expired, revoked, logged out in
+  // another tab). Forget the user; the guard sends them to /login?next=…&reason=expired.
+  useEffect(
+    () =>
+      onSessionExpired(() => {
+        if (loggingOut.current || !queryClient.getQueryData(queryKeys.me)) return;
+        clearCacheExceptMe(queryClient);
+        queryClient.setQueryData(queryKeys.me, null);
+      }),
+    [queryClient],
+  );
+
   const setLoggedIn = useCallback(
     (res: LoginResponse) => {
+      loggingOut.current = false;
       clearCacheExceptMe(queryClient);
       queryClient.setQueryData(queryKeys.me, res.user);
     },
@@ -71,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const logout = useCallback(async () => {
+    loggingOut.current = true;
     try {
       await authApi.logout();
     } catch {
@@ -90,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoggedIn,
       reload,
       logout,
+      isLoggingOut: () => loggingOut.current,
     }),
     [me.data, me.isPending, me.error, setLoggedIn, reload, logout],
   );

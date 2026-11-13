@@ -155,7 +155,7 @@ export function WeekGrid({ sunday, meetings, conflictIds }: Props) {
                     style={{ top: slot * HOUR_PX, height: HOUR_PX }}
                   >
                     {/* Always a visible (faint) text label: no icon-only or empty buttons. */}
-                    <span className="px-1.5 text-[11px] text-slate-400 group-hover:font-medium group-hover:text-brand-800 group-focus-visible:font-medium group-focus-visible:text-brand-800">
+                    <span className="px-1.5 text-[11px] text-slate-500 group-hover:font-medium group-hover:text-brand-800 group-focus-visible:font-medium group-focus-visible:text-brand-800">
                       {t.calendar.newSlot}
                     </span>
                   </button>

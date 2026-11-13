@@ -63,7 +63,7 @@ export function MonthGrid({ gridStart, month, weeks, meetings, conflictIds, onOp
                     ? "bg-brand-700 font-semibold text-white"
                     : inMonth
                       ? "text-slate-800 hover:bg-slate-200"
-                      : "text-slate-400",
+                      : "text-slate-500",
                 )}
                 aria-label={formatPlainDate(d)}
               >

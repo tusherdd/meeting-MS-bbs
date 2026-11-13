@@ -48,6 +48,11 @@ function loadEnvFile() {
 }
 
 let adminToken: string | null = null;
+/** Logins this setup made (the backend allows 10 per minute per IP; the tests need about 5). */
+let loginCount = 0;
+const LOGIN_WINDOW_MS = 60_000;
+const LOGINS_LEFT_FOR_TESTS = 5;
+const LOGIN_LIMIT = 10;
 
 async function admin(): Promise<string> {
   if (adminToken) return adminToken;
@@ -73,6 +78,7 @@ async function admin(): Promise<string> {
     throw new Error("The admin must change its first password in the app, then update .env.e2e.");
   }
   if (res.user.role === "OFFICER") throw new Error("E2E_ADMIN_EMAIL is not an ADMIN account.");
+  loginCount++;
   adminToken = res.accessToken;
   return adminToken;
 }
@@ -169,6 +175,7 @@ async function savedSessionWorks(key: OfficerKey): Promise<boolean> {
 /** Log in through the frontend proxy (like the browser) and save the session cookies. */
 async function saveSession(key: OfficerKey): Promise<boolean> {
   if (await savedSessionWorks(key)) return true;
+  loginCount++;
   const context = await request.newContext({
     baseURL: FRONTEND_ORIGIN,
     extraHTTPHeaders: { Origin: FRONTEND_ORIGIN },
@@ -209,5 +216,11 @@ export default async function globalSetup() {
       if (!adminToken) await admin(); // throws the "set E2E_ADMIN_…" message
       throw new Error(`Test officer "${key}" cannot log in with the default officer password.`);
     }
+  }
+  // A cold start logs every test officer in. Together with the logins inside the tests that is
+  // more than the per-IP login limit, so let the one-minute window pass first.
+  if (loginCount > LOGIN_LIMIT - LOGINS_LEFT_FOR_TESTS) {
+    console.log(`Setup made ${loginCount} logins; waiting 60 s for the login rate limit window.`);
+    await new Promise((resolve) => setTimeout(resolve, LOGIN_WINDOW_MS + 2_000));
   }
 }

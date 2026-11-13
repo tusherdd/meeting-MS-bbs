@@ -20,7 +20,9 @@ downloadable as PDF.
 ```
 bbs-meeting/
 ├── SPEC.md            ← this file
+├── README.md          ← overview, local setup, production deployment guide
 ├── CLAUDE.md          ← working rules for the AI assistant
+├── docs/              ← API.md + openapi.json (generated), ERD.md, SECURITY.md
 ├── backend/           ← NestJS API + database (entities, migrations, seeds live here)
 └── frontend/          ← Next.js app (see §13)
 ```
@@ -253,10 +255,10 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
 - **refresh_tokens**: userId, tokenHash, expiresAt, revokedAt, replacedById, userAgent, ip
 - **password_reset_tokens**: userId, tokenHash, purpose (`RESET` | `SET_INITIAL`), expiresAt, usedAt
 - **change_requests**: userId, type (`LOGIN_EMAIL` | `DESIGNATION`), newValue (json), status
-  (`PENDING` | `APPROVED` | `REJECTED`), reviewedById, reviewedAt, reviewNote
+  (`PENDING` | `APPROVED` | `REJECTED` | `CANCELLED`), reviewedById, reviewedAt, reviewNote
 - **meetings**: title, agenda, startAt, endAt, room, onlineLink, organizerId, chairId, priority,
   status, cancelReason, notes, cancelledAt, completedAt
-- **meeting_participants**: meetingId, userId, role (`CHAIR` | `MEMBER`) — unique (meetingId, userId)
+- **meeting_participants**: meetingId, userId, role (`ORGANIZER` | `CHAIR` | `MEMBER`) — unique (meetingId, userId)
 - **meeting_conflicts**: higherMeetingId, lowerMeetingId, userId (shared officer), status
   (`PENDING` | `RESOLVED`), resolvedAt
 - **notifications**: userId, type, title, body, link, readAt
@@ -303,7 +305,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/users/directory` | 👤 | Minimal active officer list (id, names, designation, wing, photo) for the participant picker |
-| GET | `/users` | 🛡 | Search/filter/paginate (q, wingId, designationId, role, isActive) |
+| GET | `/users` | 🛡 | Search/filter/paginate (q, wingId, designationId, role, isActive, passwordIsDefault) |
 | GET | `/users/:id` | 🛡 | Full user |
 | POST | `/users` | 🛡 | Create officer with the default officer password (no forced change); the welcome mail never contains the password |
 | PATCH | `/users/:id` | 🛡 | Edit any field including loginEmail and designation |
@@ -369,7 +371,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/admin/stats` | 🛡 | Counts: users, meetings today/week, pending conflicts, pending change requests, failed mails |
-| GET | `/audit-logs` | 🛡 | Audit trail (filter by actor, entity, date) |
+| GET | `/audit-logs` | 🛡 | Audit trail (filter by actor, action, entity, date) |
 | GET | `/admin/email-outbox` | 🛡 | Mail queue status, retry failed |
 | POST | `/admin/email-outbox/:id/retry` | 🛡 | Retry one failed mail |
 
@@ -490,9 +492,10 @@ Backend: 1 scaffold & security baseline → 2 entities & migrations → 3 seeds 
 8 meetings & conflict engine → 9 reports & PDF → 10 audit, tests, hardening.
 **Status: backend steps 1–10 are complete** (see `docs/API.md`, `docs/SECURITY.md`; tag `backend-v1.0`).
 
-Frontend: F1 scaffold, auth pages, app layout, dashboard → F2 and later: meetings (form with live conflict
-check, detail, cancel/complete), calendar, conflicts, reports + PDF, profile, admin pages.
-**Status: F1 and F2 (meetings, calendar, conflicts, notifications) are complete.**
+Frontend: F1 scaffold, auth pages, app layout, dashboard → F2 meetings (form with live conflict check, detail,
+cancel/complete), calendar, conflicts, notifications → F3 reports + PDF, profile, admin panel, production
+readiness (accessibility, error pages, CSP, standalone build, deployment guide).
+**Status: F1, F2 and F3 are complete. The whole system is finished (tag `v1.0`).**
 
 ## 13. Frontend (`frontend/`)
 
@@ -507,32 +510,38 @@ self-hosted at build time). No UI kit: small own components in `components/ui`. 
 frontend/
 ├── app/
 │   ├── (public)/        login, forgot-password, reset-password, set-password, verify-email
-│   ├── (app)/           pages that need a session (layout = AuthGuard + AppShell)
-│   └── layout.tsx       font, providers (React Query, toasts, AuthProvider)
+│   ├── (app)/           pages that need a session (layout = AuthGuard + AppShell); admin/ has its own
+│   │                    layout (AdminGate: 404 for officers + admin sub-menu)
+│   ├── layout.tsx       font, providers (React Query, toasts, offline banner, AuthProvider)
+│   └── not-found.tsx, error.tsx, global-error.tsx    404 and 500 pages
+├── proxy.ts             Content-Security-Policy with a per-request nonce
 ├── components/
-│   ├── ui/              Button, Input, Select, Textarea, Modal, Badge, Card, Table, Spinner, EmptyState, Toast, Alert
-│   ├── layout/          header, sidebar/drawer, notification bell, user menu, guard, placeholders
-│   ├── auth/  dashboard/
-├── lib/                 api.ts (fetch client), endpoints.ts, api-schema.ts (generated), types.ts,
-│                        schemas.ts (zod), format.ts (Bangla digits/dates), time.ts (Dhaka ranges), roles.ts
+│   ├── ui/              Button, Input, Select, Textarea, Modal, ConfirmModal, Badge, Card, Table, Tabs,
+│   │                    Pagination, Spinner, EmptyState, Toast, Alert
+│   ├── layout/          header, sidebar/drawer, notification bell, user menu, guard, offline banner
+│   ├── auth/  dashboard/  meetings/  calendar/  conflicts/  notifications/
+│   ├── reports/  profile/  change-requests/  admin/
+├── lib/                 api.ts (fetch client + file download), endpoints.ts, api-schema.ts (generated),
+│                        types.ts, schemas.ts (zod), format.ts (Bangla digits/dates), time.ts (Dhaka ranges),
+│                        report-period.ts, phone.ts, user-policy.ts, audit-diff.ts, roles.ts
 ├── messages/bn.ts       every UI text (one typed object; English can be added later)
 ├── providers/           AppProviders, AuthProvider
 └── e2e/                 Playwright tests + global setup (dedicated test officer)
 ```
 
 ### 13.3 Pages
-| Path | Group | F1 |
+| Path | Group | Built in |
 |---|---|---|
-| `/login`, `/forgot-password`, `/reset-password?token=`, `/set-password?token=`, `/verify-email?token=` | public | built |
-| `/change-password` | app (voluntary; forced only for the SUPER_ADMIN while `mustChangePassword`) | built |
-| `/dashboard` (default after login): today's meetings, week/month tabs, today's summary, pending-conflict warning | app | built |
+| `/login`, `/forgot-password`, `/reset-password?token=`, `/set-password?token=`, `/verify-email?token=` | public | F1 |
+| `/change-password` | app (voluntary; forced only for the SUPER_ADMIN while `mustChangePassword`) | F1 |
+| `/dashboard` (default after login): today's meetings, week/month tabs, today's summary, pending-conflict warning | app | F1 |
 | `/meetings` (filters, admin "সকল সভা"), `/meetings/new?start=&end=`, `/meetings/:id`, `/meetings/:id/edit` | app | F2 |
 | `/calendar` (week 08–18 grid / month / phone day list), `/conflicts` (pending, resolved, admin all), `/notifications` | app | F2 |
-| `/reports`, `/profile` | app | empty page (built in F3) |
-| `/admin/*` (users, designations & wings, change requests, audit log) | app, ADMIN/SUPER_ADMIN only | empty page (F3) |
+| `/reports?period=&date=&page=` | app | F3 |
+| `/profile` | app | F3 |
+| `/admin`, `/admin/users` (+ `/new`, `/:id`), `/admin/designations`, `/admin/wings`, `/admin/change-requests`, `/admin/meetings`, `/admin/conflicts`, `/admin/reports`, `/admin/email-outbox`, `/admin/audit-logs` | app, ADMIN/SUPER_ADMIN only (others see the 404 page) | F3 |
 
-Pages not built yet stay **empty**: layout, header and sidebar only, nothing in the main area (owner decision
-2026-11-09; no "coming soon" text).
+Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page with "আবার চেষ্টা করুন".
 
 ### 13.4 Auth handling
 - The browser talks only to the Next.js server. `next.config.ts` rewrites `/api/v1/*` and `/uploads/*` to
@@ -541,7 +550,9 @@ Pages not built yet stay **empty**: layout, header and sidebar only, nothing in 
 - `lib/api.ts`: `credentials: "include"`, JSON parsing, errors → `ApiError` (Bangla backend message + `requestId`).
   On 401 it calls `POST /auth/refresh` once (one refresh in flight, shared) and retries the request once.
 - `AuthProvider` loads `GET /auth/me`. `(app)` layout guard: no session → `/login?next=<path>` (only same-site
-  paths are accepted); `mustChangePassword` → `/change-password` with a reduced layout (since 2026-11-09 only the
+  paths are accepted; a session that ends while the user is working → `/login?next=<path>&reason=expired`
+  with the note "সেশনের মেয়াদ শেষ হয়েছে…"; "লগআউট" goes to plain `/login`); `mustChangePassword` →
+  `/change-password` with a reduced layout (since 2026-11-09 only the
   SUPER_ADMIN can have it; officers on the default password see **no banner or reminder**). Logout calls
   `POST /auth/logout` and clears the React Query cache. Role helpers in `lib/roles.ts` (`isAdmin`); the backend
   checks every permission again.
@@ -553,6 +564,9 @@ Pages not built yet stay **empty**: layout, header and sidebar only, nothing in 
 - Simple and clean; BBS green (`#006a4e`, `brand-*` colours) as the accent, slate neutrals.
 - Responsive: sidebar on large screens, a menu button with a drawer on phones and tablets.
 - Accessible: visible keyboard focus everywhere, labels on every field, native `<dialog>` for modals/drawer.
+- Modals are native `<dialog>` elements (focus stays inside, Escape closes, focus returns to the opener);
+  every dangerous action asks for confirmation. Toasts, the conflict panel, the report range and the offline
+  message are `aria-live`. Text and badge colours keep a contrast of at least 4.5:1.
 - **No icons in the UI; use short Bangla text labels instead** (owner decision 2026-11-09): no SVG icons, icon
   components or libraries, no emoji or symbols used as icons, no icon-only buttons. Examples: "নোটিফিকেশন (৩)",
   "মেনু", "বন্ধ করুন", "আগের" / "পরের", the user's name as the user-menu button, status and conflicts as coloured
@@ -570,3 +584,44 @@ Pages not built yet stay **empty**: layout, header and sidebar only, nothing in 
   clashing people highlighted). A 409 on save shows the same red panel and keeps the form data.
 - After create/edit/cancel/complete/delete, every cached "meetings", "conflicts", "notifications" and "reports"
   query is refreshed (`lib/invalidate.ts`).
+
+### 13.7 Reports, profile and admin panel (F3)
+- **Reports** (`/reports`): period tabs দিন / সপ্তাহ / মাস / বছর / অর্থবছর, date field, "আগের" / "বর্তমান" / "পরের";
+  the range is shown in Bangla (backend label + first and last day). Summary cards, counts by status, a bar
+  chart of meetings per day (per month for a year or fiscal year; plain HTML bars with a hidden data table,
+  no SVG), paginated meeting list. The filters live in the address. "PDF ডাউনলোড" fetches the PDF as a Blob with
+  the same filters, shows "তৈরি হচ্ছে…", saves it under the `Content-Disposition` file name and shows the
+  backend's message on failure.
+- **Profile** (`/profile`): only the fields `PATCH /profile` accepts; mobiles accept Bangla digits and `+880`
+  and are sent as `01XXXXXXXXX`; additional charges as an editable list (max 20). Photo: preview, client-side
+  type/size check (JPEG/PNG/WebP, 2 MB; the server decides), remove with confirmation; the photo is shown next
+  to the name in the header. Notification email: current address, request form, "যাচাইয়ের অপেক্ষায়: …" while
+  pending. Change requests: login email and designation (the select shows each priority), history with status
+  and admin note, cancel a PENDING request. Voluntary password change.
+- **Admin panel** (`/admin/*`): the layout shows the normal 404 page to officers; the backend checks every role
+  again. User actions mirror `users/user-policy.ts` (`lib/user-policy.ts`): the SUPER_ADMIN row shows the text
+  badge "সুরক্ষিত" and has no actions; nobody can deactivate or demote themselves. Creating an officer never
+  shows, asks for or sends a password; the success text is "কর্মকর্তা তৈরি হয়েছে। তিনি অফিসের ডিফল্ট পাসওয়ার্ড দিয়ে
+  লগইন করতে পারবেন।". Editing a designation states that only FUTURE meetings get the new priority. Designations
+  and wings can be deleted only when no user has them. Change requests: tabs by status, approve with a
+  confirmation, reject with a required reason, own requests show "নিজের অনুরোধ অনুমোদন করা যায় না". The audit log
+  shows only the fields that changed (before / after).
+
+### 13.8 Production build and browser security
+- `next.config.ts`: `output: "standalone"` (run `node .next/standalone/server.js`, see `README.md` §4); headers
+  `X-Content-Type-Options`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`,
+  `Permissions-Policy` (camera, microphone, geolocation, payment … all off), `Cross-Origin-Opener-Policy`.
+- `proxy.ts`: `Content-Security-Policy` per request: `default-src 'self'`; scripts and styles only from this
+  origin plus Next.js' own inline ones carrying a fresh nonce; `img-src 'self' blob: data:`;
+  `frame-ancestors 'none'`; `object-src 'none'`; `form-action 'self'`. Every page is rendered per request for
+  that. Development additionally allows `'unsafe-eval'` (React debugging) and inline styles (dev overlay).
+- In production nginx serves one domain: `/api/v1` and `/uploads` go to the backend, everything else to the
+  frontend.
+
+### 13.9 End-to-end tests (Playwright)
+Real browser against the real backend (`MAIL_DRY_RUN=true`), only with test accounts ending in `@example.com`
+(created by the setup through the admin API; one of them, `e2e-admin@example.com`, is an ADMIN). Suites: auth
+(incl. session expiry), dashboard, meetings and conflicts, reports + PDF download, profile + photo upload,
+admin (create officer → login with the default password, SUPER_ADMIN protection, designation change request
+approved, officers get 404), accessibility (labels, modal keyboard handling, offline message, 404) and "no
+icons" on every page including the admin panel.

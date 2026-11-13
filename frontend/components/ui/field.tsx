@@ -49,7 +49,7 @@ export function Field({
 
 export function controlClass(invalid: boolean, className?: string) {
   return clsx(
-    "block w-full rounded-lg border bg-white px-3 text-[15px] text-slate-900 placeholder:text-slate-400",
+    "block w-full rounded-lg border bg-white px-3 text-[15px] text-slate-900 placeholder:text-slate-500",
     "disabled:bg-slate-100 disabled:text-slate-500",
     invalid ? "border-red-500" : "border-slate-300 hover:border-slate-400",
     className,
