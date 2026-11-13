@@ -1,6 +1,9 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { Avatar } from "@/components/ui/avatar";
+import { profileApi, queryKeys } from "@/lib/endpoints";
 import { useCallback, useRef, useState } from "react";
 import { t } from "@/messages";
 import { useAuth } from "@/providers/auth-provider";
@@ -14,6 +17,13 @@ export function UserMenu({ minimal = false }: { minimal?: boolean }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useDismiss(boxRef, open, close, buttonRef);
+  // The photo comes from GET /profile (shared cache with the profile page; /auth/me has no photo).
+  const profile = useQuery({
+    queryKey: queryKeys.profile,
+    queryFn: profileApi.get,
+    enabled: !!user && !minimal,
+    staleTime: 5 * 60_000,
+  });
 
   if (!user) return null;
   const subtitle = user.designation?.nameBn ?? t.roles[user.role];
@@ -31,10 +41,11 @@ export function UserMenu({ minimal = false }: { minimal?: boolean }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="true"
-        className="max-w-[12rem] truncate rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-100 sm:max-w-[16rem]"
+        className="flex max-w-[12rem] items-center gap-2 rounded-lg border border-slate-300 px-2 py-1 text-sm font-medium text-slate-800 hover:bg-slate-100 sm:max-w-[16rem]"
         data-testid="user-menu-button"
       >
-        {user.nameBn}
+        <Avatar photoPath={profile.data?.photoPath} size="sm" />
+        <span className="truncate px-1">{user.nameBn}</span>
       </button>
 
       {open && (

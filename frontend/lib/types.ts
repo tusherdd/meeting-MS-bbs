@@ -42,6 +42,15 @@ export type Profile = S["ProfileResponseDto"];
 export type UpdateProfileInput = S["UpdateProfileDto"];
 export type ChangeRequest = S["ChangeRequestResponseDto"];
 export type CreateChangeRequestInput = S["CreateChangeRequestDto"];
+export type ChangeRequestStatus = ChangeRequest["status"];
+export type ChangeRequestType = ChangeRequest["type"];
+/** `isActive` has a server default (true), so it is optional here (the generator marks it required). */
+type OptionalActive<T> = Omit<T, "isActive"> & { isActive?: boolean };
+export type CreateDesignationInput = OptionalActive<S["CreateDesignationDto"]>;
+export type UpdateDesignationInput = Partial<S["UpdateDesignationDto"]>;
+export type CreateWingInput = OptionalActive<S["CreateWingDto"]>;
+export type UpdateWingInput = Partial<S["UpdateWingDto"]>;
+export type UserMessage = S["UserMessageResponseDto"];
 
 // Meetings and conflicts -------------------------------------------------------------------------
 export type MeetingSummary = S["MeetingSummaryDto"];
@@ -74,6 +83,8 @@ export type OfficeReport = S["OfficeReportDto"];
 export type AdminStats = S["AdminStatsDto"];
 export type AuditLogItem = S["AuditLogItemDto"];
 export type EmailOutboxItem = S["EmailOutboxItemDto"];
+export type EmailStatus = EmailOutboxItem["status"];
+export type AuditAction = AuditLogItem["action"];
 
 // Pagination -------------------------------------------------------------------------------------
 export type PageMeta = S["PaginatedResponseDto"];

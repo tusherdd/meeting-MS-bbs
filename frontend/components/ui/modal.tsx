@@ -52,9 +52,12 @@ export function Modal({
           {t.common.close}
         </button>
       </div>
-      <div className="px-5 py-4">{children}</div>
-      {footer && (
-        <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-3">{footer}</div>
+      {/* Content only while open: a closed dialog keeps no stale text, loading states or form data. */}
+      {open && <div className="px-5 py-4">{children}</div>}
+      {open && footer && (
+        <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 px-5 py-3">
+          {footer}
+        </div>
       )}
     </dialog>
   );

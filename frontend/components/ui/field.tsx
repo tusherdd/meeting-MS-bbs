@@ -20,15 +20,18 @@ export function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-medium text-slate-800">
-        {label}
+      <div className="flex flex-wrap items-baseline gap-x-1">
+        <label htmlFor={id} className="text-sm font-medium text-slate-800">
+          {label}
+        </label>
         {required && (
-          // Screen readers already hear "required" from the field itself.
-          <span aria-hidden="true" className="ml-1 text-xs font-normal text-slate-500">
+          // Outside the <label>: the field's name stays exactly the label text. Screen readers
+          // already hear "required" from the field itself.
+          <span aria-hidden="true" className="text-xs font-normal text-slate-600">
             {t.common.required}
           </span>
         )}
-      </label>
+      </div>
       {children}
       {hint && !error && (
         <p id={`${id}-hint`} className="text-xs text-slate-500">

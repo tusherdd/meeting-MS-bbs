@@ -6,7 +6,28 @@
  */
 import { api, apiDownload } from "./api";
 import type {
+  AdminStats,
   AppNotification,
+  AuditAction,
+  AuditLogItem,
+  ChangeRequest,
+  ChangeRequestStatus,
+  ChangeRequestType,
+  CreateChangeRequestInput,
+  CreateDesignationInput,
+  CreateUserInput,
+  CreateWingInput,
+  Designation,
+  EmailOutboxItem,
+  EmailStatus,
+  Profile,
+  UpdateDesignationInput,
+  UpdateProfileInput,
+  UpdateUserInput,
+  UpdateWingInput,
+  UserDetail,
+  UserMessage,
+  UserSummary,
   ChangePasswordInput,
   ChangePasswordResponse,
   CheckConflictsInput,
@@ -73,7 +94,38 @@ export const queryKeys = {
   verifyEmail: (token: string) => ["profile", "verify-email", token] as const,
   directory: (query: DirectoryQuery) => ["directory", query] as const,
   wings: ["wings", "active"] as const,
+  profile: ["profile", "me"] as const,
+  myChangeRequests: ["profile", "change-requests"] as const,
+  designations: (activeOnly: boolean) => ["designations", activeOnly ? "active" : "all"] as const,
+  allWings: ["wings", "all"] as const,
+  users: (query: UserListQuery) => ["users", "list", query] as const,
+  user: (id: string) => ["users", "detail", id] as const,
+  changeRequests: (status: ChangeRequestStatus, page: number) =>
+    ["change-requests", status, page] as const,
+  adminStats: ["admin", "stats"] as const,
+  emailOutbox: (status: EmailStatus | undefined, page: number) =>
+    ["admin", "email-outbox", status ?? "ALL", page] as const,
+  auditLogs: (query: AuditLogQuery) => ["admin", "audit-logs", query] as const,
 };
+
+export interface UserListQuery {
+  q?: string;
+  wingId?: string;
+  designationId?: string;
+  role?: UserSummary["role"];
+  isActive?: boolean;
+  passwordIsDefault?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface AuditLogQuery {
+  action?: AuditAction;
+  actorId?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+}
 
 // Auth -------------------------------------------------------------------------------------------
 export const authApi = {
@@ -201,4 +253,90 @@ export const reportsApi = {
       query: { period, date, ...filter },
       fallbackName: `office-meeting-report-${date}.pdf`,
     }),
+};
+
+// Profile (my own) -------------------------------------------------------------------------------
+export const profileApi = {
+  get: () => api<Profile>("/profile"),
+  update: (input: UpdateProfileInput) => api<Profile>("/profile", { method: "PATCH", body: input }),
+  uploadPhoto: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api<Profile>("/profile/photo", { method: "POST", body: form });
+  },
+  deletePhoto: () => api<MessageResponse>("/profile/photo", { method: "DELETE" }),
+  requestNotificationEmail: (email: string) =>
+    api<MessageResponse>("/profile/notification-email", { method: "POST", body: { email } }),
+  changeRequests: () => api<ChangeRequest[]>("/profile/change-requests"),
+  createChangeRequest: (input: CreateChangeRequestInput) =>
+    api<ChangeRequest>("/profile/change-requests", { method: "POST", body: input }),
+  cancelChangeRequest: (id: string) =>
+    api<ChangeRequest>(`/profile/change-requests/${encodeURIComponent(id)}`, { method: "DELETE" }),
+};
+
+// Designations and wings -------------------------------------------------------------------------
+const id = (value: string) => encodeURIComponent(value);
+
+export const designationsApi = {
+  list: (activeOnly: boolean) =>
+    api<Designation[]>("/designations", { query: { activeOnly: activeOnly || undefined } }),
+  create: (input: CreateDesignationInput) =>
+    api<Designation>("/designations", { method: "POST", body: input }),
+  update: (designationId: string, input: UpdateDesignationInput) =>
+    api<Designation>(`/designations/${id(designationId)}`, { method: "PATCH", body: input }),
+  remove: (designationId: string) =>
+    api<void>(`/designations/${id(designationId)}`, { method: "DELETE" }),
+};
+
+export const wingsApi = {
+  list: () => api<Wing[]>("/wings"),
+  create: (input: CreateWingInput) => api<Wing>("/wings", { method: "POST", body: input }),
+  update: (wingId: string, input: UpdateWingInput) =>
+    api<Wing>(`/wings/${id(wingId)}`, { method: "PATCH", body: input }),
+  remove: (wingId: string) => api<void>(`/wings/${id(wingId)}`, { method: "DELETE" }),
+};
+
+// Users (admin) ----------------------------------------------------------------------------------
+export const usersApi = {
+  list: (query: UserListQuery) =>
+    api<Paginated<UserSummary>>("/users", { query: { limit: 20, ...query } }),
+  get: (userId: string) => api<UserDetail>(`/users/${id(userId)}`),
+  create: (input: CreateUserInput) => api<UserDetail>("/users", { method: "POST", body: input }),
+  update: (userId: string, input: UpdateUserInput) =>
+    api<UserDetail>(`/users/${id(userId)}`, { method: "PATCH", body: input }),
+  setActive: (userId: string, isActive: boolean) =>
+    api<UserDetail>(`/users/${id(userId)}/status`, { method: "PATCH", body: { isActive } }),
+  setRole: (userId: string, role: "ADMIN" | "OFFICER") =>
+    api<UserDetail>(`/users/${id(userId)}/role`, { method: "PATCH", body: { role } }),
+  resetPassword: (userId: string) =>
+    api<UserMessage>(`/users/${id(userId)}/reset-password`, { method: "POST" }),
+};
+
+// Change requests (admin) ------------------------------------------------------------------------
+export const changeRequestsApi = {
+  list: (status: ChangeRequestStatus, page: number, type?: ChangeRequestType) =>
+    api<Paginated<ChangeRequest>>("/change-requests", {
+      query: { status, type, page, limit: 20 },
+    }),
+  approve: (requestId: string, note?: string) =>
+    api<ChangeRequest>(`/change-requests/${id(requestId)}/approve`, {
+      method: "POST",
+      body: note ? { note } : {},
+    }),
+  reject: (requestId: string, note: string) =>
+    api<ChangeRequest>(`/change-requests/${id(requestId)}/reject`, {
+      method: "POST",
+      body: { note },
+    }),
+};
+
+// Admin ------------------------------------------------------------------------------------------
+export const adminApi = {
+  stats: () => api<AdminStats>("/admin/stats"),
+  emailOutbox: (status: EmailStatus | undefined, page: number) =>
+    api<Paginated<EmailOutboxItem>>("/admin/email-outbox", { query: { status, page, limit: 20 } }),
+  retryEmail: (mailId: string) =>
+    api<EmailOutboxItem>(`/admin/email-outbox/${id(mailId)}/retry`, { method: "POST" }),
+  auditLogs: (query: AuditLogQuery) =>
+    api<Paginated<AuditLogItem>>("/audit-logs", { query: { limit: 20, ...query } }),
 };

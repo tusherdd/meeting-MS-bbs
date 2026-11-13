@@ -169,7 +169,7 @@ test("higher priority overrides lower: amber panel, save, lower organizer is not
   await expect(dd2.getByText("সভা বাতিল করা হয়েছে।")).toBeVisible();
   await expect(dd2.getByTestId("conflict-item").filter({ hasText: lowTitle })).toHaveCount(0);
 
-  await dd2.getByRole("tab", { name: "মীমাংসিত" }).click();
+  await dd2.getByRole("tab", { name: "মীমাংসিত", exact: true }).click();
   const resolved = dd2.getByTestId("conflict-item").filter({ hasText: lowTitle });
   await expect(resolved).toBeVisible();
   await expect(resolved).toContainText("মীমাংসিত");
