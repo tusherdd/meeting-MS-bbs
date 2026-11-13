@@ -78,3 +78,11 @@ export type EmailOutboxItem = S["EmailOutboxItemDto"];
 // Pagination -------------------------------------------------------------------------------------
 export type PageMeta = S["PaginatedResponseDto"];
 export type Paginated<T> = PageMeta & { items: T[] };
+export type PeriodDto = S["PeriodDto"];
+export type ReportMeeting = S["ReportMeetingDto"];
+export type DayCount = S["DayCountDto"];
+export type StatusCounts = S["StatusCountsDto"];
+export type OfficeSummary = S["OfficeSummaryDto"];
+export type GroupCount = S["GroupCountDto"];
+export type DesignationCount = S["DesignationCountDto"];
+export type OrganizerCount = S["OrganizerCountDto"];

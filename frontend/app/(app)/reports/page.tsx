@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { MyReportView } from "@/components/reports/my-report-view";
+import { LoadingBlock } from "@/components/ui/spinner";
 import { t } from "@/messages";
 
-export const metadata: Metadata = { title: t.placeholders.reports };
+export const metadata: Metadata = { title: t.reports.title };
 
-/** Built in F3. Until then the page stays empty (owner decision 2026-11-09). */
 export default function Page() {
-  return null;
+  return (
+    <Suspense fallback={<LoadingBlock />}>
+      <MyReportView />
+    </Suspense>
+  );
 }

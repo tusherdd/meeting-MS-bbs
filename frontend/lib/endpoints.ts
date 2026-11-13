@@ -4,7 +4,7 @@
  *
  * Key prefixes matter: lib/invalidate.ts refreshes whole groups ("meetings", "conflicts", …).
  */
-import { api } from "./api";
+import { api, apiDownload } from "./api";
 import type {
   AppNotification,
   ChangePasswordInput,
@@ -23,6 +23,7 @@ import type {
   MeetingStatus,
   MeetingSummary,
   MessageResponse,
+  OfficeReport,
   Paginated,
   PersonalReport,
   ReportPeriod,
@@ -65,6 +66,10 @@ export const queryKeys = {
   notificationsList: (unread: boolean, page: number) =>
     ["notifications", "list", unread, page] as const,
   myReport: (period: ReportPeriod, date: string) => ["reports", "me", period, date] as const,
+  myReportPage: (period: ReportPeriod, date: string, page: number) =>
+    ["reports", "me", period, date, "page", page] as const,
+  officeReport: (period: ReportPeriod, date: string, filter: OfficeFilter, page: number) =>
+    ["reports", "office", period, date, filter, page] as const,
   verifyEmail: (token: string) => ["profile", "verify-email", token] as const,
   directory: (query: DirectoryQuery) => ["directory", query] as const,
   wings: ["wings", "active"] as const,
@@ -168,7 +173,32 @@ export const notificationsApi = {
 };
 
 // Reports ----------------------------------------------------------------------------------------
+export interface OfficeFilter {
+  wingId?: string;
+  designationId?: string;
+}
+
+export const REPORT_PAGE_SIZE = 20;
+
 export const reportsApi = {
   me: (period: ReportPeriod, date: string) =>
     api<PersonalReport>("/reports/me", { query: { period, date, limit: 1 } }),
+  mePage: (period: ReportPeriod, date: string, page: number) =>
+    api<PersonalReport>("/reports/me", {
+      query: { period, date, page, limit: REPORT_PAGE_SIZE },
+    }),
+  mePdf: (period: ReportPeriod, date: string) =>
+    apiDownload("/reports/me/pdf", {
+      query: { period, date },
+      fallbackName: `meeting-report-${date}.pdf`,
+    }),
+  office: (period: ReportPeriod, date: string, filter: OfficeFilter, page: number) =>
+    api<OfficeReport>("/reports/office", {
+      query: { period, date, ...filter, page, limit: REPORT_PAGE_SIZE },
+    }),
+  officePdf: (period: ReportPeriod, date: string, filter: OfficeFilter) =>
+    apiDownload("/reports/office/pdf", {
+      query: { period, date, ...filter },
+      fallbackName: `office-meeting-report-${date}.pdf`,
+    }),
 };

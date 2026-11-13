@@ -100,6 +100,28 @@ export function formatDayMonth(value: DateInput): string {
   return `${toBanglaDigits(p.day)} ${BN_MONTHS[p.month - 1]}`;
 }
 
+/** "2026-11-09" → "৯ নভেম্বর" (no time-zone shift). */
+export function formatPlainDayMonth(date: string): string {
+  const [, m, d] = date.split("-").map(Number);
+  return `${toBanglaDigits(d)} ${BN_MONTHS[m - 1]}`;
+}
+
+/** "2026-11" or "2026-11-09" → "নভেম্বর ২০২৬". */
+export function formatPlainMonthYear(date: string): string {
+  const [y, m] = date.split("-").map(Number);
+  return `${BN_MONTHS[m - 1]} ${toBanglaDigits(y)}`;
+}
+
+/** "2026-11" → "নভেম্বর". */
+export function formatPlainMonth(date: string): string {
+  return BN_MONTHS[Number(date.split("-")[1]) - 1];
+}
+
+/** "2026-11-09" → "৯". */
+export function formatPlainDay(date: string): string {
+  return toBanglaDigits(Number(date.split("-")[2]));
+}
+
 /** Dhaka calendar date "YYYY-MM-DD" → "৯ নভেম্বর ২০২৬" (no time-zone shift). */
 export function formatPlainDate(date: string): string {
   const [y, m, d] = date.split("-").map(Number);

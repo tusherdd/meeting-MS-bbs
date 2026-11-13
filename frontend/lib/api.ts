@@ -119,15 +119,79 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
   }
 }
 
-export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+/** Listeners for "the session is gone" (refresh failed): the guard sends the user to /login. */
+type SessionListener = () => void;
+const sessionListeners = new Set<SessionListener>();
+
+export function onSessionExpired(listener: SessionListener): () => void {
+  sessionListeners.add(listener);
+  return () => sessionListeners.delete(listener);
+}
+
+async function sendWithRefresh(path: string, options: RequestOptions): Promise<Response> {
   let res = await send(path, options);
-
   const mayRefresh = !options.noRefresh && !NO_REFRESH_PATHS.includes(path);
-  if (res.status === 401 && mayRefresh && (await refreshSession())) {
-    res = await send(path, options);
+  if (res.status === 401 && mayRefresh) {
+    if (await refreshSession()) {
+      res = await send(path, options);
+    }
+    // Still 401 after a refresh attempt: the session really ended (expired, revoked, logged out elsewhere).
+    if (res.status === 401 && path !== "/auth/me") sessionListeners.forEach((l) => l());
   }
+  return res;
+}
 
+export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const res = await sendWithRefresh(path, options);
   const body = await parseBody(res);
   if (!res.ok) throw toApiError(res, body);
   return body as T;
+}
+
+export interface DownloadedFile {
+  blob: Blob;
+  filename: string;
+}
+
+/** `attachment; filename="meeting-report-2026-11.pdf"` → the file name (RFC 6266 basics). */
+export function filenameFromDisposition(header: string | null, fallback: string): string {
+  if (!header) return fallback;
+  const star = /filename\*\s*=\s*(?:UTF-8'')?([^;]+)/i.exec(header);
+  if (star) {
+    try {
+      return decodeURIComponent(star[1].trim().replace(/^"|"$/g, ""));
+    } catch {
+      // fall through to the plain form
+    }
+  }
+  const plain = /filename\s*=\s*"?([^";]+)"?/i.exec(header);
+  const name = plain?.[1]?.trim();
+  // Never accept a path, only a plain file name.
+  return name && !/[\\/]/.test(name) ? name : fallback;
+}
+
+/** GET a file (PDF) as a Blob, with the same session refresh and Bangla errors as api(). */
+export async function apiDownload(
+  path: string,
+  options: Pick<RequestOptions, "query" | "signal"> & { fallbackName: string },
+): Promise<DownloadedFile> {
+  const res = await sendWithRefresh(path, { query: options.query, signal: options.signal });
+  if (!res.ok) throw toApiError(res, await parseBody(res));
+  return {
+    blob: await res.blob(),
+    filename: filenameFromDisposition(res.headers.get("content-disposition"), options.fallbackName),
+  };
+}
+
+/** Let the browser save a downloaded Blob under `filename`. */
+export function saveBlob({ blob, filename }: DownloadedFile): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
