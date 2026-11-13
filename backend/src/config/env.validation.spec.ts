@@ -163,6 +163,16 @@ describe('validateEnv', () => {
     });
   });
 
+  it('THROTTLE_USER_LIMIT defaults to 300 and must stay between 10 and 10000', () => {
+    expect(validateEnv(validEnv()).THROTTLE_USER_LIMIT).toBe(300);
+    expect(
+      validateEnv({ ...validEnv(), THROTTLE_USER_LIMIT: '600' }).THROTTLE_USER_LIMIT,
+    ).toBe(600);
+    expect(() =>
+      validateEnv({ ...validEnv(), THROTTLE_USER_LIMIT: '5' }),
+    ).toThrow(/THROTTLE_USER_LIMIT/);
+  });
+
   it('THROTTLE_LIMIT defaults to 100 and must stay between 10 and 10000', () => {
     expect(validateEnv(validEnv()).THROTTLE_LIMIT).toBe(100);
     expect(

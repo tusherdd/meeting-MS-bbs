@@ -65,7 +65,8 @@ Requirements:
 
 - the backend runs on `BACKEND_URL` against its normal dev database, with:
   - `MAIL_DRY_RUN=true`, `NODE_ENV=development`, `SCHEDULER_ENABLED=true`;
-  - `THROTTLE_LIMIT=1000` (the suite sends more than the default 100 requests per minute from one IP);
+  - no special rate limit: logged-in requests are counted per user (300 per minute each), so the default
+    backend settings are enough;
 - `.env.e2e` holds an ADMIN/SUPER_ADMIN login that has already changed its first password (needed to create the test officers).
 
 ```bash
@@ -86,7 +87,7 @@ How it works:
   | `so`         | `e2e-so@example.com`                         | Statistical Officer (7) |
   - Since 2026-11-09 new accounts and admin resets get the **default officer password**, so no mail link is needed.
   - The tests read that password from `E2E_OFFICER_PASSWORD`, or else only the `DEFAULT_OFFICER_PASSWORD` line of `backend/.env`. It is never printed.
-  - The setup saves one logged-in session per officer in the git-ignored `e2e/.state/`, so the tests do not log in over and over (the backend allows 10 logins per minute per IP).
+  - The setup saves one logged-in session per officer in the git-ignored `e2e/.state/` and reuses a saved session while it is still valid, so the tests do not log in over and over (the backend allows 10 logins per minute per IP).
 
 - The tests only put test officers into meetings, so they never clash with real officers. Every meeting they create is cancelled again.
 - `auth.spec.ts`:

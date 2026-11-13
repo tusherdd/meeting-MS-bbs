@@ -389,8 +389,13 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 4. Cookies: `httpOnly`, `secure` in production, `sameSite=lax` (access) / `strict` (refresh, path `/api/v1/auth`). Bearer header also accepted for Swagger.
 5. CSRF: for cookie-authenticated unsafe methods, check `Origin` against the allowed frontend origin.
 6. Global `ValidationPipe` with `whitelist`, `forbidNonWhitelisted`, `transform`. Every input has a DTO.
-7. `helmet` (explicit CSP; HSTS in production), strict CORS allowlist from `.env`, `@nestjs/throttler` globally
-   (stricter on auth, mail-sending and PDF routes); `TRUST_PROXY` so the real client IP is used behind nginx.
+7. `helmet` (explicit CSP; HSTS in production), strict CORS allowlist from `.env`, `@nestjs/throttler` globally:
+   - requests with a valid access token are counted **per user id** (`THROTTLE_USER_LIMIT`, default 300/min), so
+     officers behind one office NAT do not share a budget; everything else is counted **per client IP**
+     (`THROTTLE_LIMIT`, default 100/min). The token check is signature + expiry only (no DB query).
+   - login, forgot/reset/change password keep stricter limits **per IP** (`@ThrottleByIp()`, `auth.constants.ts`);
+     mail-sending profile routes and PDF routes have their own lower limits (per user).
+   - `TRUST_PROXY` so the real client IP is used behind nginx.
 8. Env validated at startup; app refuses to start with missing/weak secrets. `.env` is git-ignored; `.env.example` is committed.
    In production it also refuses: Swagger without basic auth, `MAIL_DRY_RUN` not set explicitly, localhost in
    `CORS_ORIGINS`, or non-https `APP_URL`/`FRONTEND_URL` (secure cookies). `DEFAULT_OFFICER_PASSWORD` is
@@ -443,7 +448,8 @@ SCHEDULER_ENABLED=true          # cron jobs (mail worker, cleanups); false in e2
 SWAGGER_USER=                   # production: basic auth for /api/docs (required if SWAGGER_ENABLED=true)
 SWAGGER_PASSWORD=               # production: at least 12 characters
 TRUST_PROXY=false               # behind nginx: 1 (one proxy hop)
-THROTTLE_LIMIT=100              # requests per minute per IP (auth routes stay stricter); frontend e2e: 1000
+THROTTLE_LIMIT=100              # per minute per client IP, requests without a valid session (login/password routes stay stricter)
+THROTTLE_USER_LIMIT=300         # per minute per logged-in user (counted by user id, not IP: one office NAT is fine)
 
 SEED_SUPER_ADMIN_EMAIL=admin@bbs.gov.bd
 SEED_SUPER_ADMIN_PASSWORD=

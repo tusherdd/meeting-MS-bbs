@@ -21,9 +21,9 @@ export const UNKNOWN_EMAIL_TRACKING_MAX_ENTRIES = 10_000;
 export const RESET_TOKEN_TTL_MINUTES = 30;
 
 /**
- * Stricter per-IP limits for sensitive routes (global default: 100/min).
- * Together with the progressive login delay this slows brute force. Note: officers behind one
- * office NAT share an IP, so the limit is shared by everyone in the office.
+ * Stricter limits for sensitive routes, always per client IP (@ThrottleByIp on the routes; the
+ * global default is per user for logged-in requests). Together with the progressive login delay
+ * this slows brute force. Officers behind one office NAT share these per-IP budgets.
  */
 export const AUTH_THROTTLE = {
   login: { default: { limit: 10, ttl: minutes(1) } },

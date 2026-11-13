@@ -19,6 +19,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { ThrottleByIp } from '../../common/throttling/throttle-identity';
 import type { Response } from 'express';
 import { AllowPendingPasswordChange } from '../../common/decorators/allow-pending-password-change.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -63,6 +64,7 @@ export class AuthController {
   ) {}
 
   @Public()
+  @ThrottleByIp()
   @Throttle(AUTH_THROTTLE.login)
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -159,6 +161,7 @@ export class AuthController {
 
   @AllowPendingPasswordChange()
   @ApiBearerAuth()
+  @ThrottleByIp()
   @Throttle(AUTH_THROTTLE.changePassword)
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
@@ -184,6 +187,7 @@ export class AuthController {
   }
 
   @Public()
+  @ThrottleByIp()
   @Throttle(AUTH_THROTTLE.forgotPassword)
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
@@ -203,6 +207,7 @@ export class AuthController {
   }
 
   @Public()
+  @ThrottleByIp()
   @Throttle(AUTH_THROTTLE.resetPassword)
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)

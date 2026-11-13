@@ -45,8 +45,10 @@ export interface EnvVars {
   SWAGGER_PASSWORD: string;
   /** Express 'trust proxy' (false | true | hop count | 'loopback' …), e.g. 1 behind nginx. */
   TRUST_PROXY: boolean | number | string;
-  /** Global rate limit: requests per minute per client IP (auth routes have their own lower limits). */
+  /** Rate limit per minute per client IP for requests without a valid session (auth routes are stricter). */
   THROTTLE_LIMIT: number;
+  /** Rate limit per minute per logged-in user (SPEC.md §9.7). */
+  THROTTLE_USER_LIMIT: number;
 
   SEED_SUPER_ADMIN_EMAIL: string;
   SEED_SUPER_ADMIN_PASSWORD: string;
@@ -157,6 +159,7 @@ export const envSchema = Joi.object<EnvVars>({
     )
     .default(false),
   THROTTLE_LIMIT: Joi.number().integer().min(10).max(10_000).default(100),
+  THROTTLE_USER_LIMIT: Joi.number().integer().min(10).max(10_000).default(300),
 
   SEED_SUPER_ADMIN_EMAIL: Joi.string()
     .email({ tlds: false })

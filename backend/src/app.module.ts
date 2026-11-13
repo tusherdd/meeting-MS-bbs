@@ -6,6 +6,8 @@ import { ThrottlerGuard, ThrottlerModule, seconds } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ShutdownLogger } from './common/shutdown-logger';
+import { ThrottleIdentity } from './common/throttling/throttle-identity';
+import type { AppRequest } from './common/types/auth-user';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { OriginGuard } from './common/guards/origin.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -47,23 +49,35 @@ import { WingsModule } from './modules/wings/wings.module';
         }),
     }),
 
-    // Global default: THROTTLE_LIMIT (100) requests per minute per IP; auth routes are stricter
-    // (auth.constants). Raise it when many users share one IP (office NAT) or for the frontend Playwright suite.
+    // Global rate limit per minute (SPEC.md §9.7): logged-in requests per user id
+    // (THROTTLE_USER_LIMIT, 300), everything else per client IP (THROTTLE_LIMIT, 100).
+    // Login and password routes keep their stricter per-IP limits (@ThrottleByIp, auth.constants).
     // Skipped under NODE_ENV=test so e2e tests can log in many times.
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService<EnvVars, true>) => ({
-        throttlers: [
+      useFactory: (config: ConfigService<EnvVars, true>) => {
+        const identity = new ThrottleIdentity(
+          config.get('JWT_ACCESS_SECRET', { infer: true }),
           {
-            name: 'default',
-            ttl: seconds(60),
-            limit: config.get('THROTTLE_LIMIT', { infer: true }),
+            perIp: config.get('THROTTLE_LIMIT', { infer: true }),
+            perUser: config.get('THROTTLE_USER_LIMIT', { infer: true }),
           },
-        ],
-        skipIf: () => config.get('NODE_ENV', { infer: true }) === 'test',
-        errorMessage:
-          'অনেক বেশি অনুরোধ পাঠানো হয়েছে। কিছুক্ষণ অপেক্ষা করে আবার চেষ্টা করুন।',
-      }),
+        );
+        return {
+          throttlers: [
+            {
+              name: 'default',
+              ttl: seconds(60),
+              limit: (context) => identity.limitFor(context),
+            },
+          ],
+          getTracker: (req, context) =>
+            identity.trackerFor(req as AppRequest, context),
+          skipIf: () => config.get('NODE_ENV', { infer: true }) === 'test',
+          errorMessage:
+            'অনেক বেশি অনুরোধ পাঠানো হয়েছে। কিছুক্ষণ অপেক্ষা করে আবার চেষ্টা করুন।',
+        };
+      },
     }),
 
     // Cron jobs (mail worker every minute, daily outbox cleanup).
