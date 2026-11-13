@@ -12,6 +12,8 @@ export interface TestOfficer {
   nameEn: string;
   /** English designation name in the database (sets the meeting priority). */
   designationEn: string;
+  /** ADMIN test account (promoted by global-setup). Default: OFFICER. */
+  role?: "ADMIN";
 }
 
 export const OFFICERS = {
@@ -48,6 +50,14 @@ export const OFFICERS = {
     nameBn: "ই২ই পরিসংখ্যান কর্মকর্তা",
     nameEn: "E2E Statistical Officer",
     designationEn: "Statistical Officer",
+  },
+  /** F3 admin panel tests: an ADMIN (never the SUPER_ADMIN, so its protections are tested). */
+  admin: {
+    loginEmail: "e2e-admin@example.com",
+    nameBn: "ই২ই অ্যাডমিন",
+    nameEn: "E2E Admin",
+    designationEn: "Deputy Director",
+    role: "ADMIN",
   },
 } as const satisfies Record<string, TestOfficer>;
 

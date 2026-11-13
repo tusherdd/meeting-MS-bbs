@@ -1,3 +1,4 @@
+import { ADMIN_LINKS } from "@/components/admin/admin-nav";
 import { t } from "@/messages";
 
 export interface NavItem {
@@ -15,16 +16,11 @@ export const OFFICER_NAV: NavItem[] = [
   { href: "/profile", label: t.nav.profile },
 ];
 
-/** Admin submenu: placeholders for now (later frontend steps). */
+/** Admin sub-menu (same pages as the tabs on top of every admin page). */
 export const ADMIN_NAV: NavItem = {
   href: "/admin",
   label: t.nav.admin,
-  children: [
-    { href: "/admin/users", label: t.nav.adminUsers },
-    { href: "/admin/designations", label: t.nav.adminDesignations },
-    { href: "/admin/change-requests", label: t.nav.adminChangeRequests },
-    { href: "/admin/audit-logs", label: t.nav.adminAudit },
-  ],
+  children: ADMIN_LINKS.filter((l) => l.href !== "/admin").map((l) => ({ ...l })),
 };
 
 export function navFor(admin: boolean): NavItem[] {

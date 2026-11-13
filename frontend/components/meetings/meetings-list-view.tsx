@@ -33,12 +33,18 @@ function quickRange(kind: Quick): { from: string; to: string } {
   return { from: first, to: addDays(next, -1) };
 }
 
-export function MeetingsListView() {
+/**
+ * /meetings (my meetings; admins can switch to "সকল সভা") and /admin/meetings (`scope="all"`:
+ * always every meeting of the office, GET /meetings?scope=all).
+ */
+export function MeetingsListView({ scope = "mine" }: { scope?: "mine" | "all" }) {
   const { isAdmin } = useAuth();
+  const forceAll = scope === "all";
   const [range, setRange] = useState(() => quickRange("month"));
   const [status, setStatus] = useState<MeetingStatus | "">("");
   const [role, setRole] = useState<"organizer" | "participant" | "">("");
-  const [allMeetings, setAllMeetings] = useState(false);
+  const [allToggle, setAllMeetings] = useState(false);
+  const allMeetings = forceAll || allToggle;
   const [page, setPage] = useState(1);
 
   const query = useMemo<MeetingListQuery>(() => {
@@ -80,8 +86,10 @@ export function MeetingsListView() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-slate-900">{t.meetingsList.title}</h1>
-        <LinkButton href="/meetings/new">{t.dashboard.newMeeting}</LinkButton>
+        <h1 className="text-2xl font-semibold text-slate-900">
+          {forceAll ? t.admin.meetingsTitle : t.meetingsList.title}
+        </h1>
+        {!forceAll && <LinkButton href="/meetings/new">{t.dashboard.newMeeting}</LinkButton>}
       </div>
 
       <Card className="space-y-4 p-4 sm:p-5">
@@ -122,20 +130,22 @@ export function MeetingsListView() {
               label: t.meeting.status[s],
             }))}
           />
-          <Select
-            id="filter-role"
-            label={t.meetingsList.role}
-            value={role}
-            disabled={allMeetings}
-            onChange={(e) => update(setRole)(e.target.value as "organizer" | "participant" | "")}
-            placeholder={t.meetingsList.allRoles}
-            options={[
-              { value: "organizer", label: t.meetingsList.roleOrganizer },
-              { value: "participant", label: t.meetingsList.roleParticipant },
-            ]}
-          />
+          {!forceAll && (
+            <Select
+              id="filter-role"
+              label={t.meetingsList.role}
+              value={role}
+              disabled={allMeetings}
+              onChange={(e) => update(setRole)(e.target.value as "organizer" | "participant" | "")}
+              placeholder={t.meetingsList.allRoles}
+              options={[
+                { value: "organizer", label: t.meetingsList.roleOrganizer },
+                { value: "participant", label: t.meetingsList.roleParticipant },
+              ]}
+            />
+          )}
         </div>
-        {isAdmin && (
+        {isAdmin && !forceAll && (
           <label className="flex w-fit items-center gap-2 text-sm font-medium text-slate-800">
             <input
               type="checkbox"

@@ -62,7 +62,12 @@ async function admin(): Promise<string> {
   const res = await call<S["LoginResponseDto"]>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ loginEmail, password }),
-  }).catch(() => null);
+  }).catch((err: Error) => {
+    if (err.message.includes("→ 429")) {
+      throw new Error("Login rate limit hit (10 per minute per IP): wait one minute and rerun.");
+    }
+    return null;
+  });
   if (!res) throw new Error("Admin login failed: check E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD.");
   if (res.mustChangePassword) {
     throw new Error("The admin must change its first password in the app, then update .env.e2e.");
@@ -95,6 +100,7 @@ async function ensureOfficer(key: OfficerKey) {
     if (!existing.passwordIsDefault || !existing.isActive) {
       await call(`/users/${existing.id}/reset-password`, { method: "POST", token });
     }
+    await ensureRole(existing.id, existing.role, o, token);
     return;
   }
   const designations = await call<S["DesignationResponseDto"][]>("/designations?activeOnly=true", {
@@ -102,7 +108,7 @@ async function ensureOfficer(key: OfficerKey) {
   });
   const designation = designations.find((d) => d.nameEn === o.designationEn);
   if (!designation) throw new Error(`Designation "${o.designationEn}" not found.`);
-  await call("/users", {
+  const created = await call<S["UserDetailDto"]>("/users", {
     method: "POST",
     token,
     body: JSON.stringify({
@@ -112,10 +118,57 @@ async function ensureOfficer(key: OfficerKey) {
       designationId: designation.id,
     }),
   });
+  await ensureRole(created.id, created.role, o, token);
+}
+
+/** The test admin must be ADMIN; every other test officer stays OFFICER. */
+async function ensureRole(
+  userId: string,
+  current: S["UserSummaryDto"]["role"],
+  o: (typeof OFFICERS)[OfficerKey],
+  token: string,
+) {
+  const wanted = "role" in o && o.role === "ADMIN" ? "ADMIN" : "OFFICER";
+  if (current === wanted || current === "SUPER_ADMIN") return;
+  await call(`/users/${userId}/role`, {
+    method: "PATCH",
+    token,
+    body: JSON.stringify({ role: wanted }),
+  });
+}
+
+/**
+ * A session saved by an earlier run that still works (GET /auth/me as that officer) is kept, so
+ * running the suite again soon does not spend logins (10 per minute per IP).
+ */
+async function savedSessionWorks(key: OfficerKey): Promise<boolean> {
+  if (!existsSync(storageStateOf(key))) return false;
+  const context = await request.newContext({
+    baseURL: FRONTEND_ORIGIN,
+    storageState: storageStateOf(key),
+  });
+  try {
+    const res = await context.get("/api/v1/auth/me");
+    if (!res.ok()) return false;
+    const me = (await res.json()) as { loginEmail?: string };
+    // Reuse only with at least 10 more minutes of access token: the whole run must finish before
+    // it expires. Otherwise several contexts made from the same saved state would refresh with
+    // the same refresh token, and the backend's reuse detection would (rightly) end all sessions.
+    const cookies = (await context.storageState()).cookies;
+    const access = cookies.find((c) => c.name === "access_token");
+    const longEnough =
+      !!access && (access.expires === -1 || access.expires * 1000 > Date.now() + 10 * 60_000);
+    return me.loginEmail === OFFICERS[key].loginEmail && longEnough;
+  } catch {
+    return false;
+  } finally {
+    await context.dispose();
+  }
 }
 
 /** Log in through the frontend proxy (like the browser) and save the session cookies. */
 async function saveSession(key: OfficerKey): Promise<boolean> {
+  if (await savedSessionWorks(key)) return true;
   const context = await request.newContext({
     baseURL: FRONTEND_ORIGIN,
     extraHTTPHeaders: { Origin: FRONTEND_ORIGIN },

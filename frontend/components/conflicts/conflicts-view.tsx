@@ -96,8 +96,23 @@ function AllConflicts() {
   );
 }
 
-export function ConflictsView() {
+/** /conflicts (mine; admins also get an "all" tab) and /admin/conflicts (`scope="all"`: all only). */
+export function ConflictsView({ scope = "mine" }: { scope?: "mine" | "all" }) {
   const { isAdmin } = useAuth();
+  if (scope === "all") {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold text-slate-900">{t.admin.conflictsTitle}</h1>
+        <Card>
+          <AllConflicts />
+        </Card>
+      </div>
+    );
+  }
+  return <MyConflictsTabs isAdmin={isAdmin} />;
+}
+
+function MyConflictsTabs({ isAdmin }: { isAdmin: boolean }) {
   const [tab, setTab] = useState<Tab>("PENDING");
   const items: { key: Tab; label: string }[] = [
     { key: "PENDING", label: t.conflictsPage.pending },

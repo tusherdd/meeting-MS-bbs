@@ -105,3 +105,51 @@ test("no icons in the app layout, header, sidebar, menus and pages", async ({ br
   }
   await page.context().close();
 });
+
+test("no icons on any admin page", async ({ browser }) => {
+  const page = await pageAs(browser, "admin");
+  const pages = [
+    "/admin",
+    "/admin/users",
+    "/admin/users/new",
+    "/admin/designations",
+    "/admin/wings",
+    "/admin/change-requests",
+    "/admin/meetings",
+    "/admin/conflicts",
+    "/admin/reports",
+    "/admin/email-outbox",
+    "/admin/audit-logs",
+  ];
+  try {
+    for (const path of pages) {
+      await page.goto(path);
+      await expect(page.getByRole("navigation", { name: "অ্যাডমিন মেনু" })).toBeVisible();
+      await expect(page.getByText("লোড হচ্ছে…")).toHaveCount(0);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expectNoIcons(page, path);
+      const empty = await page
+        .locator("button:visible")
+        .evaluateAll((buttons) =>
+          buttons.filter((b) => !(b as HTMLElement).innerText.trim()).map((b) => b.outerHTML),
+        );
+      expect(empty, `buttons without visible text on ${path}`).toEqual([]);
+    }
+    // A user detail page with its action buttons and a confirmation dialog.
+    await page.goto("/admin/users?role=OFFICER");
+    await page
+      .getByTestId("users-table")
+      .getByRole("link", { name: /^খুলুন/ })
+      .first()
+      .click();
+    await expect(page.getByTestId("user-actions")).toBeVisible();
+    await expectNoIcons(page, "user detail");
+    await page.getByRole("button", { name: "পাসওয়ার্ড ডিফল্টে ফেরত নিন" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expectNoIcons(page, "confirmation dialog");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeHidden();
+  } finally {
+    await page.context().close();
+  }
+});
