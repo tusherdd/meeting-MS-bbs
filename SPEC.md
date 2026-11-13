@@ -43,7 +43,7 @@ There is no separate database project: TypeORM entities, migrations and seeds ar
 | Mail | Nodemailer over SMTP (settings in `.env`), sent through a DB outbox |
 | Scheduling | `@nestjs/schedule` (outbox worker every minute, daily outbox cleanup, meeting auto-complete every 15 min); off when `SCHEDULER_ENABLED=false` |
 | Tests | Jest unit tests (mocks) + e2e tests on a separate database `DB_NAME_TEST` (`backend/.env.test`) |
-| PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly; Bangla font bundled from `@fontsource/noto-sans-bengali` (no internet fonts) |
+| PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly; the Bangla font **Nikosh** is embedded from `backend/assets/fonts/Nikosh.ttf` (no internet fonts, §13.10) |
 | Frontend | Next.js (App Router), TypeScript, Tailwind CSS |
 | Timezone | Store `timestamptz` (UTC). Display and compute "today/week/month" in `Asia/Dhaka`. |
 
@@ -502,8 +502,8 @@ readiness (accessibility, error pages, CSP, standalone build, deployment guide).
 ### 13.1 Stack
 Next.js 16 (App Router), React 19, TypeScript strict, Tailwind CSS 4, ESLint, npm.
 Server data: `@tanstack/react-query`. Forms: `react-hook-form` + `zod` (rules mirror the backend DTOs).
-Dates: `date-fns` + `date-fns-tz`, always shown in Asia/Dhaka. Font: Hind Siliguri (`next/font/google`,
-self-hosted at build time). No UI kit: small own components in `components/ui`. e2e tests: Playwright.
+Dates: `date-fns` + `date-fns-tz`, always shown in Asia/Dhaka. Font: **Nikosh** for Bangla (`next/font/local`,
+self-hosted from `app/fonts/Nikosh.ttf`, §13.10); a system sans-serif for Latin text. No UI kit: small own components in `components/ui`. e2e tests: Playwright.
 
 ### 13.2 Folder structure
 ```
@@ -625,3 +625,25 @@ Real browser against the real backend (`MAIL_DRY_RUN=true`), only with test acco
 admin (create officer → login with the default password, SUPER_ADMIN protection, designation change request
 approved, officers get 404), accessibility (labels, modal keyboard handling, offline message, 404) and "no
 icons" on every page including the admin panel.
+
+### 13.10 Font: Nikosh everywhere (owner decision 2026-11-14)
+Nikosh, the Bangladesh government's standard Bangla font, replaces Hind Siliguri (web) and Noto Sans Bengali (PDF).
+
+- **Files (must be deployed with the app):** `frontend/app/fonts/Nikosh.ttf` and `backend/assets/fonts/Nikosh.ttf`
+  (the same file), each with `LICENSE-Nikosh.txt`. Licence: CC BY-NC-ND 3.0 (Bangladesh Election Commission).
+  - The original 2008 file is rejected by browsers (its `name` table is larger than the format allows:
+    "OTS parsing error"). The committed file has **only its `name` table rewritten** by
+    `backend/scripts/repair-nikosh-name-table.ts`; glyphs and layout tables are byte-identical. The full licence
+    text moved from the name table to `LICENSE-Nikosh.txt`.
+- **Web:** `app/layout.tsx` loads it with `next/font/local` (served from this origin, so `font-src 'self'` in the
+  CSP is enough; no external font request).
+  - `unicode-range` limits it to Bangla characters; Latin text (emails, English names) uses the sans-serif stack
+    `"Segoe UI", Roboto, "Helvetica Neue", Arial, …` from `globals.css`.
+  - Nikosh draws smaller than other Bangla fonts: `size-adjust: 135%` enlarges only its glyphs (Latin text and
+    rem-based spacing are unchanged), and the line heights of the text sizes are raised (1.45–1.65).
+  - Nikosh has one weight (400). Headings use the browser's synthesised bold.
+- **PDF reports:** `report-template.ts` embeds the file as a base64 `data:` URL (whole text in Nikosh, base size
+  12 pt). `nest build` copies `assets/fonts` to `dist/assets/fonts` (`nest-cli.json`); in development the file is
+  read from `backend/assets/fonts`. Characters Nikosh lacks (for example "—") come from the server's default sans-serif.
+- **Mail:** mail clients only use installed fonts, so the template's `font-family` starts with
+  `'Nikosh','NikoshBAN'`, then SolaimanLipi, Kalpurush, Noto Sans Bengali, Vrinda, Arial, sans-serif.

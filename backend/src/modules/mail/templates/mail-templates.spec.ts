@@ -23,6 +23,14 @@ describe('mail rendering', () => {
     expect(mail.html).toContain('lang="bn"');
   });
 
+  it('asks for Nikosh first, with installed-font fallbacks (owner decision 2026-11-14)', () => {
+    const { html } = renderMail('বিষয়', null, []);
+    expect(html).toContain(
+      "font-family:'Nikosh','NikoshBAN','SolaimanLipi','Kalpurush','Noto Sans Bengali','Vrinda',Arial,sans-serif",
+    );
+    expect(html).not.toMatch(/@font-face|url\(/); // mail clients get no web font
+  });
+
   it('HTML-escapes all user-provided text', () => {
     const evil = '<script>alert("x")</script> & <b>';
     const mail = changeRequestDecisionMail({

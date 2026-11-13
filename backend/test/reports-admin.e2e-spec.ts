@@ -187,7 +187,9 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
       const pdf = res.body as Buffer;
       expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
       expect(pdf.length).toBeGreaterThan(5000);
-      expect(pdf.includes('NotoSansBengali')).toBe(true); // embedded Bangla font
+      // The embedded Bangla font is Nikosh (owner decision 2026-11-14), not a system fallback.
+      expect(pdf.includes('Nikosh')).toBe(true);
+      expect(pdf.includes('NotoSansBengali')).toBe(false);
     }, 60_000);
 
     it('office reports are ADMIN only (403 for an officer, JSON and PDF)', async () => {

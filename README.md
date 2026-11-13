@@ -38,6 +38,10 @@ flowchart LR
 - **Backend** (`backend/`): NestJS 11, TypeORM migrations, JWT access + refresh tokens, argon2id,
   conflict engine with advisory locks, mail outbox, cron jobs, Puppeteer PDFs.
 - **Database**: PostgreSQL. Times are stored in UTC; days, weeks, months and years are computed in Asia/Dhaka.
+- **Font**: Nikosh (Bangladesh government standard) for all Bangla text: web pages, PDF reports and (when
+  installed on the reader's device) mails. The font files live in the repository and **must be deployed with
+  the app**: `frontend/app/fonts/Nikosh.ttf` (bundled into the frontend build) and
+  `backend/assets/fonts/Nikosh.ttf` (copied to `backend/dist/assets/fonts/` by `npm run build`). See SPEC.md §13.10.
 
 ## 2. Run locally (development)
 
@@ -121,7 +125,7 @@ cd backend
 npm ci
 npx puppeteer browsers install chrome    # Chrome for PDFs (in ~/.cache/puppeteer of this user)
 cp .env.example .env && chmod 600 .env   # then edit, see 4.4
-npm run build
+npm run build                             # also copies assets/fonts/Nikosh.ttf to dist/assets/fonts/
 
 cd ../frontend
 npm ci
@@ -286,6 +290,7 @@ Copy the backup folder to a second machine regularly.
 2. Back up first: run the `pg_dump` line from 4.8 by hand.
 3. `cd /opt/bbs-meeting/app && git fetch --tags && git checkout <new tag>`
 4. Backend: `cd backend && npm ci && npm run build && npm run migration:run:prod`
+   (check that `dist/assets/fonts/Nikosh.ttf` exists: the PDF reports need it)
 5. Add any new variables from `backend/.env.example` to `backend/.env`.
 6. Frontend: `cd ../frontend && npm ci && npm run build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/`
 7. `sudo systemctl restart bbs-meeting-api bbs-meeting-web`

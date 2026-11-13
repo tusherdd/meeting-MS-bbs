@@ -2,7 +2,25 @@
 
 /* BBS green (Bangladesh flag green #006a4e) as the accent; neutral slate for everything else. */
 @theme {
-  --font-sans: var(--font-hind-siliguri), "Noto Sans Bengali", system-ui, sans-serif;
+  /*
+   * Nikosh for Bangla (app/layout.tsx: only Bangla characters, enlarged with size-adjust);
+   * a named sans-serif for Latin text (emails, English names) and as the fallback.
+   */
+  --font-sans:
+    var(--font-nikosh), "Segoe UI", Roboto, "Helvetica Neue", Arial, "Liberation Sans", system-ui,
+    sans-serif;
+
+  /*
+   * Line heights: Bangla needs more room above and below the line than Latin (matras, reph,
+   * conjuncts below the baseline), and Nikosh is drawn larger here. Tailwind's defaults for the
+   * small sizes are too tight for wrapped Bangla text.
+   */
+  --text-xs--line-height: 1.6;
+  --text-sm--line-height: 1.6;
+  --text-base--line-height: 1.65;
+  --text-lg--line-height: 1.6;
+  --text-xl--line-height: 1.5;
+  --text-2xl--line-height: 1.45;
 
   --color-brand-50: #e9f7f1;
   --color-brand-100: #c9ebdc;
@@ -21,7 +39,7 @@ html {
 }
 
 body {
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
 /* Visible keyboard focus everywhere (mouse clicks do not show the ring). */

@@ -23,6 +23,13 @@ export type MailBlock =
 export const MAIL_HEADER_BN = 'বাংলাদেশ পরিসংখ্যান ব্যুরো (BBS)';
 export const MAIL_HEADER_SUB_BN = 'সভা সূচি ব্যবস্থাপনা';
 export const MAIL_FOOTER_BN = 'এটি স্বয়ংক্রিয় বার্তা, উত্তর দেবেন না।';
+/**
+ * Mail clients only use fonts installed on the reader's device (no web fonts). Nikosh first
+ * (owner decision 2026-11-14; its two common installed names), then other Bangla fonts that are
+ * often installed, then the device's default sans-serif.
+ */
+export const MAIL_FONT_FAMILY =
+  "'Nikosh','NikoshBAN','SolaimanLipi','Kalpurush','Noto Sans Bengali','Vrinda',Arial,sans-serif";
 
 /** Only http(s) links become buttons; anything else (javascript:, data:, ...) is dropped. */
 function safeUrl(url: string): string | null {
@@ -93,7 +100,7 @@ export function renderMail(
 
   const html = `<!doctype html>
 <html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
-<body style="margin:0;background:#f4f4f4;font-family:'Noto Sans Bengali','SolaimanLipi',Arial,sans-serif;line-height:1.6;color:#222">
+<body style="margin:0;background:#f4f4f4;font-family:${MAIL_FONT_FAMILY};line-height:1.7;color:#222">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:16px">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:6px;overflow:hidden">
 <tr><td style="background:#006a4e;color:#fff;padding:14px 20px">

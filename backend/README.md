@@ -119,7 +119,8 @@ After changing endpoints or DTOs, run `npm run openapi:export && npm run docs:ap
     libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 wget xdg-utils
   ```
 
-  The Bangla font is bundled with the app, so no system fonts are needed for reports.
+  The Bangla font (Nikosh, `assets/fonts/Nikosh.ttf`) is embedded in every report, so no system Bangla font is
+  needed. `npm run build` copies it to `dist/assets/fonts/`; keep the `assets/` folder when you deploy.
 
 ### 4.2 Install and build
 
