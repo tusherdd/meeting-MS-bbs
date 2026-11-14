@@ -187,8 +187,9 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
       const pdf = res.body as Buffer;
       expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
       expect(pdf.length).toBeGreaterThan(5000);
-      // The embedded Bangla font is Nikosh (owner decision 2026-11-14), not a system fallback.
+      // Embedded fonts (owner decisions 2026-11-14): Nikosh for Bangla, Tinos for English.
       expect(pdf.includes('Nikosh')).toBe(true);
+      expect(pdf.includes('Tinos')).toBe(true);
       expect(pdf.includes('NotoSansBengali')).toBe(false);
     }, 60_000);
 

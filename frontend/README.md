@@ -96,7 +96,7 @@ How it works:
   - the forced `/change-password` (SUPER_ADMIN only, simulated).
 - `dashboard.spec.ts`: today's meeting, the week/month tabs, the phone menu.
 - `meetings.spec.ts`: the form, the clash panels (red / green / amber), the conflict flow, and the outsider getting "সভাটি পাওয়া যায়নি".
-- `no-icons.spec.ts`: no `<svg>`, icon element or icon symbol in the layout, header, sidebar, menus and pages (admin pages too), and every button has visible text.
+- `no-icons.spec.ts`: no `<svg>`, icon element or icon symbol in the layout, sidebar, menus and pages (admin pages too) except the two header icons (bell, profile), and every other button has visible text.
 - `reports.spec.ts`: period selector, Bangla ranges, PDF download with the server's file name.
 - `profile.spec.ts`: edit with Bangla digits, charges list, photo upload/remove, pending notification email, change request create/cancel.
 - `admin.spec.ts` (test admin `e2e-admin@example.com`):
@@ -104,6 +104,7 @@ How it works:
   - the admin creates an officer who then logs in with the default password;
   - the SUPER_ADMIN cannot be touched, and an admin cannot deactivate or demote themselves;
   - a designation change request is approved; an own request cannot be approved.
+- `header.spec.ts`: the two header icons: bell badge (Bangla digits, hidden at 0, "৯+"), labels and tooltips, both menus, phone width.
 - `a11y.spec.ts`: a label on every field, modal keyboard handling (focus stays inside, Escape, focus returns), offline message, 404 page.
 - Public pages only (no test officers needed): `E2E_SKIP_SETUP=1 npm run test:e2e -- --grep public`.
 - Login limit (10 per minute per IP): the setup reuses saved sessions that are valid for at least 10 more minutes. After a cold start (all officers logged in again) it waits 60 s before the tests begin.

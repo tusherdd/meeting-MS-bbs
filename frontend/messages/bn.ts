@@ -128,7 +128,10 @@ const bnMessages = {
   },
   header: {
     notifications: "নোটিফিকেশন",
-    notificationsWithCount: (count: string) => `নোটিফিকেশন (${count})`,
+    /** aria-label of the bell button when there are unread notifications. */
+    notificationsLabel: (count: string) => `নোটিফিকেশন, ${count}টি অপঠিত`,
+    /** Badge text above 9 unread. */
+    badgeMax: "৯+",
     unread: (count: string) => `${count}টি অপঠিত নোটিফিকেশন`,
     unreadBadge: "অপঠিত",
     markAllRead: "সব পড়া হয়েছে",

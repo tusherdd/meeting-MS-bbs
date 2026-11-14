@@ -24,12 +24,14 @@ export const MAIL_HEADER_BN = 'বাংলাদেশ পরিসংখ্য
 export const MAIL_HEADER_SUB_BN = 'সভা সূচি ব্যবস্থাপনা';
 export const MAIL_FOOTER_BN = 'এটি স্বয়ংক্রিয় বার্তা, উত্তর দেবেন না।';
 /**
- * Mail clients only use fonts installed on the reader's device (no web fonts). Nikosh first
- * (owner decision 2026-11-14; its two common installed names), then other Bangla fonts that are
- * often installed, then the device's default sans-serif.
+ * Mail clients only use fonts installed on the reader's device (no web fonts, no unicode-range).
+ * Owner decisions 2026-11-14: English in Times New Roman, Bangla in Nikosh. Times New Roman comes
+ * FIRST on purpose: it has no Bangla characters, so Bangla falls through to Nikosh (its two
+ * common installed names) and then to other Bangla fonts, while English stays in Times. With
+ * Nikosh first, English would be drawn with Nikosh's own Latin letters.
  */
 export const MAIL_FONT_FAMILY =
-  "'Nikosh','NikoshBAN','SolaimanLipi','Kalpurush','Noto Sans Bengali','Vrinda',Arial,sans-serif";
+  "'Times New Roman',Times,'Nikosh','NikoshBAN','SolaimanLipi','Kalpurush','Noto Sans Bengali','Vrinda',serif";
 
 /** Only http(s) links become buttons; anything else (javascript:, data:, ...) is dropped. */
 function safeUrl(url: string): string | null {

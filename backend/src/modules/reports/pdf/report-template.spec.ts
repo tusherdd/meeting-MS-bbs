@@ -48,10 +48,14 @@ describe('report PDF template', () => {
     const out = html();
     expect(out).toContain(REPORT_TITLE_BN);
     expect(out).toContain('১২'); // 12 in Bangla digits
-    // Nikosh (owner decision 2026-11-14), embedded from backend/assets/fonts/Nikosh.ttf.
-    expect(out).toContain("@font-face{font-family:'Nikosh'");
-    expect(out).toContain('src:url(data:font/ttf;base64,');
-    expect(out).toContain("font-family: 'Nikosh', sans-serif");
+    // Owner decisions 2026-11-14: Bangla in Nikosh, English in Tinos, both embedded from
+    // backend/assets/fonts with the same unicode-range split as the web pages.
+    expect(out).toContain("@font-face{font-family:'Nikosh';font-weight:400");
+    expect(out).toContain('unicode-range:U+0980-09FF,U+0964-0965,U+200C-200D');
+    expect(out).toContain("@font-face{font-family:'Tinos';font-weight:400");
+    expect(out).toContain("@font-face{font-family:'Tinos';font-weight:700");
+    expect(out.match(/src:url\(data:font\/ttf;base64,/g)).toHaveLength(3);
+    expect(out).toContain("font-family: 'Nikosh', 'Tinos', serif");
     expect(out).not.toContain('Noto');
     expect(out).toContain('counter(page, bengali)');
     expect(out).not.toMatch(/https?:\/\//); // nothing to fetch from the internet

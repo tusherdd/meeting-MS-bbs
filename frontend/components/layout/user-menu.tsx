@@ -2,11 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Avatar } from "@/components/ui/avatar";
 import { profileApi, queryKeys } from "@/lib/endpoints";
 import { useCallback, useRef, useState } from "react";
 import { t } from "@/messages";
 import { useAuth } from "@/providers/auth-provider";
+import { PersonIcon } from "./header-icons";
 import { useDismiss } from "./use-dismiss";
 
 export function UserMenu({ minimal = false }: { minimal?: boolean }) {
@@ -27,6 +27,8 @@ export function UserMenu({ minimal = false }: { minimal?: boolean }) {
 
   if (!user) return null;
   const subtitle = user.designation?.nameBn ?? t.roles[user.role];
+  const photoPath = profile.data?.photoPath;
+  const photo = photoPath ? `/uploads/${photoPath.replace(/^\/+/, "")}` : null;
 
   async function onLogout() {
     setLeaving(true);
@@ -35,24 +37,31 @@ export function UserMenu({ minimal = false }: { minimal?: boolean }) {
 
   return (
     <div ref={boxRef} className="relative">
+      {/* Round profile icon: the photo when there is one, else the person icon. */}
       <button
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="true"
-        className="flex max-w-[12rem] items-center gap-2 rounded-lg border border-slate-300 px-2 py-1 text-sm font-medium text-slate-800 hover:bg-slate-100 sm:max-w-[16rem]"
+        aria-label={user.nameBn}
+        title={user.nameBn}
+        className="flex size-10 items-center justify-center overflow-hidden rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900"
         data-testid="user-menu-button"
       >
-        <Avatar photoPath={profile.data?.photoPath} size="sm" />
-        <span className="truncate px-1">{user.nameBn}</span>
+        {photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photo} alt="" className="size-full object-cover" />
+        ) : (
+          <PersonIcon />
+        )}
       </button>
 
       {open && (
         <div className="absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
-          <div className="border-b border-slate-100 px-4 py-2.5">
+          <div className="border-b border-slate-100 px-4 py-2.5" data-testid="user-menu-header">
             <p className="truncate text-sm font-medium">{user.nameBn}</p>
-            <p className="truncate text-xs text-slate-500">{subtitle}</p>
+            <p className="truncate text-xs text-slate-600">{subtitle}</p>
           </div>
           <p className="truncate px-4 pt-2 text-xs text-slate-500">{user.loginEmail}</p>
           <ul className="py-1">
@@ -64,6 +73,17 @@ export function UserMenu({ minimal = false }: { minimal?: boolean }) {
                   className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                 >
                   {t.nav.profile}
+                </Link>
+              </li>
+            )}
+            {!minimal && (
+              <li>
+                <Link
+                  href="/change-password"
+                  onClick={close}
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  {t.auth.changeTitle}
                 </Link>
               </li>
             )}

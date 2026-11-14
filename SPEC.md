@@ -43,7 +43,7 @@ There is no separate database project: TypeORM entities, migrations and seeds ar
 | Mail | Nodemailer over SMTP (settings in `.env`), sent through a DB outbox |
 | Scheduling | `@nestjs/schedule` (outbox worker every minute, daily outbox cleanup, meeting auto-complete every 15 min); off when `SCHEDULER_ENABLED=false` |
 | Tests | Jest unit tests (mocks) + e2e tests on a separate database `DB_NAME_TEST` (`backend/.env.test`) |
-| PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly; the Bangla font **Nikosh** is embedded from `backend/assets/fonts/Nikosh.ttf` (no internet fonts, §13.10) |
+| PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly; fonts embedded from `backend/assets/fonts/`: **Nikosh** for Bangla, **Tinos** for English (no internet fonts, §13.10) |
 | Frontend | Next.js (App Router), TypeScript, Tailwind CSS |
 | Timezone | Store `timestamptz` (UTC). Display and compute "today/week/month" in `Asia/Dhaka`. |
 
@@ -503,7 +503,7 @@ readiness (accessibility, error pages, CSP, standalone build, deployment guide).
 Next.js 16 (App Router), React 19, TypeScript strict, Tailwind CSS 4, ESLint, npm.
 Server data: `@tanstack/react-query`. Forms: `react-hook-form` + `zod` (rules mirror the backend DTOs).
 Dates: `date-fns` + `date-fns-tz`, always shown in Asia/Dhaka. Font: **Nikosh** for Bangla (`next/font/local`,
-self-hosted from `app/fonts/Nikosh.ttf`, §13.10); a system sans-serif for Latin text. No UI kit: small own components in `components/ui`. e2e tests: Playwright.
+self-hosted from `app/fonts/Nikosh.ttf`); **Times New Roman** from the user's computer for English (§13.10). No UI kit: small own components in `components/ui`. e2e tests: Playwright.
 
 ### 13.2 Folder structure
 ```
@@ -567,11 +567,20 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
 - Modals are native `<dialog>` elements (focus stays inside, Escape closes, focus returns to the opener);
   every dangerous action asks for confirmation. Toasts, the conflict panel, the report range and the offline
   message are `aria-live`. Text and badge colours keep a contrast of at least 4.5:1.
-- **No icons in the UI; use short Bangla text labels instead** (owner decision 2026-11-09): no SVG icons, icon
-  components or libraries, no emoji or symbols used as icons, no icon-only buttons. Examples: "নোটিফিকেশন (৩)",
-  "মেনু", "বন্ধ করুন", "আগের" / "পরের", the user's name as the user-menu button, status and conflicts as coloured
-  text badges, the protected SUPER_ADMIN as the text badge "সুরক্ষিত". The browser-tab favicon stays; charts are
-  allowed.
+- **No icons in the UI, except two in the top header: the notification bell and the profile icon** (owner
+  decisions 2026-11-09 and 2026-11-14). Everything else stays text-only: no other SVG icons, no icon components or
+  libraries, no emoji or symbols used as icons, no other icon-only buttons. Examples: "মেনু", "বন্ধ করুন",
+  "আগের" / "পরের", status and conflicts as coloured text badges, the protected SUPER_ADMIN as the text badge
+  "সুরক্ষিত". The browser-tab favicon stays; charts are allowed.
+  - The two icons are small inline SVG components written in the project (`components/layout/header-icons.tsx`):
+    no icon library, no external request, 24 px, coloured with `currentColor`, inside round 40 px buttons with
+    the normal visible keyboard focus; they also fit at phone width.
+  - **Bell:** unread count as a small red badge (Bangla digits, hidden when 0, "৯+" above 9); `aria-label`
+    "নোটিফিকেশন, ৩টি অপঠিত" (just "নোটিফিকেশন" when 0), tooltip "নোটিফিকেশন"; opens the notification dropdown.
+  - **Profile:** the user's photo when there is one, otherwise a person icon; `aria-label` and tooltip = the
+    user's name; opens the menu with the name and designation on top, then প্রোফাইল, পাসওয়ার্ড পরিবর্তন, লগআউট.
+  - The Playwright "no icons" test allows exactly these two (`data-header-icon`, inside their header buttons)
+    and fails for any other icon or `<svg>`.
 - Every data view has loading, empty and error states; errors show the backend message and the `requestId`.
 
 ### 13.6 Meeting form and live conflict check (F2)
@@ -623,27 +632,38 @@ Real browser against the real backend (`MAIL_DRY_RUN=true`), only with test acco
 (created by the setup through the admin API; one of them, `e2e-admin@example.com`, is an ADMIN). Suites: auth
 (incl. session expiry), dashboard, meetings and conflicts, reports + PDF download, profile + photo upload,
 admin (create officer → login with the default password, SUPER_ADMIN protection, designation change request
-approved, officers get 404), accessibility (labels, modal keyboard handling, offline message, 404) and "no
+approved, officers get 404), accessibility (labels, modal keyboard handling, offline message, 404), the two header icons (badge, menus) and "no
 icons" on every page including the admin panel.
 
-### 13.10 Font: Nikosh everywhere (owner decision 2026-11-14)
-Nikosh, the Bangladesh government's standard Bangla font, replaces Hind Siliguri (web) and Noto Sans Bengali (PDF).
+### 13.10 Fonts: Bangla in Nikosh, English in Times New Roman (owner decisions 2026-11-14)
+Nikosh, the Bangladesh government's standard Bangla font, replaces Hind Siliguri (web) and Noto Sans Bengali
+(PDF). English text (Latin letters and ASCII digits) is shown in Times New Roman.
 
-- **Files (must be deployed with the app):** `frontend/app/fonts/Nikosh.ttf` and `backend/assets/fonts/Nikosh.ttf`
-  (the same file), each with `LICENSE-Nikosh.txt`. Licence: CC BY-NC-ND 3.0 (Bangladesh Election Commission).
-  - The original 2008 file is rejected by browsers (its `name` table is larger than the format allows:
-    "OTS parsing error"). The committed file has **only its `name` table rewritten** by
-    `backend/scripts/repair-nikosh-name-table.ts`; glyphs and layout tables are byte-identical. The full licence
-    text moved from the name table to `LICENSE-Nikosh.txt`.
-- **Web:** `app/layout.tsx` loads it with `next/font/local` (served from this origin, so `font-src 'self'` in the
-  CSP is enough; no external font request).
-  - `unicode-range` limits it to Bangla characters; Latin text (emails, English names) uses the sans-serif stack
-    `"Segoe UI", Roboto, "Helvetica Neue", Arial, …` from `globals.css`.
-  - Nikosh draws smaller than other Bangla fonts: `size-adjust: 135%` enlarges only its glyphs (Latin text and
+| Font | Used for | Where it comes from | Licence |
+|---|---|---|---|
+| Nikosh | Bangla, everywhere | `frontend/app/fonts/Nikosh.ttf` and `backend/assets/fonts/Nikosh.ttf` (same file), each with `LICENSE-Nikosh.txt` | CC BY-NC-ND 3.0 (Bangladesh Election Commission) |
+| Times New Roman | English on web pages and in mails | **the user's computer** (a licensed Microsoft font: never bundled) | — |
+| Tinos (Regular, Bold) | English in PDF reports (the server has no Times New Roman); metric-compatible with it | `backend/assets/fonts/Tinos-Regular.ttf`, `Tinos-Bold.ttf`, `LICENSE-Tinos.txt` | SIL OFL 1.1 (version 1.340; older releases were Apache 2.0) |
+
+The files under `frontend/app/fonts/` and `backend/assets/fonts/` **must be deployed with the app**.
+
+- **Nikosh file:** the original 2008 file is rejected by browsers (its `name` table is larger than the format
+  allows: "OTS parsing error"). The committed file has **only its `name` table rewritten** by
+  `backend/scripts/repair-nikosh-name-table.ts`; glyphs and layout tables are byte-identical. The full licence
+  text moved from the name table to `LICENSE-Nikosh.txt`.
+- **Web:** `app/layout.tsx` loads Nikosh with `next/font/local` (served from this origin, so `font-src 'self'` in
+  the CSP is enough; no external font request).
+  - `unicode-range: U+0980-09FF, U+0964-0965, U+200C-200D` (the Bengali block incl. ৳, danda / double danda,
+    zero-width joiners): Latin letters and digits are **not** taken from Nikosh.
+  - Font stack (`globals.css`): Nikosh, "Times New Roman", Times, "Liberation Serif", Tinos, serif. On a computer
+    without Times New Roman the next installed one is used.
+  - Nikosh draws smaller than other fonts: `size-adjust: 135%` enlarges only its glyphs (English text and
     rem-based spacing are unchanged), and the line heights of the text sizes are raised (1.45–1.65).
-  - Nikosh has one weight (400). Headings use the browser's synthesised bold.
-- **PDF reports:** `report-template.ts` embeds the file as a base64 `data:` URL (whole text in Nikosh, base size
-  12 pt). `nest build` copies `assets/fonts` to `dist/assets/fonts` (`nest-cli.json`); in development the file is
-  read from `backend/assets/fonts`. Characters Nikosh lacks (for example "—") come from the server's default sans-serif.
-- **Mail:** mail clients only use installed fonts, so the template's `font-family` starts with
-  `'Nikosh','NikoshBAN'`, then SolaimanLipi, Kalpurush, Noto Sans Bengali, Vrinda, Arial, sans-serif.
+  - Nikosh has one weight (400). Bangla headings use the browser's synthesised bold.
+- **PDF reports:** `report-template.ts` embeds Nikosh (same `unicode-range`, `size-adjust: 112%`) and Tinos
+  regular + bold as base64 `data:` URLs; base size 11 pt; nothing is fetched. `nest build` copies `assets/fonts`
+  to `dist/assets/fonts` (`nest-cli.json`); in development the files are read from `backend/assets/fonts`.
+- **Mail:** mail clients only use installed fonts and know no `unicode-range`. The template's `font-family` is
+  `'Times New Roman',Times,'Nikosh','NikoshBAN','SolaimanLipi','Kalpurush','Noto Sans Bengali','Vrinda',serif`:
+  Times comes first because it has no Bangla characters, so English is drawn in Times and Bangla falls through
+  to Nikosh (with Nikosh first, English would use Nikosh's own Latin letters).

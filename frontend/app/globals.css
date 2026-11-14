@@ -3,12 +3,12 @@
 /* BBS green (Bangladesh flag green #006a4e) as the accent; neutral slate for everything else. */
 @theme {
   /*
-   * Nikosh for Bangla (app/layout.tsx: only Bangla characters, enlarged with size-adjust);
-   * a named sans-serif for Latin text (emails, English names) and as the fallback.
+   * Bangla in Nikosh (app/layout.tsx: only Bangla characters, enlarged with size-adjust);
+   * English in Times New Roman from the user's computer (not bundled: a licensed Microsoft font),
+   * then metric-compatible free fonts (Liberation Serif, Tinos) and any serif.
+   * The variable keeps Tailwind's name "sans" so every component uses it without changes.
    */
-  --font-sans:
-    var(--font-nikosh), "Segoe UI", Roboto, "Helvetica Neue", Arial, "Liberation Sans", system-ui,
-    sans-serif;
+  --font-sans: var(--font-nikosh), "Times New Roman", Times, "Liberation Serif", Tinos, serif;
 
   /*
    * Line heights: Bangla needs more room above and below the line than Latin (matras, reph,

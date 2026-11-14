@@ -6,13 +6,15 @@ import { t } from "@/messages";
 import "./globals.css";
 
 /**
- * Nikosh: the Bangladesh government's standard Bangla font (owner decision 2026-11-14, SPEC.md §13.5).
- * Self-hosted from app/fonts/Nikosh.ttf, so no font request ever leaves this origin (CSP font-src 'self').
- * - Only Bangla characters use it (unicode-range); Latin text (emails, English names) falls to the
- *   system sans-serif in --font-sans.
+ * Fonts (owner decisions 2026-11-14, SPEC.md §13.10): Bangla in Nikosh, English in Times New Roman.
+ * - Nikosh is the Bangladesh government's standard Bangla font, self-hosted from
+ *   app/fonts/Nikosh.ttf (no font request leaves this origin; CSP font-src 'self').
+ * - unicode-range limits it to Bangla characters (the block includes ৳), danda / double danda and
+ *   the zero-width (non-)joiner. Latin letters and digits are NOT taken from Nikosh: they come from
+ *   the next fonts in --font-sans (Times New Roman from the user's computer; it is not bundled).
  * - Nikosh has one weight. It is declared as 400, so the browser synthesises bold for headings.
- * - Nikosh draws smaller than other Bangla fonts at the same size: size-adjust enlarges only its
- *   glyphs, so Latin text and all rem-based spacing stay as they are.
+ * - Nikosh draws smaller than other fonts at the same size: size-adjust enlarges only its glyphs,
+ *   so English text and all rem-based spacing stay as they are.
  */
 const nikosh = localFont({
   src: "./fonts/Nikosh.ttf",
@@ -22,8 +24,7 @@ const nikosh = localFont({
   display: "swap",
   adjustFontFallback: false,
   declarations: [
-    // Bengali block, danda / double danda, zero-width (non-)joiner, dotted circle.
-    { prop: "unicode-range", value: "U+0980-09FF, U+0964-0965, U+200C-200D, U+25CC" },
+    { prop: "unicode-range", value: "U+0980-09FF, U+0964-0965, U+200C-200D" },
     { prop: "size-adjust", value: "135%" },
   ],
 });

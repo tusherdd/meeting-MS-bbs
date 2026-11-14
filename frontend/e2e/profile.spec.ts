@@ -61,7 +61,9 @@ test("profile: edit with Bangla digits, charges list, photo upload and remove", 
     await expect(
       page.getByTestId("user-menu-button").locator("img[src^='/uploads/']"),
     ).toBeVisible();
-    await expect(page.getByTestId("user-menu-button")).toContainText(OFFICERS.officer.nameBn);
+    await expect(page.getByTestId("user-menu-button")).toHaveAccessibleName(
+      OFFICERS.officer.nameBn,
+    );
 
     // Remove it again (with a confirmation).
     await page.getByRole("button", { name: "ছবি সরান" }).click();

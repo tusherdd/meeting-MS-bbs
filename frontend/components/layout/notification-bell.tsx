@@ -11,13 +11,15 @@ import { formatDateTime, formatNumber } from "@/lib/format";
 import { notificationsApi, queryKeys } from "@/lib/endpoints";
 import type { AppNotification } from "@/lib/types";
 import { t } from "@/messages";
+import { BellIcon } from "./header-icons";
 import { useDismiss } from "./use-dismiss";
 
 const UNREAD_POLL_MS = 60_000;
 
 /**
- * "নোটিফিকেশন (৩)" text button with the unread count (GET /notifications/unread-count every 60 s and when the window
- * gets focus). The dropdown loads the latest 10 only when it is opened.
+ * Bell icon with a red unread badge: one of the two header icons (SPEC.md §13.5). The count comes
+ * from GET /notifications/unread-count (every 60 s and when the window gets focus). The dropdown
+ * loads the latest 10 only when it is opened.
  */
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -65,12 +67,24 @@ export function NotificationBell() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="true"
-        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+        aria-label={
+          count > 0 ? t.header.notificationsLabel(formatNumber(count)) : t.header.notifications
+        }
+        title={t.header.notifications}
+        className="relative flex size-10 items-center justify-center rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900"
         data-testid="notifications-button"
       >
-        {count > 0
-          ? t.header.notificationsWithCount(count > 99 ? "৯৯+" : formatNumber(count))
-          : t.header.notifications}
+        <BellIcon />
+        {count > 0 && (
+          // Unread count: Bangla digits, "৯+" above 9, hidden when 0 (the aria-label has the number).
+          <span
+            aria-hidden="true"
+            data-testid="notifications-badge"
+            className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] leading-none font-semibold text-white ring-2 ring-white"
+          >
+            {count > 9 ? t.header.badgeMax : formatNumber(count)}
+          </span>
+        )}
       </button>
 
       {open && (
