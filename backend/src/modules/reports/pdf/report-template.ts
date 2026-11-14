@@ -85,6 +85,27 @@ const e = (v: string | number | null | undefined) =>
   escapeHtml(v === null || v === undefined ? '—' : String(v));
 const num = (v: number) => escapeHtml(toBanglaDigits(v));
 
+/**
+ * Digit rule (SPEC.md §13.11): only numbers the SYSTEM generates (counts, totals, dates, times,
+ * page numbers) are shown in Bangla digits. Text typed by users (meeting title, room, names,
+ * designation remarks, wing and designation names) is printed exactly as typed: "v2.1" stays
+ * "v2.1".
+ * - a `number` cell is system-generated → Bangla digits;
+ * - `sys("2026-11-16")` marks system-generated text → Bangla digits;
+ * - a plain `string` cell is user text → unchanged.
+ */
+export interface SystemText {
+  readonly systemText: string;
+}
+export const sys = (text: string): SystemText => ({ systemText: text });
+export type Cell = string | number | SystemText;
+
+function cell(c: Cell): string {
+  if (typeof c === 'number') return num(c);
+  if (typeof c === 'string') return e(c);
+  return e(toBanglaDigits(c.systemText));
+}
+
 export interface ReportHeader {
   /** e.g. "মোঃ ফিরোজ সরকার — সচিব" or the office filters. */
   subjectLines: Array<[label: string, value: string]>;
@@ -94,22 +115,19 @@ export interface ReportHeader {
 
 export interface SummaryRow {
   label: string;
-  value: number | string;
+  value: Cell;
 }
 
 export interface ExtraTable {
   title: string;
   headers: string[];
-  rows: Array<Array<string | number>>;
+  rows: Cell[][];
 }
 
-function table(headers: string[], rows: Array<Array<string | number>>): string {
+function table(headers: string[], rows: Cell[][]): string {
   if (rows.length === 0) return '<p class="empty">কোনো তথ্য নেই।</p>';
   return `<table><thead><tr>${headers.map((h) => `<th>${e(h)}</th>`).join('')}</tr></thead><tbody>${rows
-    .map(
-      (r) =>
-        `<tr>${r.map((c) => `<td>${typeof c === 'number' ? num(c) : e(toBanglaDigits(c))}</td>`).join('')}</tr>`,
-    )
+    .map((r) => `<tr>${r.map((c) => `<td>${cell(c)}</td>`).join('')}</tr>`)
     .join('')}</tbody></table>`;
 }
 
@@ -121,8 +139,9 @@ export function statusRows(byStatus: StatusCounts): SummaryRow[] {
   ];
 }
 
-export function dayRows(days: DayCount[]): Array<Array<string | number>> {
-  return days.map((d) => [d.date, d.meetings, d.hours]);
+export function dayRows(days: DayCount[]): Cell[][] {
+  // The date is system-generated ("2026-11-16") → Bangla digits.
+  return days.map((d) => [sys(d.date), d.meetings, d.hours]);
 }
 
 export function renderReportHtml(input: {
@@ -135,8 +154,9 @@ export function renderReportHtml(input: {
   totalMeetings: number;
 }): string {
   const { header } = input;
-  const meetingRows = input.meetings.map((m) => [
-    formatDhakaRange(m.startAt, m.endAt),
+  const meetingRows: Cell[][] = input.meetings.map((m) => [
+    // System-generated time range (already Bangla); title, room and names are user text.
+    sys(formatDhakaRange(m.startAt, m.endAt)),
     m.title,
     m.room ?? '—',
     `${m.organizerNameBn}${m.organizerDesignationBn ? ` (${m.organizerDesignationBn})` : ''}`,
@@ -190,7 +210,7 @@ th { background: #eef6f2; font-weight: 700; }
 
 <h2>সারসংক্ষেপ</h2>
 <table class="summary"><tbody>
-  ${input.summary.map((r) => `<tr><td>${e(r.label)}</td><td>${typeof r.value === 'number' ? num(r.value) : e(toBanglaDigits(r.value))}</td></tr>`).join('')}
+  ${input.summary.map((r) => `<tr><td>${e(r.label)}</td><td>${cell(r.value)}</td></tr>`).join('')}
 </tbody></table>
 
 ${input.extraTables.map((t) => `<h2>${e(t.title)}</h2>${table(t.headers, t.rows)}`).join('\n')}

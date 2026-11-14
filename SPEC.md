@@ -667,3 +667,20 @@ The files under `frontend/app/fonts/` and `backend/assets/fonts/` **must be depl
   `'Times New Roman',Times,'Nikosh','NikoshBAN','SolaimanLipi','Kalpurush','Noto Sans Bengali','Vrinda',serif`:
   Times comes first because it has no Bangla characters, so English is drawn in Times and Bangla falls through
   to Nikosh (with Nikosh first, English would use Nikosh's own Latin letters).
+
+### 13.11 Digits: Bangla for system numbers, user text as typed (owner decision 2026-11-14)
+- **Numbers the system generates** are shown in Bangla digits: dates, times, counts, totals, durations, page
+  numbers, priorities, pagination ("পাতা ২ / ৫"), the unread badge.
+- **Text entered by users is shown exactly as typed**, digits included: meeting title, room, agenda, notes,
+  cancel reason, names, designation remarks, designation and wing names, additional charges, review notes. A
+  title "Review v2.1 (Room 501)" stays "Review v2.1 (Room 501)" on every page, in the PDF reports and in mails.
+- Stored values are never changed for display purposes. Only input that the backend defines as a number is
+  normalised on save (mobile numbers and priorities accept Bangla digits and are stored in ASCII digits, §6.2).
+- Where it is implemented:
+  - frontend: only `lib/format.ts` produces Bangla digits (`formatNumber`, the date and time helpers); user
+    text is rendered without any conversion;
+  - PDF: `report-template.ts` cells are typed: a `number` or `sys("…")` (system text such as a date) gets Bangla
+    digits, a plain string is user text and is printed unchanged;
+  - mail and bell notifications: dates come from `meeting-format.ts` (Bangla locale); titles and other user text
+    are inserted unchanged.
+- Tests: `report-template.spec.ts`, `mail-templates.spec.ts`, `frontend/e2e/digits.spec.ts`.

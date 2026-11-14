@@ -31,6 +31,23 @@ describe('mail rendering', () => {
     expect(html).not.toMatch(/@font-face|url\(/); // mail clients get no web font
   });
 
+  // SPEC.md §13.11: text typed by users is never converted to Bangla digits.
+  it('keeps digits in user text (meeting title, room) exactly as typed', () => {
+    const mail = genericNotificationMail({
+      nameBn: 'রহিম',
+      title: 'সভার আমন্ত্রণ: Review v2.1',
+      body: 'সভা: Review v2.1\nকক্ষ: Conference Room 501\nসময়: ১ ডিসেম্বর ২০২৬, সকাল ১০:০০',
+      link: null,
+    });
+    for (const part of [mail.subject, mail.html, mail.text]) {
+      expect(part).toContain('Review v2.1');
+      expect(part).not.toContain('v২.১');
+    }
+    expect(mail.html).toContain('Conference Room 501');
+    expect(mail.text).toContain('Conference Room 501');
+    expect(mail.html).toContain('১ ডিসেম্বর ২০২৬'); // the system-made date stays Bangla
+  });
+
   it('HTML-escapes all user-provided text', () => {
     const evil = '<script>alert("x")</script> & <b>';
     const mail = changeRequestDecisionMail({
