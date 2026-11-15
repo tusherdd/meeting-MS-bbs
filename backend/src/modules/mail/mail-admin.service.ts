@@ -73,9 +73,7 @@ export class MailAdminService {
         .getOne();
       if (!mail) throw new NotFoundException('মেইলটি পাওয়া যায়নি।');
       if (mail.status !== EmailStatus.FAILED) {
-        throw new ConflictException(
-          'শুধু ব্যর্থ (FAILED) মেইল আবার পাঠানো যায়।',
-        );
+        throw new ConflictException('শুধু Failed Email আবার পাঠানো যায়।');
       }
       await repo.update(id, {
         status: EmailStatus.PENDING,

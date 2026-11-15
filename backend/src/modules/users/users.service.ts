@@ -495,7 +495,7 @@ export class UsersService {
         type: created
           ? NotificationType.ACCOUNT_CREATED
           : NotificationType.PASSWORD_RESET_BY_ADMIN,
-        title: created ? 'অ্যাকাউন্ট তৈরি হয়েছে' : 'Password রিসেট',
+        title: created ? 'অ্যাকাউন্ট তৈরি হয়েছে' : 'Password Reset',
         body: `${DEFAULT_PASSWORD_HINT_BN} দিয়ে Login করুন।`,
         email: (r) =>
           (created ? accountCreatedMail : adminResetNoticeMail)({

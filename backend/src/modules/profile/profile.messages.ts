@@ -11,8 +11,8 @@ export const PROFILE_MESSAGES = {
   fieldRequired: (field: string) => `${field} খালি রাখা যাবে না।`,
   sameNotificationEmail: 'এটিই আপনার বর্তমান Notification Email।',
   notificationEmailRequested:
-    'নতুন ঠিকানায় একটি যাচাই লিংক পাঠানো হয়েছে। লিংকে ক্লিক না করা পর্যন্ত আগের ঠিকানাতেই Email যাবে।',
+    'নতুন ঠিকানায় একটি যাচাই Link পাঠানো হয়েছে। Link-এ ক্লিক না করা পর্যন্ত আগের ঠিকানাতেই Email যাবে।',
   notificationEmailVerified: 'Notification Email সফলভাবে পরিবর্তন করা হয়েছে।',
   invalidVerifyToken:
-    'যাচাই লিংকটি অবৈধ, ইতিমধ্যে ব্যবহৃত অথবা মেয়াদোত্তীর্ণ।',
+    'যাচাই Link-টি অবৈধ, ইতিমধ্যে ব্যবহৃত অথবা মেয়াদোত্তীর্ণ।',
 } as const;

@@ -16,7 +16,7 @@ export type MeetingDetail = S["MeetingDetailDto"];
 
 /** Exact text the backend returns for every failed login (auth.messages.ts). */
 export const INVALID_LOGIN_MESSAGE =
-  'Email অথবা Password সঠিক নয়। Password মনে না থাকলে "Password ভুলে গেছেন?" ব্যবহার করে Email-এ রিসেট লিংক নিন।';
+  'Email অথবা Password সঠিক নয়। Password মনে না থাকলে "Password ভুলে গেছেন?" ব্যবহার করে Email-এ Reset Link নিন।';
 
 export async function fillLogin(page: Page, loginEmail: string, password: string) {
   await page.getByLabel("Login Email").fill(loginEmail);
@@ -110,7 +110,7 @@ export function nameOf(key: OfficerKey): string {
 
 /** In the meeting form: search the directory and add one person. */
 export async function addParticipant(page: Page, key: OfficerKey) {
-  await page.getByLabel("Search (নাম দিয়ে)").fill(nameOf(key));
+  await page.getByLabel("নাম দিয়ে Search করুন").fill(nameOf(key));
   // The visible "যোগ করুন" button in the result row of that person.
   await page
     .getByTestId("people-results")

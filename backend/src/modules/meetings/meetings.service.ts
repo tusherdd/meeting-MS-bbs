@@ -877,7 +877,7 @@ export class MeetingsService {
     }
     if ((after.onlineLink ?? null) !== (before.onlineLink ?? null)) {
       changes.push({
-        label: 'অনলাইন লিংক',
+        label: 'Online Link',
         before: before.onlineLink ?? '—',
         after: after.onlineLink ?? '—',
       });

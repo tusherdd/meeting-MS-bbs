@@ -18,7 +18,7 @@ export class EmailOutboxItemDto {
   @ApiProperty({ example: 'rahim@bbs.gov.bd' })
   to!: string;
 
-  @ApiProperty({ example: 'Password রিসেট' })
+  @ApiProperty({ example: 'Password Reset' })
   subject!: string;
 
   @ApiProperty({ enum: EmailStatus })

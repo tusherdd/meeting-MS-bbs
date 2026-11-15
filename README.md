@@ -289,7 +289,7 @@ Copy the backup folder to a second machine regularly.
 2. The app requires a new password first (only the super admin is forced to change it).
 3. Under **Admin**, check designations and wings, then promote one or two officers to ADMIN.
 4. Tell the officers the default password through the office (never by mail). Admins can see who still
-   uses it: **ব্যবহারকারী → Default Password: Default Password-এ আছেন**.
+   uses it: **কর্মকর্তা → Default Password: Default Password-এ আছেন**.
 
 ### 4.10 Update to a new version (checklist)
 

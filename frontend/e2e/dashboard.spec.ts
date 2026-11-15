@@ -39,8 +39,8 @@ test("dashboard lists today's meeting created through the API", async ({ browser
 
     // Phone width: the sidebar becomes a menu button with a drawer.
     await page.setViewportSize({ width: 390, height: 800 });
-    await page.getByRole("button", { name: "মেনু", exact: true }).click();
-    const drawer = page.getByRole("dialog", { name: "মেনু" });
+    await page.getByRole("button", { name: "Menu", exact: true }).click();
+    const drawer = page.getByRole("dialog", { name: "Menu" });
     await drawer.getByRole("link", { name: "সংঘাত" }).click();
     await expect(page).toHaveURL(/\/conflicts$/);
   } finally {

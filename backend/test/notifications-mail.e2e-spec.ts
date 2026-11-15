@@ -400,7 +400,7 @@ describe('Notifications, mail worker, email outbox (e2e)', () => {
         .set(as('admin'))
         .expect(409);
       expect((res.body as { message: string }).message).toBe(
-        'শুধু ব্যর্থ (FAILED) মেইল আবার পাঠানো যায়।',
+        'শুধু Failed Email আবার পাঠানো যায়।',
       );
       await http()
         .post(

@@ -175,7 +175,7 @@ export class DirectoryEntryDto {
 export class UserMessageResponseDto {
   @ApiProperty({
     example:
-      'অস্থায়ী Password তৈরি করে ব্যবহারকারীর Notification Email-এ পাঠানো হয়েছে। প্রথম Login-এ Password পরিবর্তন করতে হবে।',
+      'অস্থায়ী Password তৈরি করে কর্মকর্তার Notification Email-এ পাঠানো হয়েছে। প্রথম Login-এ Password পরিবর্তন করতে হবে।',
   })
   message!: string;
 }

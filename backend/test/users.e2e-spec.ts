@@ -636,7 +636,7 @@ describe('Users, designations, wings (e2e)', () => {
         .expect(200); // access token lives ≤ 15 min
 
       const mail = await latestMailTo(email('officer'));
-      expect(mail.subject).toContain('রিসেট');
+      expect(mail.subject).toContain('Reset');
       expect(mail.text).toContain('অফিস থেকে জানানো Default Password');
       expect(`${mail.html}${mail.text}`).not.toContain(DEFAULT_PASSWORD);
       expect(`${mail.html}${mail.text}`).not.toMatch(/token=/);
@@ -726,7 +726,7 @@ describe('Users, designations, wings (e2e)', () => {
         .delete(`${API}/designations/${designationId}`)
         .set(as('admin'))
         .expect(409);
-      expect(body(inUse).message).toMatch(/জন ব্যবহারকারীর সাথে যুক্ত/);
+      expect(body(inUse).message).toMatch(/জন কর্মকর্তার সাথে যুক্ত/);
 
       await http()
         .delete(`${API}/designations/${(created.body as { id: string }).id}`)

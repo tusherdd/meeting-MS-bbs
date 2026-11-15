@@ -45,7 +45,7 @@ export class ChangeNotificationEmailDto {
 export class VerifyNotificationEmailQueryDto {
   @ApiProperty({ description: 'Token from the verification link (?token=...)' })
   @IsString({ message: 'যাচাই টোকেন দিন।' })
-  @Length(20, 200, { message: 'যাচাই লিংকটি অবৈধ।' })
+  @Length(20, 200, { message: 'যাচাই Link-টি অবৈধ।' })
   token!: string;
 }
 

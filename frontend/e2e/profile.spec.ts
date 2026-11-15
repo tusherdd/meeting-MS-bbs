@@ -16,7 +16,7 @@ test("profile: edit with Bangla digits, charges list, photo upload and remove", 
     await expect(page.getByRole("heading", { name: "Profile", level: 1 })).toBeVisible();
 
     // Mobile in Bangla digits with +880 → stored as 01XXXXXXXXX.
-    await page.getByLabel("মোবাইল", { exact: true }).fill("+৮৮০ ১৭১১-০০০০০১");
+    await page.getByLabel("Mobile", { exact: true }).fill("+৮৮০ ১৭১১-০০০০০১");
     // Additional charges: an editable list.
     await page.getByRole("button", { name: "দায়িত্ব যোগ করুন" }).click();
     const charge = `ই২ই ফোকাল পয়েন্ট ${Date.now().toString(36)}`;
@@ -25,13 +25,13 @@ test("profile: edit with Bangla digits, charges list, photo upload and remove", 
     await expect(page.getByText("Profile হালনাগাদ হয়েছে।")).toBeVisible();
 
     await page.reload();
-    await expect(page.getByLabel("মোবাইল", { exact: true })).toHaveValue("01711000001");
+    await expect(page.getByLabel("Mobile", { exact: true })).toHaveValue("01711000001");
     await expect(page.getByLabel("অতিরিক্ত দায়িত্ব ১", { exact: true })).toHaveValue(charge);
 
     // A wrong mobile is caught before sending.
-    await page.getByLabel("মোবাইল", { exact: true }).fill("১২৩");
+    await page.getByLabel("Mobile", { exact: true }).fill("১২৩");
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText(/সঠিক মোবাইল নম্বর দিন/)).toBeVisible();
+    await expect(page.getByText(/সঠিক Mobile নম্বর দিন/)).toBeVisible();
     await page.getByRole("button", { name: "আগের অবস্থায় ফেরান" }).click();
 
     // Remove the charge again (keeps the test account clean).
@@ -50,12 +50,12 @@ test("profile: edit with Bangla digits, charges list, photo upload and remove", 
       buffer: Buffer.from("x"),
     });
     await expect(page.getByText("শুধু JPEG, PNG বা WebP ছবি দেওয়া যাবে।")).toBeVisible();
-    await expect(page.getByRole("button", { name: "ছবি Upload করুন" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Upload Photo" })).toBeDisabled();
 
     // A real PNG: preview, upload, then shown on the page and next to my name in the header.
     await fileInput.setInputFiles({ name: "me.png", mimeType: "image/png", buffer: PHOTO });
     await expect(page.getByRole("img", { name: "নতুন ছবির নমুনা" })).toBeVisible();
-    await page.getByRole("button", { name: "ছবি Upload করুন" }).click();
+    await page.getByRole("button", { name: "Upload Photo" }).click();
     await expect(page.getByText("ছবি Upload হয়েছে।")).toBeVisible();
     await expect(page.getByTestId("profile-photo")).toHaveAttribute("src", /^\/uploads\/.+\.webp$/);
     await expect(
@@ -94,14 +94,17 @@ test("profile: notification email pending, change request created and cancelled"
     await page.goto("/profile");
     const newAddress = `e2e-officer+${Date.now().toString(36)}@example.com`;
     await page.getByLabel("নতুন Notification Email").fill(newAddress);
-    await page.getByRole("button", { name: "যাচাই লিংক পাঠান" }).click();
+    await page.getByRole("button", { name: "Send Verification Link" }).click();
     await expect(page.getByText(`যাচাইয়ের অপেক্ষায়: ${newAddress}`)).toBeVisible();
     await expect(page.getByTestId("notification-email")).toHaveText(OFFICERS.officer.loginEmail);
 
     // Login email change request → in the history as "Pending" → cancel it.
     const requested = `e2e-officer-new-${Date.now().toString(36)}@example.com`;
     await page.getByLabel("নতুন Login Email").fill(requested);
-    await page.getByRole("button", { name: "Login Email-এর Change Request পাঠান" }).click();
+    await page
+      .getByTestId("request-login-email-form")
+      .getByRole("button", { name: "Send Request" })
+      .click();
     const item = page
       .getByTestId("request-history")
       .getByRole("listitem")
@@ -114,12 +117,12 @@ test("profile: notification email pending, change request created and cancelled"
       page.getByLabel("নতুন পদবি").locator("option", { hasText: "(অগ্রাধিকার ২)" }),
     ).toHaveCount(1);
 
-    await item.getByRole("button", { name: "Change Request বাতিল করুন" }).click();
+    await item.getByRole("button", { name: "Cancel Request" }).click();
     await page
       .getByRole("dialog", { name: "অনুরোধ বাতিল করবেন?" })
-      .getByRole("button", { name: "হ্যাঁ, বাতিল করুন" })
+      .getByRole("button", { name: "Cancel Request" })
       .click();
-    await expect(item).toContainText("বাতিল");
+    await expect(item).toContainText("Cancelled");
     await expect(page.getByLabel("নতুন Login Email")).toBeEnabled();
 
     // Voluntary password section is on the page.

@@ -258,7 +258,7 @@ describe('Profile, photo, notification email, change requests (e2e)', () => {
         .set(as('officer'))
         .send({ mobile: '12345' })
         .expect(400);
-      expect(msg(bad)).toContain('সঠিক মোবাইল নম্বর দিন (যেমন 01712345678)।');
+      expect(msg(bad)).toContain('সঠিক Mobile নম্বর দিন (যেমন 01712345678)।');
     });
 
     it('updates allowed fields, replaces additional charges, accepts only active wings', async () => {

@@ -47,7 +47,7 @@ test("officer cannot open the admin pages (404) and has no admin menu", async ({
       await expect(page.getByRole("heading", { name: "পাতাটি পাওয়া যায়নি" })).toBeVisible();
     }
     await page.goto("/dashboard");
-    await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "প্রধান Menu" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
   } finally {
     await page.context().close();
@@ -70,7 +70,7 @@ test("admin creates an officer, who logs in with the default password", async ({
     await admin
       .getByRole("combobox", { name: "পদবি", exact: true })
       .selectOption({ label: "পরিসংখ্যান কর্মকর্তা (অগ্রাধিকার ৭)" });
-    await admin.getByLabel("মোবাইল", { exact: true }).fill("০১৮১১০০০০০২");
+    await admin.getByLabel("Mobile", { exact: true }).fill("০১৮১১০০০০০২");
     await admin.getByRole("button", { name: "কর্মকর্তা তৈরি করুন" }).click();
 
     await expect(
@@ -93,12 +93,12 @@ test("admin creates an officer, who logs in with the default password", async ({
 
     // Clean up: deactivate (with a confirmation dialog).
     await admin.reload();
-    await admin.getByTestId("user-actions").getByRole("button", { name: "Inactive করুন" }).click();
-    const dialog = admin.getByRole("dialog", { name: "ব্যবহারকারী Inactive করবেন?" });
+    await admin.getByTestId("user-actions").getByRole("button", { name: "Deactivate" }).click();
+    const dialog = admin.getByRole("dialog", { name: "কর্মকর্তা Inactive করবেন?" });
     await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: "Inactive করুন" }).click();
+    await dialog.getByRole("button", { name: "Deactivate" }).click();
     await expect(
-      admin.getByTestId("user-actions").getByRole("button", { name: "Active করুন" }),
+      admin.getByTestId("user-actions").getByRole("button", { name: "Activate" }),
     ).toBeVisible();
   } finally {
     await admin.context().close();
@@ -135,11 +135,9 @@ test("admin cannot touch the SUPER_ADMIN, and cannot deactivate or demote themse
       admin.getByText("নিজের অ্যাকাউন্ট Inactive বা Admin পদ থেকে সরানো যায় না।"),
     ).toBeVisible();
     const actions = admin.getByTestId("user-actions");
-    await expect(actions.getByRole("button", { name: "Inactive করুন" })).toHaveCount(0);
-    await expect(actions.getByRole("button", { name: "Admin থেকে সরান" })).toHaveCount(0);
-    await expect(
-      actions.getByRole("button", { name: "Password Default-এ ফেরত নিন" }),
-    ).toBeVisible();
+    await expect(actions.getByRole("button", { name: "Deactivate" })).toHaveCount(0);
+    await expect(actions.getByRole("button", { name: "Remove Admin" })).toHaveCount(0);
+    await expect(actions.getByRole("button", { name: "Reset to Default Password" })).toBeVisible();
   } finally {
     await admin.context().close();
   }
@@ -165,7 +163,10 @@ test("designation change request: officer asks, admin approves; own request cann
     // The officer asks for a new designation on the profile page.
     await officer.goto("/profile");
     await officer.getByLabel("নতুন পদবি").selectOption(target.id);
-    await officer.getByRole("button", { name: "পদবির Change Request পাঠান" }).click();
+    await officer
+      .getByTestId("request-designation-form")
+      .getByRole("button", { name: "Send Request" })
+      .click();
     await expect(
       officer.getByTestId("request-history").getByRole("listitem").first(),
     ).toContainText("Pending");
@@ -185,9 +186,9 @@ test("designation change request: officer asks, admin approves; own request cann
     const row = table.getByRole("row").filter({ hasText: OFFICERS.so.nameBn });
     await expect(row).toContainText(original.nameBn); // current value
     await expect(row).toContainText(target.nameBn); // requested value
-    await row.getByRole("button", { name: /^অনুমোদন করুন/ }).click();
+    await row.getByRole("button", { name: /^Approve/ }).click();
     const dialog = admin.getByRole("dialog", { name: "অনুরোধ অনুমোদন করবেন?" });
-    await dialog.getByRole("button", { name: "অনুমোদন করুন" }).click();
+    await dialog.getByRole("button", { name: "Approve" }).click();
     await expect(admin.getByText("Change Request Approved হয়েছে।")).toBeVisible();
 
     await admin.getByRole("tab", { name: "Approved" }).click();

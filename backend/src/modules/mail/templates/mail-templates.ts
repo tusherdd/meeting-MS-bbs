@@ -50,10 +50,10 @@ export function adminResetNoticeMail(input: {
   loginEmail: string;
   loginUrl: string;
 }): MailContent {
-  return renderMail('আপনার Password রিসেট করা হয়েছে', input.nameBn, [
+  return renderMail('আপনার Password Reset করা হয়েছে', input.nameBn, [
     {
       kind: 'paragraph',
-      text: `একজন প্রশাসক আপনার অ্যাকাউন্টের Password রিসেট করেছেন। এখন ${DEFAULT_PASSWORD_HINT_BN} দিয়ে Login করুন। সব ডিভাইস থেকে আপনাকে Logout করা হয়েছে।`,
+      text: `একজন প্রশাসক আপনার অ্যাকাউন্টের Password Reset করেছেন। এখন ${DEFAULT_PASSWORD_HINT_BN} দিয়ে Login করুন। সব ডিভাইস থেকে আপনাকে Logout করা হয়েছে।`,
     },
     { kind: 'table', rows: [['Login Email', input.loginEmail]] },
     { kind: 'button', label: 'Login', url: input.loginUrl },
@@ -70,15 +70,15 @@ export function passwordResetMail(input: {
   link: string;
   validMinutes: number;
 }): MailContent {
-  return renderMail('Password রিসেট', input.nameBn, [
+  return renderMail('Password Reset', input.nameBn, [
     {
       kind: 'paragraph',
-      text: 'আপনার অ্যাকাউন্টের Password রিসেট করার অনুরোধ পাওয়া গেছে। নিচের বাটনে ক্লিক করে নতুন Password দিন:',
+      text: 'আপনার অ্যাকাউন্টের Password Reset করার অনুরোধ পাওয়া গেছে। নিচের বাটনে ক্লিক করে নতুন Password দিন:',
     },
-    { kind: 'button', label: 'Password রিসেট করুন', url: input.link },
+    { kind: 'button', label: 'Reset Password', url: input.link },
     {
       kind: 'note',
-      text: `লিংকটি ${input.validMinutes} মিনিট কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে। আপনি অনুরোধ না করে থাকলে এই Email উপেক্ষা করুন; আপনার Password বদলাবে না।`,
+      text: `Link-টি ${input.validMinutes} মিনিট কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে। আপনি অনুরোধ না করে থাকলে এই Email উপেক্ষা করুন; আপনার Password বদলাবে না।`,
     },
   ]);
 }
@@ -99,7 +99,7 @@ export function notificationEmailVerifyMail(input: {
     { kind: 'button', label: 'Email যাচাই করুন', url: input.link },
     {
       kind: 'note',
-      text: `লিংকটি ${input.validHours} ঘণ্টা কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে। আপনি অনুরোধ না করে থাকলে এই Email উপেক্ষা করুন।`,
+      text: `Link-টি ${input.validHours} ঘণ্টা কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে। আপনি অনুরোধ না করে থাকলে এই Email উপেক্ষা করুন।`,
     },
   ]);
 }

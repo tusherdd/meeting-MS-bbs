@@ -13,7 +13,7 @@ function outboxRow(overrides: Partial<EmailOutbox> = {}): EmailOutbox {
   return Object.assign(new EmailOutbox(), {
     id: 'm1',
     to: 'rahim.uddin@gmail.com',
-    subject: 'Password রিসেট',
+    subject: 'Password Reset',
     html: '<p>link with token</p>',
     text: 'link with token',
     status: EmailStatus.PENDING,
@@ -105,7 +105,7 @@ describe('MailWorkerService.processBatch', () => {
     ]);
     const logged = log.mock.calls.map((c) => String(c[0])).join('\n');
     expect(logged).toContain('ra***@gmail.com');
-    expect(logged).toContain('Password রিসেট');
+    expect(logged).toContain('Password Reset');
     expect(logged).not.toContain('rahim.uddin@gmail.com');
     expect(logged).not.toContain('token');
     log.mockRestore();
@@ -116,7 +116,7 @@ describe('MailWorkerService.processBatch', () => {
     await worker.processBatch(NOW);
     expect(send).toHaveBeenCalledWith({
       to: 'rahim.uddin@gmail.com',
-      subject: 'Password রিসেট',
+      subject: 'Password Reset',
       html: '<p>link with token</p>',
       text: 'link with token',
     });

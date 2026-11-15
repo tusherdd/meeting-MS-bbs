@@ -22,8 +22,8 @@ import { BD_MOBILE_PATTERN } from '../../../common/utils/phone';
 
 /** Digits with optional leading +, spaces and dashes (Bangla digits are converted first). */
 export const PHONE_PATTERN = /^\+?[0-9][0-9 -]{3,}[0-9]$/;
-const PHONE_MESSAGE = 'সঠিক ফোন নম্বর দিন (শুধু সংখ্যা, +, স্পেস বা -)।';
-const MOBILE_MESSAGE = 'সঠিক মোবাইল নম্বর দিন (যেমন 01712345678)।';
+const PHONE_MESSAGE = 'সঠিক Phone নম্বর দিন (শুধু সংখ্যা, +, স্পেস বা -)।';
+const MOBILE_MESSAGE = 'সঠিক Mobile নম্বর দিন (যেমন 01712345678)।';
 
 /** Trims each charge, drops empty ones and duplicates (order kept). Non-arrays untouched. */
 const trimCharges = ({ value }: { value: unknown }): unknown => {
@@ -122,7 +122,7 @@ export class CreateUserDto {
   @IsOptional()
   @Transform(normalizePhone)
   @Matches(PHONE_PATTERN, { message: PHONE_MESSAGE })
-  @MaxLength(50, { message: 'ফোন নম্বর খুব দীর্ঘ।' })
+  @MaxLength(50, { message: 'Phone নম্বর খুব দীর্ঘ।' })
   officePhone?: string | null;
 
   @ApiPropertyOptional({
@@ -133,7 +133,7 @@ export class CreateUserDto {
   @IsOptional()
   @Transform(normalizePhone)
   @Matches(PHONE_PATTERN, { message: PHONE_MESSAGE })
-  @MaxLength(50, { message: 'ফ্যাক্স নম্বর খুব দীর্ঘ।' })
+  @MaxLength(50, { message: 'Fax নম্বর খুব দীর্ঘ।' })
   fax?: string | null;
 
   @ApiPropertyOptional({

@@ -103,7 +103,7 @@ test("unknown page: Bangla 404 page", async ({ browser }) => {
     const res = await page.goto("/no-such-page");
     expect(res?.status()).toBe(404);
     await expect(page.getByRole("heading", { name: "পাতাটি পাওয়া যায়নি" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Dashboard-এ যান" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Go to Dashboard" })).toBeVisible();
   } finally {
     await page.context().close();
   }

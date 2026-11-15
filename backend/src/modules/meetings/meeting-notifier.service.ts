@@ -33,7 +33,7 @@ function detailLines(m: MeetingInfo): string[] {
   return [
     `সময়: ${formatDhakaRange(m.startAt, m.endAt)}`,
     ...(m.room ? [`স্থান: ${m.room}`] : []),
-    ...(m.onlineLink ? [`অনলাইন লিংক: ${m.onlineLink}`] : []),
+    ...(m.onlineLink ? [`Online Link: ${m.onlineLink}`] : []),
     organizerLine(m),
   ];
 }

@@ -6,8 +6,8 @@ export class ResetPasswordDto {
     example: 'q3Zr0Vx9mXbH1a2c3d4e5f6g7h8i9j0kLmNoPqRsTuV',
     description: 'Token from the reset link (?token=...)',
   })
-  @IsString({ message: 'রিসেট টোকেন দিন।' })
-  @Length(20, 200, { message: 'রিসেট লিংকটি অবৈধ।' })
+  @IsString({ message: 'Reset টোকেন দিন।' })
+  @Length(20, 200, { message: 'Reset Link-টি অবৈধ।' })
   token!: string;
 
   @ApiProperty({

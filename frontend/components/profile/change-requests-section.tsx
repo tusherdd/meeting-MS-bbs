@@ -90,6 +90,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
           {/* Login email */}
           <form
             noValidate
+            data-testid="request-login-email-form"
             className="space-y-3 rounded-lg border border-slate-200 p-4"
             onSubmit={emailForm.handleSubmit((v) =>
               create.mutate({ type: "LOGIN_EMAIL", loginEmail: v.loginEmail.trim().toLowerCase() }),
@@ -122,6 +123,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
           {/* Designation */}
           <form
             noValidate
+            data-testid="request-designation-form"
             className="space-y-3 rounded-lg border border-slate-200 p-4"
             onSubmit={(e) => {
               e.preventDefault();

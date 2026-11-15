@@ -6,7 +6,7 @@ test("reports: period selector, summary, chart and PDF download", async ({ brows
   const page = await pageAs(browser, "officer");
   try {
     await page.goto("/reports?period=month&date=2026-11-15");
-    await expect(page.getByRole("heading", { name: "রিপোর্ট", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Report", level: 1 })).toBeVisible();
 
     // Month range in Bangla, from the backend label.
     await expect(page.getByText("নভেম্বর ২০২৬", { exact: true })).toBeVisible();

@@ -86,9 +86,9 @@ export class CreateMeetingDto {
   @Transform(trimToNull)
   @IsUrl(
     { protocols: ['https'], require_protocol: true },
-    { message: 'অনলাইন লিংক https:// দিয়ে শুরু হওয়া সঠিক ঠিকানা হতে হবে।' },
+    { message: 'Online Link https:// দিয়ে শুরু হওয়া সঠিক ঠিকানা হতে হবে।' },
   )
-  @MaxLength(1000, { message: 'লিংক খুব দীর্ঘ।' })
+  @MaxLength(1000, { message: 'Link খুব দীর্ঘ।' })
   onlineLink?: string | null;
 
   @ApiPropertyOptional({

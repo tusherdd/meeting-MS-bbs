@@ -1,5 +1,5 @@
 export const USER_MESSAGES = {
-  notFound: 'ব্যবহারকারী পাওয়া যায়নি।',
+  notFound: 'কর্মকর্তা পাওয়া যায়নি।',
   duplicateLoginEmail: 'এই Login Email দিয়ে আগে থেকেই একটি অ্যাকাউন্ট আছে।',
   superAdminProtected:
     'Super Admin অ্যাকাউন্ট শুধু Super Admin নিজেই পরিবর্তন করতে পারেন।',
@@ -15,7 +15,7 @@ export const USER_MESSAGES = {
   wingInactive: 'নির্বাচিত উইংটি Inactive।',
   fieldRequired: (field: string) => `${field} খালি রাখা যাবে না।`,
   resetInactive:
-    'Inactive অ্যাকাউন্টের Password রিসেট করা যাবে না। আগে অ্যাকাউন্টটি Active করুন।',
+    'Inactive অ্যাকাউন্টের Password Reset করা যাবে না। আগে অ্যাকাউন্টটি Active করুন।',
   passwordResetDone:
-    'Password Default Password-এ রিসেট করা হয়েছে, সব সেশন বন্ধ করা হয়েছে এবং ব্যবহারকারীকে Email-এ জানানো হয়েছে।',
+    'Password Default Password-এ Reset করা হয়েছে, সব Session বন্ধ করা হয়েছে এবং কর্মকর্তাকে Email-এ জানানো হয়েছে।',
 } as const;

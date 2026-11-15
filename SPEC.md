@@ -569,7 +569,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   message are `aria-live`. Text and badge colours keep a contrast of at least 4.5:1.
 - **No icons in the UI, except two in the top header: the notification bell and the profile icon** (owner
   decisions 2026-11-09 and 2026-11-14). Everything else stays text-only: no other SVG icons, no icon components or
-  libraries, no emoji or symbols used as icons, no other icon-only buttons. Examples: "মেনু", "বন্ধ করুন",
+  libraries, no emoji or symbols used as icons, no other icon-only buttons. Examples: "Menu", "বন্ধ করুন",
   "আগের" / "পরের", status and conflicts as coloured text badges, the protected SUPER_ADMIN as the text badge
   "সুরক্ষিত". The browser-tab favicon stays; charts are allowed.
   - The two icons are small inline SVG components written in the project (`components/layout/header-icons.tsx`):
@@ -686,21 +686,27 @@ The files under `frontend/app/fonts/` and `backend/assets/fonts/` **must be depl
     are inserted unchanged.
 - Tests: `report-template.spec.ts`, `mail-templates.spec.ts`, `frontend/e2e/digits.spec.ts`.
 
-### 13.12 Wording: common office words in English (owner decision 2026-11-15)
+### 13.12 Wording: common office words in English (owner decisions 2026-11-15, revised for v1.2)
 Some Bangla translations sounded unnatural. Words that office staff normally say in English are written in
 English (Latin script); everything else stays Bangla.
 
 - **English:** the words in the list below, as labels, buttons, tabs, menu items, badges and column titles.
-- **Bangla:** সভা, সভাপতি, আয়োজক, আলোচ্যসূচি, কক্ষ, কার্যবিবরণী, অগ্রাধিকার, পদবি, উইং, সংঘাত, প্রতিবেদন, and all full
+- **Bangla:** সভা, সভাপতি, আয়োজক, আলোচ্যসূচি, কক্ষ, কার্যবিবরণী, অগ্রাধিকার, পদবি, উইং, সংঘাত, কর্মকর্তা, and all full
   sentences, help texts, confirmations and error messages. Inside such a sentence the listed nouns are still
   written in English ("Password দিন।", "কোনো Notification নেই।"), with the Bangla ending after a hyphen
-  ("Dashboard-এ যান", "Email-এর লিংক"). Verbs inside sentences stay Bangla ("সংরক্ষণ করা যাবে না").
-- **Mixed labels:** only the listed word changes ("Pending সংঘাত", "সভা Edit", "আজকের Summary").
+  ("Email-এর Link", "Session-এর মেয়াদ"). Verbs inside sentences stay Bangla ("সংরক্ষণ করা যাবে না").
+- **Buttons are either fully English or fully Bangla** — no half-Bangla verb phrases such as "Admin করুন".
+  English buttons: "Save", "Edit", "Delete", "Cancel", "Approve", "Reject", "Activate", "Deactivate", "Make Admin",
+  "Remove Admin", "Reset to Default Password", "Send Request", "Cancel Request", "Upload Photo", "Change Password",
+  "Send Reset Link", "Send Verification Link", "Request New Link", "Go to Dashboard", "Back to Login".
+  Bangla buttons stay Bangla: "সভা বাতিল করুন", "সম্পন্ন করুন", "সভা তৈরি করুন", "ফিরে যান", "আবার চেষ্টা করুন", "বন্ধ করুন".
+- **Mixed labels and titles:** only the listed word changes ("Pending সংঘাত", "আজকের Summary", "নাম দিয়ে Search করুন",
+  "Resolved: <date>"). Page titles of edit forms stay Bangla: "সভা সম্পাদনা", "কর্মকর্তা সম্পাদনা".
 - **Capitals:** labels of one or two words in Title Case ("Save", "Email Queue", "Change Request"); longer action
   phrases start with one capital ("Mark all as read").
 - **One term per concept** everywhere: web pages, PDF reports, mails, bell notifications and backend messages.
-- **Not changed** (not in the approved list): বাতিল, the meeting statuses নির্ধারিত / সম্পন্ন / বাতিল, অনুমোদন করুন /
-  প্রত্যাখ্যান করুন, রিপোর্ট, ব্যবহারকারী, ক্যালেন্ডার, মেনু, লিংক, রিসেট, মোবাইল, ফোন, and small words such as বন্ধ করুন, হ্যাঁ / না.
+- **Stay Bangla:** the meeting statuses নির্ধারিত / সম্পন্ন / বাতিল (and the meeting action "সভা বাতিল করুন"), লোড হচ্ছে…,
+  আবার চেষ্টা করুন, বন্ধ করুন, দেখুন / লুকান, হ্যাঁ / না, সব. The PDF heading keeps "সভা প্রতিবেদন".
 - Names stored in the database (for example the seeded account name "সুপার অ্যাডমিন") are data, not labels.
 
 Final word list:
@@ -710,7 +716,7 @@ Final word list:
 | লগইন / লগইন করুন (button) | Login |
 | লগআউট | Logout |
 | পাসওয়ার্ড | Password |
-| ডিফল্ট পাসওয়ার্ড | Default Password |
+| ডিফল্ট / ডিফল্ট পাসওয়ার্ড | Default / Default Password |
 | ইমেইল | Email |
 | প্রোফাইল | Profile |
 | ড্যাশবোর্ড | Dashboard |
@@ -719,19 +725,29 @@ Final word list:
 | অপঠিত | Unread |
 | সব পড়া হয়েছে | Mark all as read |
 | অমীমাংসিত / মীমাংসিত (conflicts) | Pending / Resolved |
-| অপেক্ষমাণ / অনুমোদিত / প্রত্যাখ্যাত (change requests, mail queue) | Pending / Approved / Rejected |
-| সক্রিয় / নিষ্ক্রিয় | Active / Inactive |
+| অপেক্ষমাণ / অনুমোদিত / প্রত্যাখ্যাত / বাতিল (change requests) | Pending / Approved / Rejected / Cancelled |
+| অপেক্ষমাণ / পাঠানো হয়েছে / ব্যর্থ (email queue) | Pending / Sent / Failed |
+| সক্রিয় / নিষ্ক্রিয় (status) | Active / Inactive |
+| সক্রিয় করুন / নিষ্ক্রিয় করুন (button) | Activate / Deactivate |
+| অ্যাডমিন করুন / অ্যাডমিন থেকে সরান | Make Admin / Remove Admin |
+| পাসওয়ার্ড ডিফল্টে ফেরত নিন | Reset to Default Password |
+| অনুমোদন করুন / প্রত্যাখ্যান করুন (button) | Approve / Reject |
+| বাতিল (dialog button) | Cancel |
+| পরিবর্তনের অনুরোধ পাঠান / বাতিল করুন | Send Request / Cancel Request |
 | সংরক্ষণ করুন (button) | Save (also "Save Changes", "Save Password", "Saving…") |
-| সম্পাদনা (button, title) | Edit |
+| সম্পাদনা (button) | Edit |
 | মুছুন / মুছে ফেলুন (button) | Delete ("Delete Permanently") |
-| খুঁজুন (label) | Search |
-| আপলোড | Upload |
+| খুঁজুন | Search ("নাম দিয়ে Search করুন", "নাম বা Email দিয়ে Search করুন") |
+| আপলোড | Upload ("Upload Photo", "Uploading…") |
 | ডাউনলোড / PDF ডাউনলোড | Download / Download PDF |
 | ফিল্টার / ফিল্টার মুছুন | Filter / Clear Filter |
 | সারসংক্ষেপ | Summary |
 | ইমেইল সারি | Email Queue |
 | অডিট লগ | Audit Log |
 | পরিবর্তনের অনুরোধ (login email / designation, needs admin approval) | Change Request |
+| রিপোর্ট / অফিস রিপোর্ট (menu, titles, buttons) | Report / Office Report |
+| ব্যবহারকারী | কর্মকর্তা |
+| ক্যালেন্ডার, মেনু, লিংক, রিসেট, মোবাইল, ফোন, ফ্যাক্স, অনলাইন, সেশন | Calendar, Menu, Link, Reset, Mobile, Phone, Fax, Online, Session |
 
 The request to change one's own notification email is not a "Change Request" (no admin approval); it stays
 "Notification Email পরিবর্তনের অনুরোধ".

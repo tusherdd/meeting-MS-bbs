@@ -956,7 +956,7 @@ export interface components {
             id: string;
             /** @example rahim@bbs.gov.bd */
             to: string;
-            /** @example Password রিসেট */
+            /** @example Password Reset */
             subject: string;
             /** @enum {string} */
             status: "PENDING" | "SENT" | "FAILED";
@@ -1418,7 +1418,7 @@ export interface components {
             role: "ADMIN" | "OFFICER";
         };
         UserMessageResponseDto: {
-            /** @example অস্থায়ী Password তৈরি করে ব্যবহারকারীর Notification Email-এ পাঠানো হয়েছে। প্রথম Login-এ Password পরিবর্তন করতে হবে। */
+            /** @example অস্থায়ী Password তৈরি করে কর্মকর্তার Notification Email-এ পাঠানো হয়েছে। প্রথম Login-এ Password পরিবর্তন করতে হবে। */
             message: string;
         };
         DesignationResponseDto: {
