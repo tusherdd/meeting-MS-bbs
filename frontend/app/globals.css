@@ -3,7 +3,7 @@
 /* BBS green (Bangladesh flag green #006a4e) as the accent; neutral slate for everything else. */
 @theme {
   /*
-   * Bangla in Nikosh (app/layout.tsx: only Bangla characters, enlarged with size-adjust);
+   * Bangla in NikoshBAN (app/layout.tsx: only Bangla characters, enlarged with size-adjust);
    * English in Times New Roman from the user's computer (not bundled: a licensed Microsoft font),
    * then metric-compatible free fonts (Liberation Serif, Tinos) and any serif.
    * The variable keeps Tailwind's name "sans" so every component uses it without changes.
@@ -12,7 +12,7 @@
 
   /*
    * Line heights: Bangla needs more room above and below the line than Latin (matras, reph,
-   * conjuncts below the baseline), and Nikosh is drawn larger here. Tailwind's defaults for the
+   * conjuncts below the baseline), and NikoshBAN is drawn larger here. Tailwind's defaults for the
    * small sizes are too tight for wrapped Bangla text.
    */
   --text-xs--line-height: 1.6;
@@ -37,7 +37,7 @@
 html {
   color-scheme: light;
   /*
-   * 17 px base (instead of 16): Times New Roman reads small at 16 px. Nikosh is enlarged
+   * 17 px base (instead of 16): Times New Roman reads small at 16 px. NikoshBAN is enlarged
    * separately (size-adjust in app/layout.tsx), so Bangla and English match side by side.
    */
   font-size: 106.25%;

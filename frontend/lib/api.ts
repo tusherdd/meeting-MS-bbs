@@ -8,6 +8,7 @@
  */
 import { t } from "@/messages";
 import type { ApiErrorBody } from "./types";
+import { normalizeBanglaDeep } from "@/lib/bangla";
 
 export const API_BASE = "/api/v1";
 
@@ -64,7 +65,9 @@ function refreshSession(): Promise<boolean> {
 function buildUrl(path: string, query?: RequestOptions["query"]): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query ?? {})) {
-    if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, normalizeBanglaDeep(String(value), key));
+    }
   }
   const qs = params.toString();
   return `${API_BASE}${path}${qs ? `?${qs}` : ""}`;
@@ -103,7 +106,8 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
     body = options.body; // the browser sets the multipart boundary
   } else if (options.body !== undefined) {
     headers["Content-Type"] = "application/json";
-    body = JSON.stringify(options.body);
+    // Bangla nukta letters in the stored form (SPEC.md §13.13); the backend does the same.
+    body = JSON.stringify(normalizeBanglaDeep(options.body));
   }
   try {
     return await fetch(buildUrl(path, options.query), {

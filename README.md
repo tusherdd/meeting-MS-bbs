@@ -38,12 +38,12 @@ flowchart LR
 - **Backend** (`backend/`): NestJS 11, TypeORM migrations, JWT access + refresh tokens, argon2id,
   conflict engine with advisory locks, mail outbox, cron jobs, Puppeteer PDFs.
 - **Database**: PostgreSQL. Times are stored in UTC; days, weeks, months and years are computed in Asia/Dhaka.
-- **Fonts**: Bangla in Nikosh (Bangladesh government standard), English in Times New Roman. See SPEC.md §13.10.
+- **Fonts**: Bangla in NikoshBAN (Bangladesh government standard), English in Times New Roman. See SPEC.md §13.10.
   - Font files that ship with the app and **must be deployed with it**:
-    - `frontend/app/fonts/Nikosh.ttf` (bundled into the frontend build), licence CC BY-NC-ND 3.0
-      (`LICENSE-Nikosh.txt`);
-    - `backend/assets/fonts/Nikosh.ttf`, `Tinos-Regular.ttf`, `Tinos-Bold.ttf` (copied to
-      `backend/dist/assets/fonts/` by `npm run build`), licences in `LICENSE-Nikosh.txt` and `LICENSE-Tinos.txt`
+    - `frontend/app/fonts/NikoshBAN.ttf` (bundled into the frontend build), licence CC BY-NC-ND 3.0
+      (`LICENSE-NikoshBAN.txt`);
+    - `backend/assets/fonts/NikoshBAN.ttf`, `Tinos-Regular.ttf`, `Tinos-Bold.ttf` (copied to
+      `backend/dist/assets/fonts/` by `npm run build`), licences in `LICENSE-NikoshBAN.txt` and `LICENSE-Tinos.txt`
       (SIL OFL 1.1). They are embedded in the PDF reports.
   - **Times New Roman is not in the repository** (a licensed Microsoft font): web pages and mails use the copy
     installed on the user's computer, or the next serif font if it is missing. PDF reports use Tinos, which has
@@ -132,7 +132,7 @@ cd backend
 npm ci
 npx puppeteer browsers install chrome    # Chrome for PDFs (in ~/.cache/puppeteer of this user)
 cp .env.example .env && chmod 600 .env   # then edit, see 4.4
-npm run build                             # also copies assets/fonts/ (Nikosh, Tinos) to dist/assets/fonts/
+npm run build                             # also copies assets/fonts/ (NikoshBAN, Tinos) to dist/assets/fonts/
 
 cd ../frontend
 npm ci
@@ -297,7 +297,7 @@ Copy the backup folder to a second machine regularly.
 2. Back up first: run the `pg_dump` line from 4.8 by hand.
 3. `cd /opt/bbs-meeting/app && git fetch --tags && git checkout <new tag>`
 4. Backend: `cd backend && npm ci && npm run build && npm run migration:run:prod`
-   (check that `dist/assets/fonts/` has `Nikosh.ttf` and the two `Tinos-*.ttf` files: the PDF reports need them)
+   (check that `dist/assets/fonts/` has `NikoshBAN.ttf` and the two `Tinos-*.ttf` files: the PDF reports need them)
 5. Add any new variables from `backend/.env.example` to `backend/.env`.
 6. Frontend: `cd ../frontend && npm ci && npm run build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/`
 7. `sudo systemctl restart bbs-meeting-api bbs-meeting-web`

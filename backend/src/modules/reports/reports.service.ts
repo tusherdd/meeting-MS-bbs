@@ -112,7 +112,7 @@ export class ReportsService {
         { label: 'আমার আয়োজিত', value: s.organized },
         { label: 'অংশগ্রহণ (অন্যের আয়োজিত)', value: s.attended },
         ...statusRows(s.byStatus),
-        { label: 'মোট সময় (ঘণ্টা, বাতিল ছাড়া)', value: s.totalHours },
+        { label: 'মোট সময় (ঘণ্টা, বাতিল ছাড়া)', value: s.totalHours },
         {
           label: 'আমার সভার বিরুদ্ধে সংঘাত',
           value: s.conflictsRaisedAgainstMyMeetings,
@@ -183,7 +183,7 @@ export class ReportsService {
       summary: [
         { label: 'মোট সভা', value: o.totalMeetings },
         ...statusRows(o.byStatus),
-        { label: 'মোট সময় (ঘণ্টা, বাতিল ছাড়া)', value: o.totalHours },
+        { label: 'মোট সময় (ঘণ্টা, বাতিল ছাড়া)', value: o.totalHours },
         { label: 'Pending সংঘাত', value: conflicts.pending },
         { label: 'Resolved সংঘাত', value: conflicts.resolved },
       ],

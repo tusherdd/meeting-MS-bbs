@@ -1,3 +1,4 @@
+import { BANGLA_NUKTA } from '../../common/utils/bangla';
 import { UserRole } from '../../modules/users/enums/user-role.enum';
 import {
   OFFICER_CSV_COLUMNS,
@@ -331,6 +332,20 @@ describe('parseOfficerCsv', () => {
     expect(rows[0].name_bn).toBe('নাম');
     expect(rows[0].additional_charges).toBe('ফোকাল, সেল | এসডিজি সেল');
     expect(rows[0].line).toBe(2);
+  });
+
+  it('stores the Bangla nukta letters in one form (SPEC.md §13.13)', () => {
+    const { YYA, YA_NUKTA, DDA_NUKTA, RRA, DDHA_NUKTA, RHA } = BANGLA_NUKTA;
+    const values = OFFICER_CSV_COLUMNS.map((c) =>
+      c === 'name_bn'
+        ? `প্রল${YYA} ব${DDA_NUKTA}`
+        : c === 'wing_bn'
+          ? `আষা${DDHA_NUKTA}`
+          : '',
+    );
+    const rows = parseOfficerCsv(`${header}\n${values.join(',')}\n`);
+    expect(rows[0].name_bn).toBe(`প্রল${YA_NUKTA} ব${RRA}`);
+    expect(rows[0].wing_bn).toBe(`আষা${RHA}`);
   });
 
   it('rejects a file with missing columns', () => {

@@ -6,19 +6,22 @@ import { t } from "@/messages";
 import "./globals.css";
 
 /**
- * Fonts (owner decisions 2026-11-14, SPEC.md §13.10): Bangla in Nikosh, English in Times New Roman.
- * - Nikosh is the Bangladesh government's standard Bangla font, self-hosted from
- *   app/fonts/Nikosh.ttf (no font request leaves this origin; CSP font-src 'self').
+ * Fonts (owner decisions 2026-11-14 and 2026-11-15, SPEC.md §13.10): Bangla in NikoshBAN, English in
+ * Times New Roman.
+ * - NikoshBAN is the Bangladesh government's standard Bangla font (same Bangla letters as Nikosh;
+ *   it only draws the ASCII digits 0–9 as Bangla digits), self-hosted from
+ *   app/fonts/NikoshBAN.ttf (no font request leaves this origin; CSP font-src 'self').
  * - unicode-range limits it to Bangla characters (the block includes ৳), danda / double danda and
- *   the zero-width (non-)joiner. Latin letters and digits are NOT taken from Nikosh: they come from
+ *   the zero-width (non-)joiner. Latin letters and digits are NOT taken from NikoshBAN
+ *   (so typed 0–9 never look like Bangla digits): they come from
  *   the next fonts in --font-sans (Times New Roman from the user's computer; it is not bundled).
- * - Nikosh has one weight. It is declared as 400, so the browser synthesises bold for headings.
- * - Nikosh draws smaller than other fonts at the same size: size-adjust enlarges only its glyphs.
+ * - NikoshBAN has one weight. It is declared as 400, so the browser synthesises bold for headings.
+ * - NikoshBAN draws smaller than other fonts at the same size: size-adjust enlarges only its glyphs.
  *   Together with the 17 px base size in globals.css, Bangla and English words (many labels are
  *   English since 2026-11-15) look the same size side by side.
  */
 const nikosh = localFont({
-  src: "./fonts/Nikosh.ttf",
+  src: "./fonts/NikoshBAN.ttf",
   weight: "400",
   style: "normal",
   variable: "--font-nikosh",

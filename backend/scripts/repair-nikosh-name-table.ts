@@ -1,15 +1,17 @@
 /**
- * Repairs the `name` table of the original Nikosh.ttf so browsers accept the file.
+ * Repairs the `name` table of the original Nikosh.ttf or NikoshBAN.ttf so browsers accept the file.
+ * The app uses NikoshBAN (owner decision 2026-11-15); its Bangla glyphs are identical to Nikosh, it
+ * differs only in drawing the ASCII digits 0–9 as Bangla digits (never used here: unicode-range).
  *
  * Why: the original file (2008) stores the whole licence text (about 35 KB, twice) inside the
  * `name` table. The string offsets in that table are 16-bit, the data is larger than 65 535
  * bytes, so the last records point to the wrong place. Chrome and Firefox check every web font
  * (OpenType Sanitizer) and reject the file: "OTS parsing error: name". Without the repair
- * Nikosh only shows on computers that have it installed, and never in the PDF reports.
+ * the font only shows on computers that have it installed, and never in the PDF reports.
  *
  * What changes: ONLY the `name` table (metadata) and the checksums that depend on it. No glyph,
  * no layout table, no metric is touched. Names, version, copyright, designers and the licence
- * URL are kept; the full licence text moves to LICENSE-Nikosh.txt next to the font.
+ * URL are kept; the full licence text moves to LICENSE-<family>.txt next to the font.
  * Licence of the font: CC BY-NC-ND 3.0, which allows modifications that are technically
  * necessary to use the work in another medium or format (owner decision 2026-11-14).
  *
@@ -28,9 +30,10 @@ interface NameRecord {
 }
 
 const LICENSE_URL = 'http://creativecommons.org/licenses/by-nc-nd/3.0/';
-const LICENSE_NOTE =
+const FAMILIES = ['Nikosh', 'NikoshBAN'];
+const licenseNote = (family: string): string =>
   'This Font Software is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 ' +
-  `license: ${LICENSE_URL} . The full licence text is distributed with this file as LICENSE-Nikosh.txt. ` +
+  `license: ${LICENSE_URL} . The full licence text is distributed with this file as LICENSE-${family}.txt. ` +
   'Only the name table of the original file was rewritten (it was larger than the format allows); ' +
   'the glyphs are unchanged.';
 
@@ -162,14 +165,15 @@ function main(): void {
   const nameEntry = tableDirectory(font).get('name');
   if (!nameEntry) throw new Error('no name table');
   const mac = readMacNames(font.subarray(nameEntry.offset, nameEntry.offset + nameEntry.length));
-  if (mac.get(1) !== 'Nikosh') throw new Error(`not the Nikosh font: "${mac.get(1) ?? ''}"`);
+  const family = mac.get(1) ?? '';
+  if (!FAMILIES.includes(family)) throw new Error(`not the Nikosh or NikoshBAN font: "${family}"`);
 
   const texts = new Map<number, string>();
   for (const id of KEEP) {
     const text = mac.get(id)?.trim();
     if (text) texts.set(id, text);
   }
-  texts.set(NAME_LICENSE_DESCRIPTION, LICENSE_NOTE);
+  texts.set(NAME_LICENSE_DESCRIPTION, licenseNote(family));
   texts.set(NAME_LICENSE_URL, LICENSE_URL);
 
   const records: NameRecord[] = [];
@@ -180,7 +184,7 @@ function main(): void {
   const repaired = rebuildFont(font, buildNameTable(records));
   const license = (mac.get(NAME_LICENSE_DESCRIPTION) ?? '').replace(/\r\n?/g, '\n').trim();
   const licenseFile =
-    `Nikosh — licence of the font file in this folder\n` +
+    `${family} — licence of the font file in this folder\n` +
     `${(texts.get(0) ?? '').replace(/\r\n?/g, '\n')}\n\n` +
     `Note: only the name table of the original file was rewritten so that browsers accept it\n` +
     `(see backend/scripts/repair-nikosh-name-table.ts). The glyphs are unchanged.\n\n` +
@@ -188,7 +192,7 @@ function main(): void {
 
   for (const out of outputs) {
     writeFileSync(out, repaired);
-    writeFileSync(join(dirname(out), 'LICENSE-Nikosh.txt'), licenseFile);
+    writeFileSync(join(dirname(out), `LICENSE-${family}.txt`), licenseFile);
     console.log(`wrote ${out} (${repaired.length} bytes, original ${font.length})`);
   }
 }

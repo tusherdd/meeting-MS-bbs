@@ -1,8 +1,8 @@
 /**
  * Self-contained HTML for report PDFs (rendered by PdfService). Rules:
  * - every value from the database is HTML-escaped (escapeHtml) — no raw interpolation;
- * - fonts are embedded as base64 data: URLs from backend/assets/fonts (Nikosh for Bangla, Tinos
- *   for English; owner decisions 2026-11-14), no internet fonts; numbers use Bangla digits;
+ * - fonts are embedded as base64 data: URLs from backend/assets/fonts (NikoshBAN for Bangla, Tinos
+ *   for English; owner decisions 2026-11-14 and 2026-11-15), no internet fonts; numbers use Bangla digits;
  * - page size, margins and the footer "পৃষ্ঠা X / Y" come from CSS @page (margin boxes with
  *   Bangla counters), so no JavaScript is needed.
  */
@@ -26,14 +26,15 @@ const ROLE_BN: Record<string, string> = {
   MEMBER: 'সদস্য',
 };
 
-/** Bangla text (owner decision 2026-11-14). */
-export const REPORT_FONT_FAMILY = 'Nikosh';
+/** Bangla text (owner decisions 2026-11-14, NikoshBAN since 2026-11-15). */
+export const REPORT_FONT_FAMILY = 'NikoshBAN';
 /**
  * English text: Tinos (SIL OFL 1.1), metric-compatible with Times New Roman, which is not
  * installed on the server and may not be bundled (licensed Microsoft font).
  */
 export const REPORT_LATIN_FONT_FAMILY = 'Tinos';
-/** The same split as the web pages: only Bangla characters come from Nikosh. */
+/** The same split as the web pages: only Bangla characters come from NikoshBAN
+ * (so its Bangla-looking ASCII digits are never used). */
 export const BANGLA_UNICODE_RANGE = 'U+0980-09FF,U+0964-0965,U+200C-200D';
 
 /**
@@ -41,7 +42,7 @@ export const BANGLA_UNICODE_RANGE = 'U+0980-09FF,U+0964-0965,U+200C-200D';
  * - production build: dist/assets/fonts (copied by nest-cli.json "assets");
  * - development, tests and a build without the copy: backend/assets/fonts.
  */
-export function reportFontPath(file = 'Nikosh.ttf'): string {
+export function reportFontPath(file = 'NikoshBAN.ttf'): string {
   const candidates = [
     join(__dirname, '..', '..', '..', 'assets', 'fonts', file),
     join(__dirname, '..', '..', '..', '..', 'assets', 'fonts', file),
@@ -59,7 +60,7 @@ let fontCss: string | undefined;
 
 /**
  * @font-face rules with the font files inlined as data: URLs (read once; nothing is fetched).
- * - Nikosh: one weight, declared as 400 (Chrome synthesises bold), limited to Bangla characters
+ * - NikoshBAN: one weight, declared as 400 (Chrome synthesises bold), limited to Bangla characters
  *   and slightly enlarged (it draws smaller than Latin fonts at the same size).
  * - Tinos regular and bold: everything else (Latin letters, ASCII digits, punctuation, dashes).
  */
@@ -73,7 +74,7 @@ function embeddedFontCss(): string {
     face(
       REPORT_FONT_FAMILY,
       400,
-      'Nikosh.ttf',
+      'NikoshBAN.ttf',
       `unicode-range:${BANGLA_UNICODE_RANGE};size-adjust:112%;`,
     ) +
     face(REPORT_LATIN_FONT_FAMILY, 400, 'Tinos-Regular.ttf') +

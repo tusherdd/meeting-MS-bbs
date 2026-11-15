@@ -1,7 +1,7 @@
 export const PROFILE_MESSAGES = {
   photoMissing: 'একটি ছবি ফাইল নির্বাচন করুন (ফিল্ডের নাম: file)।',
   photoBadType: 'শুধু JPEG, PNG অথবা WebP ছবি Upload করা যাবে।',
-  photoUnreadable: 'ছবিটি পড়া যায়নি। ফাইলটি নষ্ট অথবা আসল ছবি নয়।',
+  photoUnreadable: 'ছবিটি পড়া যায়নি। ফাইলটি নষ্ট অথবা আসল ছবি নয়।',
   photoTooLarge: (mb: number) => `ছবির আকার সর্বোচ্চ ${mb} MB হতে পারে।`,
   photoTooManyFiles: 'একবারে শুধু একটি ছবি Upload করা যাবে।',
   photoRemoved: 'Profile ছবি মুছে ফেলা হয়েছে।',

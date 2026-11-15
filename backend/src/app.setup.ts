@@ -20,6 +20,7 @@ import {
   requestIdMiddleware,
 } from './common/middleware/request-id.middleware';
 import { createValidationPipe } from './common/pipes/validation.pipe';
+import { BanglaTextPipe } from './common/pipes/bangla-text.pipe';
 import {
   ensureUploadDirs,
   resolveUploadRoot,
@@ -88,7 +89,8 @@ export function configureApp(app: INestApplication): void {
     exposedHeaders: ['X-Request-Id', 'Content-Disposition'],
   });
 
-  app.useGlobalPipes(createValidationPipe());
+  // Bangla nukta letters first (SPEC.md §13.13), then validation of the normalised values.
+  app.useGlobalPipes(new BanglaTextPipe(), createValidationPipe());
 
   serveUploads(app, config.get('UPLOAD_DIR', { infer: true }));
 

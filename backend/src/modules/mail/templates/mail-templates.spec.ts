@@ -23,10 +23,10 @@ describe('mail rendering', () => {
     expect(mail.html).toContain('lang="bn"');
   });
 
-  it('asks for Times New Roman (English) then Nikosh (Bangla), owner decisions 2026-11-14', () => {
+  it('asks for Times New Roman (English) then NikoshBAN (Bangla), owner decisions 2026-11-14/15', () => {
     const { html } = renderMail('বিষয়', null, []);
     expect(html).toContain(
-      "font-family:'Times New Roman',Times,'Nikosh','NikoshBAN','SolaimanLipi','Kalpurush','Noto Sans Bengali','Vrinda',serif",
+      "font-family:'Times New Roman',Times,'NikoshBAN','Nikosh','SolaimanLipi','Kalpurush','Noto Sans Bengali','Vrinda',serif",
     );
     expect(html).not.toMatch(/@font-face|url\(/); // mail clients get no web font
   });

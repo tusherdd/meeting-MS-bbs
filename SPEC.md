@@ -43,7 +43,7 @@ There is no separate database project: TypeORM entities, migrations and seeds ar
 | Mail | Nodemailer over SMTP (settings in `.env`), sent through a DB outbox |
 | Scheduling | `@nestjs/schedule` (outbox worker every minute, daily outbox cleanup, meeting auto-complete every 15 min); off when `SCHEDULER_ENABLED=false` |
 | Tests | Jest unit tests (mocks) + e2e tests on a separate database `DB_NAME_TEST` (`backend/.env.test`) |
-| PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly; fonts embedded from `backend/assets/fonts/`: **Nikosh** for Bangla, **Tinos** for English (no internet fonts, §13.10) |
+| PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly; fonts embedded from `backend/assets/fonts/`: **NikoshBAN** for Bangla, **Tinos** for English (no internet fonts, §13.10) |
 | Frontend | Next.js (App Router), TypeScript, Tailwind CSS |
 | Timezone | Store `timestamptz` (UTC). Display and compute "today/week/month" in `Asia/Dhaka`. |
 
@@ -502,8 +502,8 @@ readiness (accessibility, error pages, CSP, standalone build, deployment guide).
 ### 13.1 Stack
 Next.js 16 (App Router), React 19, TypeScript strict, Tailwind CSS 4, ESLint, npm.
 Server data: `@tanstack/react-query`. Forms: `react-hook-form` + `zod` (rules mirror the backend DTOs).
-Dates: `date-fns` + `date-fns-tz`, always shown in Asia/Dhaka. Font: **Nikosh** for Bangla (`next/font/local`,
-self-hosted from `app/fonts/Nikosh.ttf`); **Times New Roman** from the user's computer for English (§13.10). No UI kit: small own components in `components/ui`. e2e tests: Playwright.
+Dates: `date-fns` + `date-fns-tz`, always shown in Asia/Dhaka. Font: **NikoshBAN** for Bangla (`next/font/local`,
+self-hosted from `app/fonts/NikoshBAN.ttf`); **Times New Roman** from the user's computer for English (§13.10). No UI kit: small own components in `components/ui`. e2e tests: Playwright.
 
 ### 13.2 Folder structure
 ```
@@ -635,39 +635,46 @@ admin (create officer → login with the default password, SUPER_ADMIN protectio
 approved, officers get 404), accessibility (labels, modal keyboard handling, offline message, 404), the two header icons (badge, menus) and "no
 icons" on every page including the admin panel.
 
-### 13.10 Fonts: Bangla in Nikosh, English in Times New Roman (owner decisions 2026-11-14)
-Nikosh, the Bangladesh government's standard Bangla font, replaces Hind Siliguri (web) and Noto Sans Bengali
-(PDF). English text (Latin letters and ASCII digits) is shown in Times New Roman.
+### 13.10 Fonts: Bangla in NikoshBAN, English in Times New Roman (owner decisions 2026-11-14 and 2026-11-15)
+NikoshBAN, the Bangladesh government's standard Bangla font, is used for Bangla everywhere (until 2026-11-15:
+Nikosh; before that Hind Siliguri on the web and Noto Sans Bengali in PDFs). English text (Latin letters and
+ASCII digits) is shown in Times New Roman.
 
 | Font | Used for | Where it comes from | Licence |
 |---|---|---|---|
-| Nikosh | Bangla, everywhere | `frontend/app/fonts/Nikosh.ttf` and `backend/assets/fonts/Nikosh.ttf` (same file), each with `LICENSE-Nikosh.txt` | CC BY-NC-ND 3.0 (Bangladesh Election Commission) |
+| NikoshBAN | Bangla, everywhere | `frontend/app/fonts/NikoshBAN.ttf` and `backend/assets/fonts/NikoshBAN.ttf` (same file), each with `LICENSE-NikoshBAN.txt` | CC BY-NC-ND 3.0 (Bangladesh Election Commission) |
 | Times New Roman | English on web pages and in mails | **the user's computer** (a licensed Microsoft font: never bundled) | — |
 | Tinos (Regular, Bold) | English in PDF reports (the server has no Times New Roman); metric-compatible with it | `backend/assets/fonts/Tinos-Regular.ttf`, `Tinos-Bold.ttf`, `LICENSE-Tinos.txt` | SIL OFL 1.1 (version 1.340; older releases were Apache 2.0) |
 
 The files under `frontend/app/fonts/` and `backend/assets/fonts/` **must be deployed with the app**.
 
-- **Nikosh file:** the original 2008 file is rejected by browsers (its `name` table is larger than the format
-  allows: "OTS parsing error"). The committed file has **only its `name` table rewritten** by
-  `backend/scripts/repair-nikosh-name-table.ts`; glyphs and layout tables are byte-identical. The full licence
-  text moved from the name table to `LICENSE-Nikosh.txt`.
-- **Web:** `app/layout.tsx` loads Nikosh with `next/font/local` (served from this origin, so `font-src 'self'` in
-  the CSP is enough; no external font request).
+- **NikoshBAN vs Nikosh (owner decision 2026-11-15):** the Bangla letters, conjuncts, layout tables and
+  metrics of the two fonts are identical. The only difference: NikoshBAN draws the ASCII digits 0–9 with
+  Bangla-looking shapes. The owner chose NikoshBAN **for Bangla characters only**: because of the
+  `unicode-range` below, typed digits 0–9 always come from Times New Roman / Tinos and look like English
+  digits, so the digit rule (§13.11) is unchanged. Nothing changes visually compared with Nikosh.
+- **NikoshBAN file:** the original 2008 file is rejected by browsers (its `name` table is larger than the
+  format allows: "OTS parsing error"). The committed file has **only its `name` table rewritten** by
+  `backend/scripts/repair-nikosh-name-table.ts` (works for Nikosh and NikoshBAN); glyphs and layout tables are
+  byte-identical. The full licence text moved from the name table to `LICENSE-NikoshBAN.txt`.
+- **Web:** `app/layout.tsx` loads NikoshBAN with `next/font/local` (served from this origin, so `font-src 'self'`
+  in the CSP is enough; no external font request).
   - `unicode-range: U+0980-09FF, U+0964-0965, U+200C-200D` (the Bengali block incl. ৳, danda / double danda,
-    zero-width joiners): Latin letters and digits are **not** taken from Nikosh.
-  - Font stack (`globals.css`): Nikosh, "Times New Roman", Times, "Liberation Serif", Tinos, serif. On a computer
-    without Times New Roman the next installed one is used.
+    zero-width joiners): Latin letters and digits are **not** taken from NikoshBAN.
+  - Font stack (`globals.css`): NikoshBAN, "Times New Roman", Times, "Liberation Serif", Tinos, serif. On a
+    computer without Times New Roman the next installed one is used.
   - Sizes: the base size is 17 px (`html { font-size: 106.25% }`) because Times New Roman reads small at 16 px,
-    and Nikosh gets `size-adjust: 127%` (it draws smaller than other fonts), so Bangla and English words look
+    and NikoshBAN gets `size-adjust: 127%` (it draws smaller than other fonts), so Bangla and English words look
     the same size side by side. The line heights of the text sizes are raised (1.45–1.65).
-  - Nikosh has one weight (400). Bangla headings use the browser's synthesised bold.
-- **PDF reports:** `report-template.ts` embeds Nikosh (same `unicode-range`, `size-adjust: 112%`) and Tinos
+  - NikoshBAN has one weight (400). Bangla headings use the browser's synthesised bold.
+- **PDF reports:** `report-template.ts` embeds NikoshBAN (same `unicode-range`, `size-adjust: 112%`) and Tinos
   regular + bold as base64 `data:` URLs; base size 11 pt; nothing is fetched. `nest build` copies `assets/fonts`
   to `dist/assets/fonts` (`nest-cli.json`); in development the files are read from `backend/assets/fonts`.
 - **Mail:** mail clients only use installed fonts and know no `unicode-range`. The template's `font-family` is
-  `'Times New Roman',Times,'Nikosh','NikoshBAN','SolaimanLipi','Kalpurush','Noto Sans Bengali','Vrinda',serif`:
-  Times comes first because it has no Bangla characters, so English is drawn in Times and Bangla falls through
-  to Nikosh (with Nikosh first, English would use Nikosh's own Latin letters).
+  `'Times New Roman',Times,'NikoshBAN','Nikosh','SolaimanLipi','Kalpurush','Noto Sans Bengali','Vrinda',serif`:
+  Times comes first because it has no Bangla characters, so English and the digits 0–9 are drawn in Times and
+  Bangla falls through to NikoshBAN (with NikoshBAN first, English would use its Latin letters and 0–9 would
+  look Bangla).
 
 ### 13.11 Digits: Bangla for system numbers, user text as typed (owner decision 2026-11-14)
 - **Numbers the system generates** are shown in Bangla digits: dates, times, counts, totals, durations, page
@@ -734,7 +741,7 @@ Final word list:
 | নোটিফিকেশন | Notification |
 | অ্যাডমিন / সুপার অ্যাডমিন | Admin / Super Admin |
 | অপঠিত | Unread |
-| সব পড়া হয়েছে | Mark all as read |
+| সব পড়া হয়েছে | Mark all as read |
 | অমীমাংসিত / মীমাংসিত (conflicts) | Pending / Resolved |
 | অপেক্ষমাণ / অনুমোদিত / প্রত্যাখ্যাত / বাতিল (change requests) | Pending / Approved / Rejected / Cancelled |
 | অপেক্ষমাণ / পাঠানো হয়েছে / ব্যর্থ (email queue) | Pending / Sent / Failed |
@@ -762,3 +769,29 @@ Final word list:
 
 The request to change one's own notification email is not a "Change Request" (no admin approval); it stays
 "Notification Email পরিবর্তনের অনুরোধ".
+
+### 13.13 Bangla nukta letters: one stored form (owner decision 2026-11-15)
+The fonts (NikoshBAN / Nikosh) draw some Unicode forms of য়, ড় and ঢ় with the nukta dot detached.
+Checked with fonttools, HarfBuzz and screenshots in Chromium and Firefox (the PDF is printed by Chromium):
+
+| Letter | Stored and shown | Drawn broken (never stored) |
+|---|---|---|
+| ড় | precomposed U+09DC | U+09A1 + U+09BC |
+| ঢ় | precomposed U+09DD | U+09A2 + U+09BC |
+| য় | U+09AF + U+09BC (the shaper joins the pair into the font's য় glyph) | precomposed U+09DF |
+
+- **Why not "always precomposed":** for য় the browsers' shaper (HarfBuzz) splits U+09DF again and draws the
+  dot detached, while it joins U+09AF + U+09BC into the correct glyph. For ড় / ঢ় it is the other way round.
+- **Never NFC:** Unicode NFC turns U+09DC / U+09DD into the broken pairs (they are composition exclusions), so
+  no code may call `normalize("NFC")` on Bangla text.
+- **One helper, same rule on both sides:** `normalizeBangla()` in `backend/src/common/utils/bangla.ts` and
+  `frontend/lib/bangla.ts` (U+09DF → U+09AF U+09BC, U+09A1 U+09BC → U+09DC, U+09A2 U+09BC → U+09DD; idempotent).
+  The letters are built from code points in code, never typed literally.
+- **Incoming data:** the global `BanglaTextPipe` (before the ValidationPipe) normalises every string in request
+  bodies and query strings, so stored text and search text always match. Values under keys containing
+  `password`, `token` or `secret` are never changed. The frontend API client applies the same helper.
+- **Seed / CSV:** every cell of `officers.csv` is normalised when it is read.
+- **Existing data:** migration `NormalizeBanglaNukta1794400000000` converts every `text`, `varchar` and `jsonb`
+  column in place (idempotent; only rows with a broken form are updated).
+- **Source files:** `bangla-source.spec.ts` (backend unit tests) fails if any source, test or doc file contains
+  U+09DF, U+09A1 U+09BC or U+09A2 U+09BC.

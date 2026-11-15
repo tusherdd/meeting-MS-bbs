@@ -1,4 +1,4 @@
-Nikosh — licence of the font file in this folder
+NikoshBAN — licence of the font file in this folder
 Nikosh font developed by The Election Commission of Bangladesh. Latin glyphs Incorporated are from modified DejaVu font project's DejaVu Serif. 
 Bangla Glyps design by: Jowad Kazi
 Core Developers: Jowad Kazi, Omi Azad, Mozammel Sarker                                

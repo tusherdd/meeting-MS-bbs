@@ -119,7 +119,7 @@ After changing endpoints or DTOs, run `npm run openapi:export && npm run docs:ap
     libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 wget xdg-utils
   ```
 
-  The fonts in `assets/fonts/` (Nikosh for Bangla, Tinos for English) are embedded in every report, so no
+  The fonts in `assets/fonts/` (NikoshBAN for Bangla, Tinos for English) are embedded in every report, so no
   system font is needed. `npm run build` copies them to `dist/assets/fonts/`; keep the `assets/` folder when you deploy.
 
 ### 4.2 Install and build

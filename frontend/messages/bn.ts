@@ -294,8 +294,8 @@ const bnMessages = {
     cancelReason: "বাতিলের কারণ",
     conflicts: "সংঘাত",
     noConflicts: "এই সভার কোনো সংঘাত নেই।",
-    overrides: "এই সভা যেসব সভাকে অগ্রাধিকারে ছাড়িয়ে গেছে",
-    overriddenBy: "যেসব সভা এই সভাকে অগ্রাধিকারে ছাড়িয়ে গেছে",
+    overrides: "এই সভা যেসব সভাকে অগ্রাধিকারে ছাড়িয়ে গেছে",
+    overriddenBy: "যেসব সভা এই সভাকে অগ্রাধিকারে ছাড়িয়ে গেছে",
     conflictStatus: {
       PENDING: "Pending",
       RESOLVED: "Resolved",
@@ -403,7 +403,7 @@ const bnMessages = {
       "fiscal-year": "অর্থবছর",
     },
     date: "তারিখ",
-    dateHint: "এই তারিখ যে সময়কালে পড়ে সেটির Report দেখানো হবে।",
+    dateHint: "এই তারিখ যে সময়কালে পড়ে সেটির Report দেখানো হবে।",
     prev: "আগের",
     next: "পরের",
     current: "বর্তমান",
@@ -655,7 +655,7 @@ const bnMessages = {
     confirmRemoveAdminBody: (name: string) => `${name} আবার সাধারণ কর্মকর্তা হবেন।`,
     confirmResetTitle: "Default Password-এ Reset করবেন?",
     confirmResetBody: (name: string) =>
-      `${name}-এর Password অফিসের Default Password-এ ফিরে যাবে এবং তাঁর সব Session বন্ধ হবে। তিনি একটি নোটিশ মেইল পাবেন (Password ছাড়া)।`,
+      `${name}-এর Password অফিসের Default Password-এ ফিরে যাবে এবং তাঁর সব Session বন্ধ হবে। তিনি একটি নোটিশ মেইল পাবেন (Password ছাড়া)।`,
     done: "সম্পন্ন হয়েছে।",
     designationsTitle: "পদবি ও অগ্রাধিকার",
     priorityExplain: "ছোট সংখ্যা = বেশি অগ্রাধিকার।",
