@@ -21,7 +21,7 @@ export const INVALID_LOGIN_MESSAGE =
 export async function fillLogin(page: Page, loginEmail: string, password: string) {
   await page.getByLabel("Login Email").fill(loginEmail);
   await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Login" }).click();
+  await page.getByRole("button", { name: "লগইন করুন" }).click();
 }
 
 /** Real login through the login page (only where the login itself is tested). */
@@ -30,7 +30,7 @@ export async function loginThroughForm(page: Page, key: OfficerKey) {
   await page.goto("/login");
   await fillLogin(page, loginEmail, password);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "ড্যাশবোর্ড", level: 1 })).toBeVisible();
 }
 
 /** A new browser context that is already logged in as `key` (session saved by global-setup). */

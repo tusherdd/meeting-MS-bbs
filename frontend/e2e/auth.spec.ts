@@ -51,8 +51,8 @@ test.describe("Login and session", () => {
     const officer = credentialsOf("officer");
     await fillLogin(page, officer.loginEmail, officer.password);
     await expect(page).toHaveURL(/\/reports$/);
-    await expect(page.getByRole("heading", { name: "Report", level: 1 })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "প্রধান Menu" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "রিপোর্ট", level: 1 })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
   });
 
   test("officers on the default password: no redirect, no banner or reminder", async ({
@@ -69,7 +69,7 @@ test.describe("Login and session", () => {
     for (const path of ["/dashboard", "/meetings", "/calendar"]) {
       await page.goto(path);
       await expect(page).toHaveURL(new RegExp(`${path}$`));
-      await expect(page.getByRole("navigation", { name: "প্রধান Menu" })).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
       await expect(page.getByText(/Default Password|Change Password/)).toHaveCount(0);
     }
     // Changing the password stays possible voluntarily.
@@ -100,7 +100,7 @@ test.describe("Login and session", () => {
       page.getByText("নিরাপত্তার জন্য প্রথমে আপনার Password পরিবর্তন করুন"),
     ).toBeVisible();
     // Restricted layout: no menu, no bell.
-    await expect(page.getByRole("navigation", { name: "প্রধান Menu" })).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toHaveCount(0);
 
     await page.goto("/meetings");
     await expect(page).toHaveURL(/\/change-password$/);
@@ -118,12 +118,12 @@ test.describe("Login and session", () => {
     const page = await pageAs(browser, "officer");
     try {
       await page.goto("/dashboard");
-      await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "ড্যাশবোর্ড", level: 1 })).toBeVisible();
       // The session disappears (as if it expired): no cookies any more.
       await page.context().clearCookies();
       await page
-        .getByRole("navigation", { name: "প্রধান Menu" })
-        .getByRole("link", { name: "Report" })
+        .getByRole("navigation", { name: "প্রধান মেনু" })
+        .getByRole("link", { name: "রিপোর্ট" })
         .click();
       await expect(page).toHaveURL(/\/login\?next=%2Freports&reason=expired$/);
       await expect(
@@ -137,7 +137,7 @@ test.describe("Login and session", () => {
   test("logout ends the session", async ({ page }) => {
     await loginThroughForm(page, "officer");
     await page.getByRole("button", { name: OFFICERS.officer.nameBn }).click();
-    await page.getByRole("button", { name: "Logout" }).click();
+    await page.getByRole("button", { name: "লগআউট" }).click();
     await expect(page).toHaveURL(/\/login$/);
 
     // The cookies are gone: the dashboard is not reachable any more.

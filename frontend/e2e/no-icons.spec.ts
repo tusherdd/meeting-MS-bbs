@@ -85,7 +85,7 @@ test("no icons in the app layout, header, sidebar, menus and pages", async ({ br
   ];
   for (const path of pages) {
     await page.goto(path);
-    await expect(page.getByRole("navigation", { name: "প্রধান Menu" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
     await expect(page.getByText("লোড হচ্ছে…")).toHaveCount(0);
     await expectNoIcons(page, path);
   }
@@ -101,7 +101,7 @@ test("no icons in the app layout, header, sidebar, menus and pages", async ({ br
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: OFFICERS.officer.nameBn }).click();
-  await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "লগআউট" })).toBeVisible();
   await expectNoIcons(page, "user menu");
   await page.keyboard.press("Escape");
 
@@ -112,11 +112,11 @@ test("no icons in the app layout, header, sidebar, menus and pages", async ({ br
   await page.getByRole("tab", { name: "মাস" }).click();
   await expectNoIcons(page, "calendar month view");
 
-  // Phone: "Menu" opens the drawer, "বন্ধ করুন" closes it.
+  // Phone: "মেনু" opens the drawer, "বন্ধ করুন" closes it.
   await page.setViewportSize({ width: 390, height: 800 });
   await page.goto("/dashboard");
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
-  const drawer = page.getByRole("dialog", { name: "Menu" });
+  await page.getByRole("button", { name: "মেনু", exact: true }).click();
+  const drawer = page.getByRole("dialog", { name: "মেনু" });
   await expect(drawer).toBeVisible();
   await expectNoIcons(page, "phone drawer");
   await drawer.getByRole("button", { name: "বন্ধ করুন" }).click();
@@ -126,7 +126,7 @@ test("no icons in the app layout, header, sidebar, menus and pages", async ({ br
   for (const path of ["/dashboard", "/meetings/new", "/calendar"]) {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto(path);
-    await expect(page.getByRole("navigation", { name: "প্রধান Menu" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
     const empty = await page
       .locator(TEXT_BUTTONS)
       .evaluateAll((buttons) =>
@@ -155,7 +155,7 @@ test("no icons on any admin page", async ({ browser }) => {
   try {
     for (const path of pages) {
       await page.goto(path);
-      await expect(page.getByRole("navigation", { name: "Admin Menu" })).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "অ্যাডমিন মেনু" })).toBeVisible();
       await expect(page.getByText("লোড হচ্ছে…")).toHaveCount(0);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expectNoIcons(page, path);

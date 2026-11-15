@@ -83,7 +83,7 @@ test("offline message, toasts and the conflict panel are announced (aria-live)",
   const page = await pageAs(browser, "officer");
   try {
     await page.goto("/dashboard");
-    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "ড্যাশবোর্ড", level: 1 })).toBeVisible();
     await page.context().setOffline(true);
     await expect(page.getByRole("alert").filter({ hasText: "ইন্টারনেট সংযোগ নেই।" })).toBeVisible();
     await page.context().setOffline(false);

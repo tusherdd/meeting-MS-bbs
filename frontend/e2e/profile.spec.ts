@@ -13,7 +13,7 @@ test("profile: edit with Bangla digits, charges list, photo upload and remove", 
   const page = await pageAs(browser, "officer");
   try {
     await page.goto("/profile");
-    await expect(page.getByRole("heading", { name: "Profile", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "প্রোফাইল", level: 1 })).toBeVisible();
 
     // Mobile in Bangla digits with +880 → stored as 01XXXXXXXXX.
     await page.getByLabel("Mobile", { exact: true }).fill("+৮৮০ ১৭১১-০০০০০১");

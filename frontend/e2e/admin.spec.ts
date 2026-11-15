@@ -47,8 +47,8 @@ test("officer cannot open the admin pages (404) and has no admin menu", async ({
       await expect(page.getByRole("heading", { name: "পাতাটি পাওয়া যায়নি" })).toBeVisible();
     }
     await page.goto("/dashboard");
-    await expect(page.getByRole("navigation", { name: "প্রধান Menu" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "অ্যাডমিন" })).toHaveCount(0);
   } finally {
     await page.context().close();
   }
@@ -88,7 +88,7 @@ test("admin creates an officer, who logs in with the default password", async ({
     await fresh.goto("/login");
     await fillLogin(fresh, email, defaultOfficerPassword());
     await expect(fresh).toHaveURL(/\/dashboard$/);
-    await expect(fresh.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+    await expect(fresh.getByRole("heading", { name: "ড্যাশবোর্ড", level: 1 })).toBeVisible();
     await context.close();
 
     // Clean up: deactivate (with a confirmation dialog).

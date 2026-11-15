@@ -96,8 +96,8 @@ test("profile icon: name as label and tooltip, menu with name, designation and l
     const header = page.getByTestId("user-menu-header");
     await expect(header).toContainText(OFFICERS.officer.nameBn);
     await expect(header).toContainText("পরিসংখ্যান কর্মকর্তা");
-    await expect(page.getByRole("link", { name: "Profile" }).last()).toBeVisible();
-    await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "প্রোফাইল" }).last()).toBeVisible();
+    await expect(page.getByRole("button", { name: "লগআউট" })).toBeVisible();
     await page.getByRole("link", { name: "Password পরিবর্তন" }).click();
     await expect(page).toHaveURL(/\/change-password$/);
 

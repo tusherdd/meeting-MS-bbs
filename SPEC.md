@@ -569,7 +569,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   message are `aria-live`. Text and badge colours keep a contrast of at least 4.5:1.
 - **No icons in the UI, except two in the top header: the notification bell and the profile icon** (owner
   decisions 2026-11-09 and 2026-11-14). Everything else stays text-only: no other SVG icons, no icon components or
-  libraries, no emoji or symbols used as icons, no other icon-only buttons. Examples: "Menu", "বন্ধ করুন",
+  libraries, no emoji or symbols used as icons, no other icon-only buttons. Examples: "মেনু", "বন্ধ করুন",
   "আগের" / "পরের", status and conflicts as coloured text badges, the protected SUPER_ADMIN as the text badge
   "সুরক্ষিত". The browser-tab favicon stays; charts are allowed.
   - The two icons are small inline SVG components written in the project (`components/layout/header-icons.tsx`):
@@ -578,7 +578,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   - **Bell:** unread count as a small red badge (Bangla digits, hidden when 0, "৯+" above 9); `aria-label`
     "Notification, ৩টি Unread" (just "Notification" when 0), tooltip "Notification"; opens the notification dropdown.
   - **Profile:** the user's photo when there is one, otherwise a person icon; `aria-label` and tooltip = the
-    user's name; opens the menu with the name and designation on top, then Profile, Password পরিবর্তন, Logout.
+    user's name; opens the menu with the name and designation on top, then প্রোফাইল, Password পরিবর্তন, লগআউট.
   - The Playwright "no icons" test allows exactly these two (`data-header-icon`, inside their header buttons)
     and fails for any other icon or `<svg>`.
 - Every data view has loading, empty and error states; errors show the backend message and the `requestId`.
@@ -686,7 +686,7 @@ The files under `frontend/app/fonts/` and `backend/assets/fonts/` **must be depl
     are inserted unchanged.
 - Tests: `report-template.spec.ts`, `mail-templates.spec.ts`, `frontend/e2e/digits.spec.ts`.
 
-### 13.12 Wording: common office words in English (owner decisions 2026-11-15, revised for v1.2)
+### 13.12 Wording: common office words in English (owner decisions 2026-11-15, revised for v1.2 and v1.3)
 Some Bangla translations sounded unnatural. Words that office staff normally say in English are written in
 English (Latin script); everything else stays Bangla.
 
@@ -708,6 +708,17 @@ English (Latin script); everything else stays Bangla.
 - **Stay Bangla:** the meeting statuses নির্ধারিত / সম্পন্ন / বাতিল (and the meeting action "সভা বাতিল করুন"), লোড হচ্ছে…,
   আবার চেষ্টা করুন, বন্ধ করুন, দেখুন / লুকান, হ্যাঁ / না, সব. The PDF heading keeps "সভা প্রতিবেদন".
 - Names stored in the database (for example the seeded account name "সুপার অ্যাডমিন") are data, not labels.
+- **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
+  and statuses stay as in v1.2.**
+  - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, সংঘাত, রিপোর্ট, প্রোফাইল, অ্যাডমিন.
+  - Admin menu: সারসংক্ষেপ, কর্মকর্তা, পদবি, উইং, পরিবর্তনের অনুরোধ, সকল সভা, সকল সংঘাত, অফিস রিপোর্ট, ইমেইল সারি, অডিট লগ.
+  - Each page heading (and browser-tab title) uses the same word as its menu item. Menu names for screen readers:
+    "প্রধান মেনু", "অ্যাডমিন মেনু"; the phone menu button "মেনু".
+  - Header profile menu: "প্রোফাইল" and "লগআউট"; the profile page heading "প্রোফাইল".
+  - Login page: heading "লগইন", button "লগইন করুন", link "লগইন পাতায় ফিরে যান".
+  - Everywhere else the v1.2 words stay: Save, Edit, Delete, Cancel, Approve / Reject, Activate / Deactivate,
+    Send Request, Mark all as read, Download PDF, all statuses, labels, search placeholders, and the English words
+    inside sentences ("আবার Login করুন", "Dashboard", "Change Request", "Email Queue" in help texts and messages).
 
 Final word list:
 
