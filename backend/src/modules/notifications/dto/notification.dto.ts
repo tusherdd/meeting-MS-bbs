@@ -22,7 +22,7 @@ export class NotificationResponseDto {
   @ApiProperty({ example: 'CHANGE_REQUEST_APPROVED' })
   type!: string;
 
-  @ApiProperty({ example: 'আপনার পদবি পরিবর্তনের অনুরোধ অনুমোদিত হয়েছে' })
+  @ApiProperty({ example: 'আপনার পদবি Change Request Approved হয়েছে' })
   title!: string;
 
   @ApiProperty({ example: 'পরিবর্তনটি কার্যকর করা হয়েছে।' })

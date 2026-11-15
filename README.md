@@ -287,9 +287,9 @@ Copy the backup folder to a second machine regularly.
 
 1. Open `https://meeting.bbs.gov.bd` and log in as `admin@bbs.gov.bd` with `SEED_SUPER_ADMIN_PASSWORD`.
 2. The app requires a new password first (only the super admin is forced to change it).
-3. Under **অ্যাডমিন**, check designations and wings, then promote one or two officers to ADMIN.
+3. Under **Admin**, check designations and wings, then promote one or two officers to ADMIN.
 4. Tell the officers the default password through the office (never by mail). Admins can see who still
-   uses it: **ব্যবহারকারী → ডিফল্ট পাসওয়ার্ড: ডিফল্ট পাসওয়ার্ডে আছেন**.
+   uses it: **ব্যবহারকারী → Default Password: Default Password-এ আছেন**.
 
 ### 4.10 Update to a new version (checklist)
 

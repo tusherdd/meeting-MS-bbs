@@ -13,7 +13,7 @@ test("dashboard lists today's meeting created through the API", async ({ browser
   await cancelLeftovers(page); // earlier runs: same officer, same time → 409
 
   // Starts one minute ago (allowed: up to 5 min in the past) so it is "today" even near midnight.
-  const title = uniqueTitle("ড্যাশবোর্ড");
+  const title = uniqueTitle("Dashboard");
   const start = new Date(Date.now() - 60_000);
   const meeting = await createMeetingAs(page, {
     title,

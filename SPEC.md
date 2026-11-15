@@ -150,7 +150,7 @@ On re-run, the seed updates the priority of an existing designation to match thi
   (`POST /users/:id/reset-password`, which also ends all sessions) get it with `mustChangePassword = false`
   and `users.passwordIsDefault = true`. There is **no forced change and no reminder** in the UI. Officers may
   still change their password voluntarily (`/change-password`); that, or a forgot-password link, sets
-  `passwordIsDefault = false`. Mails say "অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড" — never the password.
+  `passwordIsDefault = false`. Mails say "অফিস থেকে জানানো Default Password" — never the password.
   Admins see `passwordIsDefault` in `GET /users` (filter `?passwordIsDefault=true`) and the user detail.
   Existing data: `npm run users:apply-default-password -- --dry-run | --yes` (OFFICER/ADMIN, not the SUPER_ADMIN,
   not test accounts ending in `@example.com`; revokes their sessions; one audit entry with the count).
@@ -551,7 +551,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   On 401 it calls `POST /auth/refresh` once (one refresh in flight, shared) and retries the request once.
 - `AuthProvider` loads `GET /auth/me`. `(app)` layout guard: no session → `/login?next=<path>` (only same-site
   paths are accepted; a session that ends while the user is working → `/login?next=<path>&reason=expired`
-  with the note "সেশনের মেয়াদ শেষ হয়েছে…"; "লগআউট" goes to plain `/login`); `mustChangePassword` →
+  with the note "সেশনের মেয়াদ শেষ হয়েছে…"; "Logout" goes to plain `/login`); `mustChangePassword` →
   `/change-password` with a reduced layout (since 2026-11-09 only the
   SUPER_ADMIN can have it; officers on the default password see **no banner or reminder**). Logout calls
   `POST /auth/logout` and clears the React Query cache. Role helpers in `lib/roles.ts` (`isAdmin`); the backend
@@ -559,7 +559,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
 - The browser's `Origin` is `FRONTEND_URL`, which must be listed in the backend's `CORS_ORIGINS` (CSRF check).
 
 ### 13.5 Design rules
-- All UI text in Bangla from `messages/bn.ts`; numbers and dates with Bangla digits via `lib/format.ts`; all
+- All UI text from `messages/bn.ts`: Bangla, with common office words in English (word list in §13.12); numbers and dates with Bangla digits via `lib/format.ts`; all
   times in Asia/Dhaka (week Sunday–Saturday, same as the backend).
 - Simple and clean; BBS green (`#006a4e`, `brand-*` colours) as the accent, slate neutrals.
 - Responsive: sidebar on large screens, a menu button with a drawer on phones and tablets.
@@ -576,9 +576,9 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
     no icon library, no external request, 24 px, coloured with `currentColor`, inside round 40 px buttons with
     the normal visible keyboard focus; they also fit at phone width.
   - **Bell:** unread count as a small red badge (Bangla digits, hidden when 0, "৯+" above 9); `aria-label`
-    "নোটিফিকেশন, ৩টি অপঠিত" (just "নোটিফিকেশন" when 0), tooltip "নোটিফিকেশন"; opens the notification dropdown.
+    "Notification, ৩টি Unread" (just "Notification" when 0), tooltip "Notification"; opens the notification dropdown.
   - **Profile:** the user's photo when there is one, otherwise a person icon; `aria-label` and tooltip = the
-    user's name; opens the menu with the name and designation on top, then প্রোফাইল, পাসওয়ার্ড পরিবর্তন, লগআউট.
+    user's name; opens the menu with the name and designation on top, then Profile, Password পরিবর্তন, Logout.
   - The Playwright "no icons" test allows exactly these two (`data-header-icon`, inside their header buttons)
     and fails for any other icon or `<svg>`.
 - Every data view has loading, empty and error states; errors show the backend message and the `requestId`.
@@ -598,7 +598,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
 - **Reports** (`/reports`): period tabs দিন / সপ্তাহ / মাস / বছর / অর্থবছর, date field, "আগের" / "বর্তমান" / "পরের";
   the range is shown in Bangla (backend label + first and last day). Summary cards, counts by status, a bar
   chart of meetings per day (per month for a year or fiscal year; plain HTML bars with a hidden data table,
-  no SVG), paginated meeting list. The filters live in the address. "PDF ডাউনলোড" fetches the PDF as a Blob with
+  no SVG), paginated meeting list. The filters live in the address. "Download PDF" fetches the PDF as a Blob with
   the same filters, shows "তৈরি হচ্ছে…", saves it under the `Content-Disposition` file name and shows the
   backend's message on failure.
 - **Profile** (`/profile`): only the fields `PATCH /profile` accepts; mobiles accept Bangla digits and `+880`
@@ -610,8 +610,8 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
 - **Admin panel** (`/admin/*`): the layout shows the normal 404 page to officers; the backend checks every role
   again. User actions mirror `users/user-policy.ts` (`lib/user-policy.ts`): the SUPER_ADMIN row shows the text
   badge "সুরক্ষিত" and has no actions; nobody can deactivate or demote themselves. Creating an officer never
-  shows, asks for or sends a password; the success text is "কর্মকর্তা তৈরি হয়েছে। তিনি অফিসের ডিফল্ট পাসওয়ার্ড দিয়ে
-  লগইন করতে পারবেন।". Editing a designation states that only FUTURE meetings get the new priority. Designations
+  shows, asks for or sends a password; the success text is "কর্মকর্তা তৈরি হয়েছে। তিনি অফিসের Default Password দিয়ে
+  Login করতে পারবেন।". Editing a designation states that only FUTURE meetings get the new priority. Designations
   and wings can be deleted only when no user has them. Change requests: tabs by status, approve with a
   confirmation, reject with a required reason, own requests show "নিজের অনুরোধ অনুমোদন করা যায় না". The audit log
   shows only the fields that changed (before / after).
@@ -657,8 +657,9 @@ The files under `frontend/app/fonts/` and `backend/assets/fonts/` **must be depl
     zero-width joiners): Latin letters and digits are **not** taken from Nikosh.
   - Font stack (`globals.css`): Nikosh, "Times New Roman", Times, "Liberation Serif", Tinos, serif. On a computer
     without Times New Roman the next installed one is used.
-  - Nikosh draws smaller than other fonts: `size-adjust: 135%` enlarges only its glyphs (English text and
-    rem-based spacing are unchanged), and the line heights of the text sizes are raised (1.45–1.65).
+  - Sizes: the base size is 17 px (`html { font-size: 106.25% }`) because Times New Roman reads small at 16 px,
+    and Nikosh gets `size-adjust: 127%` (it draws smaller than other fonts), so Bangla and English words look
+    the same size side by side. The line heights of the text sizes are raised (1.45–1.65).
   - Nikosh has one weight (400). Bangla headings use the browser's synthesised bold.
 - **PDF reports:** `report-template.ts` embeds Nikosh (same `unicode-range`, `size-adjust: 112%`) and Tinos
   regular + bold as base64 `data:` URLs; base size 11 pt; nothing is fetched. `nest build` copies `assets/fonts`
@@ -684,3 +685,53 @@ The files under `frontend/app/fonts/` and `backend/assets/fonts/` **must be depl
   - mail and bell notifications: dates come from `meeting-format.ts` (Bangla locale); titles and other user text
     are inserted unchanged.
 - Tests: `report-template.spec.ts`, `mail-templates.spec.ts`, `frontend/e2e/digits.spec.ts`.
+
+### 13.12 Wording: common office words in English (owner decision 2026-11-15)
+Some Bangla translations sounded unnatural. Words that office staff normally say in English are written in
+English (Latin script); everything else stays Bangla.
+
+- **English:** the words in the list below, as labels, buttons, tabs, menu items, badges and column titles.
+- **Bangla:** সভা, সভাপতি, আয়োজক, আলোচ্যসূচি, কক্ষ, কার্যবিবরণী, অগ্রাধিকার, পদবি, উইং, সংঘাত, প্রতিবেদন, and all full
+  sentences, help texts, confirmations and error messages. Inside such a sentence the listed nouns are still
+  written in English ("Password দিন।", "কোনো Notification নেই।"), with the Bangla ending after a hyphen
+  ("Dashboard-এ যান", "Email-এর লিংক"). Verbs inside sentences stay Bangla ("সংরক্ষণ করা যাবে না").
+- **Mixed labels:** only the listed word changes ("Pending সংঘাত", "সভা Edit", "আজকের Summary").
+- **Capitals:** labels of one or two words in Title Case ("Save", "Email Queue", "Change Request"); longer action
+  phrases start with one capital ("Mark all as read").
+- **One term per concept** everywhere: web pages, PDF reports, mails, bell notifications and backend messages.
+- **Not changed** (not in the approved list): বাতিল, the meeting statuses নির্ধারিত / সম্পন্ন / বাতিল, অনুমোদন করুন /
+  প্রত্যাখ্যান করুন, রিপোর্ট, ব্যবহারকারী, ক্যালেন্ডার, মেনু, লিংক, রিসেট, মোবাইল, ফোন, and small words such as বন্ধ করুন, হ্যাঁ / না.
+- Names stored in the database (for example the seeded account name "সুপার অ্যাডমিন") are data, not labels.
+
+Final word list:
+
+| Before | Now |
+|---|---|
+| লগইন / লগইন করুন (button) | Login |
+| লগআউট | Logout |
+| পাসওয়ার্ড | Password |
+| ডিফল্ট পাসওয়ার্ড | Default Password |
+| ইমেইল | Email |
+| প্রোফাইল | Profile |
+| ড্যাশবোর্ড | Dashboard |
+| নোটিফিকেশন | Notification |
+| অ্যাডমিন / সুপার অ্যাডমিন | Admin / Super Admin |
+| অপঠিত | Unread |
+| সব পড়া হয়েছে | Mark all as read |
+| অমীমাংসিত / মীমাংসিত (conflicts) | Pending / Resolved |
+| অপেক্ষমাণ / অনুমোদিত / প্রত্যাখ্যাত (change requests, mail queue) | Pending / Approved / Rejected |
+| সক্রিয় / নিষ্ক্রিয় | Active / Inactive |
+| সংরক্ষণ করুন (button) | Save (also "Save Changes", "Save Password", "Saving…") |
+| সম্পাদনা (button, title) | Edit |
+| মুছুন / মুছে ফেলুন (button) | Delete ("Delete Permanently") |
+| খুঁজুন (label) | Search |
+| আপলোড | Upload |
+| ডাউনলোড / PDF ডাউনলোড | Download / Download PDF |
+| ফিল্টার / ফিল্টার মুছুন | Filter / Clear Filter |
+| সারসংক্ষেপ | Summary |
+| ইমেইল সারি | Email Queue |
+| অডিট লগ | Audit Log |
+| পরিবর্তনের অনুরোধ (login email / designation, needs admin approval) | Change Request |
+
+The request to change one's own notification email is not a "Change Request" (no admin approval); it stays
+"Notification Email পরিবর্তনের অনুরোধ".

@@ -92,16 +92,16 @@ test("no icons in the app layout, header, sidebar, menus and pages", async ({ br
 
   // Header: the two icon buttons, each with an aria-label and a tooltip.
   await page.goto("/dashboard");
-  await expect(page.getByRole("button", { name: /^নোটিফিকেশন(, .+টি অপঠিত)?$/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Notification(, .+টি Unread)?$/ })).toBeVisible();
   await expect(page.locator("header svg[data-header-icon='bell']")).toHaveCount(1);
   await expect(page.locator("header svg[data-header-icon='profile']")).toHaveCount(1);
-  await page.getByRole("button", { name: /^নোটিফিকেশন/ }).click();
-  await expect(page.getByRole("button", { name: "সব পড়া হয়েছে" })).toBeVisible();
+  await page.getByRole("button", { name: /^Notification/ }).click();
+  await expect(page.getByRole("button", { name: "Mark all as read" })).toBeVisible();
   await expectNoIcons(page, "notification dropdown");
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: OFFICERS.officer.nameBn }).click();
-  await expect(page.getByRole("button", { name: "লগআউট" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();
   await expectNoIcons(page, "user menu");
   await page.keyboard.press("Escape");
 
@@ -155,7 +155,7 @@ test("no icons on any admin page", async ({ browser }) => {
   try {
     for (const path of pages) {
       await page.goto(path);
-      await expect(page.getByRole("navigation", { name: "অ্যাডমিন মেনু" })).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "Admin মেনু" })).toBeVisible();
       await expect(page.getByText("লোড হচ্ছে…")).toHaveCount(0);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expectNoIcons(page, path);
@@ -175,7 +175,7 @@ test("no icons on any admin page", async ({ browser }) => {
       .click();
     await expect(page.getByTestId("user-actions")).toBeVisible();
     await expectNoIcons(page, "user detail");
-    await page.getByRole("button", { name: "পাসওয়ার্ড ডিফল্টে ফেরত নিন" }).click();
+    await page.getByRole("button", { name: "Password Default-এ ফেরত নিন" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expectNoIcons(page, "confirmation dialog");
     await page.keyboard.press("Escape");

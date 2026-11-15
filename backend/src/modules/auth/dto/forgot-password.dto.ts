@@ -8,7 +8,7 @@ export class ForgotPasswordDto {
     description: 'Login email of the account',
   })
   @NormalizeEmail()
-  @IsEmail({}, { message: 'সঠিক ইমেইল ঠিকানা দিন।' })
-  @MaxLength(254, { message: 'ইমেইল খুব দীর্ঘ।' })
+  @IsEmail({}, { message: 'সঠিক Email ঠিকানা দিন।' })
+  @MaxLength(254, { message: 'Email খুব দীর্ঘ।' })
   loginEmail!: string;
 }

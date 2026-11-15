@@ -37,8 +37,8 @@ export class ChangeNotificationEmailDto {
       'New address; becomes active only after the link sent to it is clicked',
   })
   @Transform(normalizeEmail)
-  @IsEmail({}, { message: 'সঠিক ইমেইল ঠিকানা দিন।' })
-  @MaxLength(254, { message: 'ইমেইল খুব দীর্ঘ।' })
+  @IsEmail({}, { message: 'সঠিক Email ঠিকানা দিন।' })
+  @MaxLength(254, { message: 'Email খুব দীর্ঘ।' })
   email!: string;
 }
 

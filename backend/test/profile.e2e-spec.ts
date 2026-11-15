@@ -681,10 +681,10 @@ describe('Profile, photo, notification email, change requests (e2e)', () => {
         .getRepository(EmailOutbox)
         .find({ where: { to: email('officer') } });
       expect(
-        toOld.some((m) => m.subject.includes('লগইন ইমেইল পরিবর্তিত')),
+        toOld.some((m) => m.subject.includes('Login Email পরিবর্তিত')),
       ).toBe(true);
       expect((await latestMail(requestEmail)).subject).toContain(
-        'লগইন ইমেইল পরিবর্তিত',
+        'Login Email পরিবর্তিত',
       );
 
       expect((await login(email('officer'))).status).toBe(401);

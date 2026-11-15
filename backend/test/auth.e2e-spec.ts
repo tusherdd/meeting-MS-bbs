@@ -280,7 +280,7 @@ describe('Auth (e2e)', () => {
         AUTH_MESSAGES.invalidCredentials,
       );
       expect(AUTH_MESSAGES.invalidCredentials).toContain(
-        'পাসওয়ার্ড ভুলে গেছেন?',
+        'Password ভুলে গেছেন?',
       );
       await login('active').expect(200); // reset the counter for later tests
     });

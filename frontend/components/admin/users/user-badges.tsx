@@ -12,7 +12,7 @@ export function ActiveBadge({ active }: { active: boolean }) {
   );
 }
 
-/** "ডিফল্ট পাসওয়ার্ড": হ্যাঁ (amber: anyone who knows it can log in) / না. */
+/** "Default Password": হ্যাঁ (amber: anyone who knows it can log in) / না. */
 export function DefaultPasswordBadge({ isDefault }: { isDefault: boolean }) {
   return (
     <Badge tone={isDefault ? "amber" : "neutral"}>{isDefault ? t.admin.yes : t.admin.no}</Badge>

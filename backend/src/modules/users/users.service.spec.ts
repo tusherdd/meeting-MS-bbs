@@ -153,7 +153,7 @@ describe('UsersService.create', () => {
     expect(userIds).toEqual(['new-user']);
     expect(channels).toEqual([ChannelName.EMAIL]);
     expect(mail.html).toContain(dto.loginEmail);
-    expect(mail.text).toContain('অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড');
+    expect(mail.text).toContain('অফিস থেকে জানানো Default Password');
     expect(mail.html).toContain('href="http://localhost:3000/login"');
     expect(mail.html + mail.text).not.toContain(DEFAULT_PASSWORD);
     expect(mail.html + mail.text).not.toMatch(/token=/);
@@ -362,7 +362,7 @@ describe('UsersService.setStatus / setRole / resetPassword', () => {
     const { userIds, channels, mail } = sentMail(notifications);
     expect(userIds).toEqual(['u1']);
     expect(channels).toEqual([ChannelName.EMAIL]);
-    expect(mail.text).toContain('অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড');
+    expect(mail.text).toContain('অফিস থেকে জানানো Default Password');
     expect(mail.html + mail.text).not.toContain(DEFAULT_PASSWORD);
     expect(mail.html).not.toMatch(/token=/);
     expect(audit.log).toHaveBeenCalledWith(

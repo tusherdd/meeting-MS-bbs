@@ -16,12 +16,12 @@ export type MeetingDetail = S["MeetingDetailDto"];
 
 /** Exact text the backend returns for every failed login (auth.messages.ts). */
 export const INVALID_LOGIN_MESSAGE =
-  'ইমেইল অথবা পাসওয়ার্ড সঠিক নয়। পাসওয়ার্ড মনে না থাকলে "পাসওয়ার্ড ভুলে গেছেন?" ব্যবহার করে ইমেইলে রিসেট লিংক নিন।';
+  'Email অথবা Password সঠিক নয়। Password মনে না থাকলে "Password ভুলে গেছেন?" ব্যবহার করে Email-এ রিসেট লিংক নিন।';
 
 export async function fillLogin(page: Page, loginEmail: string, password: string) {
-  await page.getByLabel("লগইন ইমেইল").fill(loginEmail);
-  await page.getByLabel("পাসওয়ার্ড", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "লগইন করুন" }).click();
+  await page.getByLabel("Login Email").fill(loginEmail);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Login" }).click();
 }
 
 /** Real login through the login page (only where the login itself is tested). */
@@ -30,7 +30,7 @@ export async function loginThroughForm(page: Page, key: OfficerKey) {
   await page.goto("/login");
   await fillLogin(page, loginEmail, password);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole("heading", { name: "ড্যাশবোর্ড", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 }
 
 /** A new browser context that is already logged in as `key` (session saved by global-setup). */
@@ -110,7 +110,7 @@ export function nameOf(key: OfficerKey): string {
 
 /** In the meeting form: search the directory and add one person. */
 export async function addParticipant(page: Page, key: OfficerKey) {
-  await page.getByLabel("নাম দিয়ে খুঁজুন").fill(nameOf(key));
+  await page.getByLabel("Search (নাম দিয়ে)").fill(nameOf(key));
   // The visible "যোগ করুন" button in the result row of that person.
   await page
     .getByTestId("people-results")

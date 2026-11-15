@@ -255,8 +255,8 @@ export class ProfileService {
         [user.id],
         {
           type: NotificationType.NOTIFICATION_EMAIL_CHANGE_REQUESTED,
-          title: 'নোটিফিকেশন ইমেইল পরিবর্তনের অনুরোধ',
-          body: 'নোটিফিকেশন ইমেইল পরিবর্তনের অনুরোধ করা হয়েছে।',
+          title: 'Notification Email পরিবর্তনের অনুরোধ',
+          body: 'Notification Email পরিবর্তনের অনুরোধ করা হয়েছে।',
           email: (r) =>
             notificationEmailChangeNoticeMail({
               nameBn: r.nameBn,

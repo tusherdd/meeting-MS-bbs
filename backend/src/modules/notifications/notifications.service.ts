@@ -88,7 +88,7 @@ export class NotificationsService {
   async markRead(userId: string, id: string): Promise<NotificationResponseDto> {
     const notification = await this.notifications.findOneBy({ id, userId });
     if (!notification)
-      throw new NotFoundException('নোটিফিকেশনটি পাওয়া যায়নি।');
+      throw new NotFoundException('Notification-টি পাওয়া যায়নি।');
     if (!notification.readAt) {
       notification.readAt = new Date();
       await this.notifications.update(

@@ -42,7 +42,7 @@ function setup() {
 
 const message = {
   type: NotificationType.CHANGE_REQUEST_APPROVED,
-  title: 'অনুমোদিত',
+  title: 'Approved',
   body: 'পরিবর্তনটি কার্যকর করা হয়েছে।',
   link: '/profile/change-requests',
 };
@@ -61,7 +61,7 @@ describe('NotificationsService.notify', () => {
     expect(notificationRepo.insert).toHaveBeenCalledWith([
       expect.objectContaining({
         userId: 'u1',
-        title: 'অনুমোদিত',
+        title: 'Approved',
         link: '/profile/change-requests',
       }),
       expect.objectContaining({ userId: 'u2' }),

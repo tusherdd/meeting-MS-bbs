@@ -16,16 +16,16 @@ export function checkPasswordStrength(
 ): string[] {
   const problems: string[] = [];
   if (password.length < PASSWORD_MIN_LENGTH) {
-    problems.push(`পাসওয়ার্ড কমপক্ষে ${PASSWORD_MIN_LENGTH} অক্ষরের হতে হবে।`);
+    problems.push(`Password কমপক্ষে ${PASSWORD_MIN_LENGTH} অক্ষরের হতে হবে।`);
   }
   if (!/[A-Za-z]/.test(password)) {
-    problems.push('পাসওয়ার্ডে অন্তত একটি ইংরেজি অক্ষর থাকতে হবে।');
+    problems.push('Password-এ অন্তত একটি ইংরেজি অক্ষর থাকতে হবে।');
   }
   if (!/[0-9]/.test(password)) {
-    problems.push('পাসওয়ার্ডে অন্তত একটি সংখ্যা থাকতে হবে।');
+    problems.push('Password-এ অন্তত একটি সংখ্যা থাকতে হবে।');
   }
   if (email && password.trim().toLowerCase() === email.trim().toLowerCase()) {
-    problems.push('পাসওয়ার্ড ও ইমেইল একই হতে পারবে না।');
+    problems.push('Password ও Email একই হতে পারবে না।');
   }
   return problems;
 }

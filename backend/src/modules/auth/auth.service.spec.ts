@@ -148,9 +148,7 @@ describe('AuthService.login', () => {
     service.login({ loginEmail: 'officer@example.test', password }, meta);
 
   it('every failure has the same message, which suggests "forgot password"', () => {
-    expect(AUTH_MESSAGES.invalidCredentials).toContain(
-      'পাসওয়ার্ড ভুলে গেছেন?',
-    );
+    expect(AUTH_MESSAGES.invalidCredentials).toContain('Password ভুলে গেছেন?');
   });
 
   it('unknown email → same 401, counted in memory, audit without the email', async () => {

@@ -956,7 +956,7 @@ export interface components {
             id: string;
             /** @example rahim@bbs.gov.bd */
             to: string;
-            /** @example পাসওয়ার্ড রিসেট */
+            /** @example Password রিসেট */
             subject: string;
             /** @enum {string} */
             status: "PENDING" | "SENT" | "FAILED";
@@ -978,7 +978,7 @@ export interface components {
             id: string;
             /** @example CHANGE_REQUEST_APPROVED */
             type: string;
-            /** @example আপনার পদবি পরিবর্তনের অনুরোধ অনুমোদিত হয়েছে */
+            /** @example আপনার পদবি Change Request Approved হয়েছে */
             title: string;
             /** @example পরিবর্তনটি কার্যকর করা হয়েছে। */
             body: string;
@@ -1107,7 +1107,7 @@ export interface components {
             expiresIn: number;
         };
         MessageResponseDto: {
-            /** @example আপনি লগআউট করেছেন। */
+            /** @example আপনি Logout করেছেন। */
             message: string;
         };
         ChangePasswordDto: {
@@ -1136,7 +1136,7 @@ export interface components {
              * @example 900
              */
             expiresIn: number;
-            /** @example পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে। */
+            /** @example Password সফলভাবে পরিবর্তন করা হয়েছে। */
             message: string;
         };
         ForgotPasswordDto: {
@@ -1418,7 +1418,7 @@ export interface components {
             role: "ADMIN" | "OFFICER";
         };
         UserMessageResponseDto: {
-            /** @example অস্থায়ী পাসওয়ার্ড তৈরি করে ব্যবহারকারীর নোটিফিকেশন ইমেইলে পাঠানো হয়েছে। প্রথম লগইনে পাসওয়ার্ড পরিবর্তন করতে হবে। */
+            /** @example অস্থায়ী Password তৈরি করে ব্যবহারকারীর Notification Email-এ পাঠানো হয়েছে। প্রথম Login-এ Password পরিবর্তন করতে হবে। */
             message: string;
         };
         DesignationResponseDto: {

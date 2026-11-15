@@ -13,8 +13,9 @@ import "./globals.css";
  *   the zero-width (non-)joiner. Latin letters and digits are NOT taken from Nikosh: they come from
  *   the next fonts in --font-sans (Times New Roman from the user's computer; it is not bundled).
  * - Nikosh has one weight. It is declared as 400, so the browser synthesises bold for headings.
- * - Nikosh draws smaller than other fonts at the same size: size-adjust enlarges only its glyphs,
- *   so English text and all rem-based spacing stay as they are.
+ * - Nikosh draws smaller than other fonts at the same size: size-adjust enlarges only its glyphs.
+ *   Together with the 17 px base size in globals.css, Bangla and English words (many labels are
+ *   English since 2026-11-15) look the same size side by side.
  */
 const nikosh = localFont({
   src: "./fonts/Nikosh.ttf",
@@ -25,7 +26,7 @@ const nikosh = localFont({
   adjustFontFallback: false,
   declarations: [
     { prop: "unicode-range", value: "U+0980-09FF, U+0964-0965, U+200C-200D" },
-    { prop: "size-adjust", value: "135%" },
+    { prop: "size-adjust", value: "127%" },
   ],
 });
 

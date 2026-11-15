@@ -16,7 +16,7 @@ export function maskEmail(email: string): string {
 // ------------------------------------------------------------------ accounts / passwords
 
 /** Shown instead of the password itself (owner decision 2026-11-09, SPEC.md §6.2). */
-export const DEFAULT_PASSWORD_HINT_BN = 'অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড';
+export const DEFAULT_PASSWORD_HINT_BN = 'অফিস থেকে জানানো Default Password';
 
 /** New account (admin created it): log in with the default password the office announced. */
 export function accountCreatedMail(input: {
@@ -32,14 +32,14 @@ export function accountCreatedMail(input: {
     {
       kind: 'table',
       rows: [
-        ['লগইন ইমেইল', input.loginEmail],
-        ['পাসওয়ার্ড', DEFAULT_PASSWORD_HINT_BN],
+        ['Login Email', input.loginEmail],
+        ['Password', DEFAULT_PASSWORD_HINT_BN],
       ],
     },
-    { kind: 'button', label: 'লগইন করুন', url: input.loginUrl },
+    { kind: 'button', label: 'Login', url: input.loginUrl },
     {
       kind: 'note',
-      text: 'চাইলে লগইনের পর "পাসওয়ার্ড পরিবর্তন" থেকে নিজের পাসওয়ার্ড দিতে পারেন।',
+      text: 'চাইলে Login-এর পর "Password পরিবর্তন" থেকে নিজের Password দিতে পারেন।',
     },
   ]);
 }
@@ -50,13 +50,13 @@ export function adminResetNoticeMail(input: {
   loginEmail: string;
   loginUrl: string;
 }): MailContent {
-  return renderMail('আপনার পাসওয়ার্ড রিসেট করা হয়েছে', input.nameBn, [
+  return renderMail('আপনার Password রিসেট করা হয়েছে', input.nameBn, [
     {
       kind: 'paragraph',
-      text: `একজন প্রশাসক আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করেছেন। এখন ${DEFAULT_PASSWORD_HINT_BN} দিয়ে লগইন করুন। সব ডিভাইস থেকে আপনাকে লগআউট করা হয়েছে।`,
+      text: `একজন প্রশাসক আপনার অ্যাকাউন্টের Password রিসেট করেছেন। এখন ${DEFAULT_PASSWORD_HINT_BN} দিয়ে Login করুন। সব ডিভাইস থেকে আপনাকে Logout করা হয়েছে।`,
     },
-    { kind: 'table', rows: [['লগইন ইমেইল', input.loginEmail]] },
-    { kind: 'button', label: 'লগইন করুন', url: input.loginUrl },
+    { kind: 'table', rows: [['Login Email', input.loginEmail]] },
+    { kind: 'button', label: 'Login', url: input.loginUrl },
     {
       kind: 'note',
       text: 'আপনি এমন অনুরোধ না করে থাকলে দ্রুত প্রশাসকের সাথে যোগাযোগ করুন।',
@@ -70,15 +70,15 @@ export function passwordResetMail(input: {
   link: string;
   validMinutes: number;
 }): MailContent {
-  return renderMail('পাসওয়ার্ড রিসেট', input.nameBn, [
+  return renderMail('Password রিসেট', input.nameBn, [
     {
       kind: 'paragraph',
-      text: 'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার অনুরোধ পাওয়া গেছে। নিচের বাটনে ক্লিক করে নতুন পাসওয়ার্ড দিন:',
+      text: 'আপনার অ্যাকাউন্টের Password রিসেট করার অনুরোধ পাওয়া গেছে। নিচের বাটনে ক্লিক করে নতুন Password দিন:',
     },
-    { kind: 'button', label: 'পাসওয়ার্ড রিসেট করুন', url: input.link },
+    { kind: 'button', label: 'Password রিসেট করুন', url: input.link },
     {
       kind: 'note',
-      text: `লিংকটি ${input.validMinutes} মিনিট কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে। আপনি অনুরোধ না করে থাকলে এই ইমেইল উপেক্ষা করুন; আপনার পাসওয়ার্ড বদলাবে না।`,
+      text: `লিংকটি ${input.validMinutes} মিনিট কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে। আপনি অনুরোধ না করে থাকলে এই Email উপেক্ষা করুন; আপনার Password বদলাবে না।`,
     },
   ]);
 }
@@ -91,15 +91,15 @@ export function notificationEmailVerifyMail(input: {
   link: string;
   validHours: number;
 }): MailContent {
-  return renderMail('নোটিফিকেশন ইমেইল যাচাই করুন', input.nameBn, [
+  return renderMail('Notification Email যাচাই করুন', input.nameBn, [
     {
       kind: 'paragraph',
-      text: 'এই ঠিকানাটিকে আপনার নোটিফিকেশন ইমেইল হিসেবে ব্যবহারের অনুরোধ করা হয়েছে। নিশ্চিত করতে নিচের বাটনে ক্লিক করুন:',
+      text: 'এই ঠিকানাটিকে আপনার Notification Email হিসেবে ব্যবহারের অনুরোধ করা হয়েছে। নিশ্চিত করতে নিচের বাটনে ক্লিক করুন:',
     },
-    { kind: 'button', label: 'ইমেইল যাচাই করুন', url: input.link },
+    { kind: 'button', label: 'Email যাচাই করুন', url: input.link },
     {
       kind: 'note',
-      text: `লিংকটি ${input.validHours} ঘণ্টা কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে। আপনি অনুরোধ না করে থাকলে এই ইমেইল উপেক্ষা করুন।`,
+      text: `লিংকটি ${input.validHours} ঘণ্টা কার্যকর থাকবে এবং একবারই ব্যবহার করা যাবে। আপনি অনুরোধ না করে থাকলে এই Email উপেক্ষা করুন।`,
     },
   ]);
 }
@@ -109,14 +109,14 @@ export function notificationEmailChangeNoticeMail(input: {
   nameBn: string;
   newEmail: string;
 }): MailContent {
-  return renderMail('নোটিফিকেশন ইমেইল পরিবর্তনের অনুরোধ', input.nameBn, [
+  return renderMail('Notification Email পরিবর্তনের অনুরোধ', input.nameBn, [
     {
       kind: 'paragraph',
-      text: `আপনার অ্যাকাউন্টের নোটিফিকেশন ইমেইল ${maskEmail(input.newEmail)} ঠিকানায় পরিবর্তনের অনুরোধ করা হয়েছে। নতুন ঠিকানাটি যাচাই না হওয়া পর্যন্ত সব ইমেইল এই ঠিকানাতেই আসবে।`,
+      text: `আপনার অ্যাকাউন্টের Notification Email ${maskEmail(input.newEmail)} ঠিকানায় Change Request করা হয়েছে। নতুন ঠিকানাটি যাচাই না হওয়া পর্যন্ত সব Email এই ঠিকানাতেই আসবে।`,
     },
     {
       kind: 'note',
-      text: 'আপনি এই অনুরোধ না করে থাকলে দ্রুত পাসওয়ার্ড পরিবর্তন করুন এবং প্রশাসকের সাথে যোগাযোগ করুন।',
+      text: 'আপনি এই অনুরোধ না করে থাকলে দ্রুত Password পরিবর্তন করুন এবং প্রশাসকের সাথে যোগাযোগ করুন।',
     },
   ]);
 }
@@ -124,7 +124,7 @@ export function notificationEmailChangeNoticeMail(input: {
 // ------------------------------------------------------------------ change requests
 
 export interface ChangeSummary {
-  /** e.g. "লগইন ইমেইল" or "পদবি" */
+  /** e.g. "Login Email" or "পদবি" */
   typeLabel: string;
   currentValue: string;
   requestedValue: string;
@@ -149,12 +149,12 @@ export function changeRequestSubmittedMail(
   },
 ): MailContent {
   return renderMail(
-    `নতুন পরিবর্তনের অনুরোধ: ${input.typeLabel}`,
+    `নতুন Change Request: ${input.typeLabel}`,
     input.adminNameBn,
     [
       {
         kind: 'paragraph',
-        text: `${input.requesterNameBn} একটি পরিবর্তনের অনুরোধ পাঠিয়েছেন:`,
+        text: `${input.requesterNameBn} একটি Change Request পাঠিয়েছেন:`,
       },
       { kind: 'table', rows: changeRows(input) },
       {
@@ -175,12 +175,12 @@ export function changeRequestDecisionMail(
     link: string;
   },
 ): MailContent {
-  const result = input.approved ? 'অনুমোদিত হয়েছে' : 'প্রত্যাখ্যাত হয়েছে';
+  const result = input.approved ? 'Approved হয়েছে' : 'Rejected হয়েছে';
   return renderMail(
-    `আপনার ${input.typeLabel} পরিবর্তনের অনুরোধ ${result}`,
+    `আপনার ${input.typeLabel} Change Request ${result}`,
     input.nameBn,
     [
-      { kind: 'paragraph', text: `আপনার পরিবর্তনের অনুরোধটি ${result}।` },
+      { kind: 'paragraph', text: `আপনার Change Request-টি ${result}।` },
       { kind: 'table', rows: changeRows(input) },
       ...(input.note
         ? [
@@ -202,10 +202,10 @@ export function loginEmailChangedMail(input: {
   newEmail: string;
   loginUrl: string;
 }): MailContent {
-  return renderMail('আপনার লগইন ইমেইল পরিবর্তিত হয়েছে', input.nameBn, [
+  return renderMail('আপনার Login Email পরিবর্তিত হয়েছে', input.nameBn, [
     {
       kind: 'paragraph',
-      text: 'প্রশাসকের অনুমোদনে আপনার লগইন ইমেইল পরিবর্তন করা হয়েছে:',
+      text: 'প্রশাসকের অনুমোদনে আপনার Login Email পরিবর্তন করা হয়েছে:',
     },
     {
       kind: 'table',
@@ -216,9 +216,9 @@ export function loginEmailChangedMail(input: {
     },
     {
       kind: 'paragraph',
-      text: 'নিরাপত্তার জন্য সব ডিভাইস থেকে আপনাকে লগআউট করা হয়েছে। এখন থেকে নতুন ইমেইল দিয়ে লগইন করুন; পাসওয়ার্ড আগেরটিই থাকবে।',
+      text: 'নিরাপত্তার জন্য সব ডিভাইস থেকে আপনাকে Logout করা হয়েছে। এখন থেকে নতুন Email দিয়ে Login করুন; Password আগেরটিই থাকবে।',
     },
-    { kind: 'button', label: 'লগইন করুন', url: input.loginUrl },
+    { kind: 'button', label: 'Login', url: input.loginUrl },
     {
       kind: 'note',
       text: 'আপনি এই অনুরোধ না করে থাকলে দ্রুত প্রশাসকের সাথে যোগাযোগ করুন।',

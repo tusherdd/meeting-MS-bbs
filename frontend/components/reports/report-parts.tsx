@@ -219,7 +219,7 @@ export function ReportMeetingsTable({
 }
 
 /**
- * "PDF ডাউনলোড": fetches the PDF as a Blob (same filters as the page), shows "তৈরি হচ্ছে…"
+ * "Download PDF": fetches the PDF as a Blob (same filters as the page), shows "তৈরি হচ্ছে…"
  * meanwhile, and saves it under the name from Content-Disposition. Errors show the backend text.
  */
 export function PdfDownloadButton({ download }: { download: () => Promise<DownloadedFile> }) {

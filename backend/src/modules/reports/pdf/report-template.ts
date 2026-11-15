@@ -208,7 +208,7 @@ th { background: #eef6f2; font-weight: 700; }
   </tbody></table>
 </header>
 
-<h2>সারসংক্ষেপ</h2>
+<h2>Summary</h2>
 <table class="summary"><tbody>
   ${input.summary.map((r) => `<tr><td>${e(r.label)}</td><td>${cell(r.value)}</td></tr>`).join('')}
 </tbody></table>

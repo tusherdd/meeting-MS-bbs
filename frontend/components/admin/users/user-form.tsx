@@ -54,7 +54,7 @@ function defaults(user?: UserDetail): UserFormValues {
 }
 
 /**
- * "নতুন কর্মকর্তা" (POST /users) and "ব্যবহারকারী সম্পাদনা" (PATCH /users/:id).
+ * "নতুন কর্মকর্তা" (POST /users) and "ব্যবহারকারী Edit" (PATCH /users/:id).
  * New accounts get the office default password on the server; the password is never shown,
  * typed or sent from here (owner decision 2026-11-09, SPEC.md §6.2).
  */

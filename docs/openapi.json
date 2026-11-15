@@ -3392,7 +3392,7 @@
           },
           "subject": {
             "type": "string",
-            "example": "পাসওয়ার্ড রিসেট"
+            "example": "Password রিসেট"
           },
           "status": {
             "type": "string",
@@ -3455,7 +3455,7 @@
           },
           "title": {
             "type": "string",
-            "example": "আপনার পদবি পরিবর্তনের অনুরোধ অনুমোদিত হয়েছে"
+            "example": "আপনার পদবি Change Request Approved হয়েছে"
           },
           "body": {
             "type": "string",
@@ -3731,7 +3731,7 @@
         "properties": {
           "message": {
             "type": "string",
-            "example": "আপনি লগআউট করেছেন।"
+            "example": "আপনি Logout করেছেন।"
           }
         },
         "required": [
@@ -3777,7 +3777,7 @@
           },
           "message": {
             "type": "string",
-            "example": "পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।"
+            "example": "Password সফলভাবে পরিবর্তন করা হয়েছে।"
           }
         },
         "required": [
@@ -4437,7 +4437,7 @@
         "properties": {
           "message": {
             "type": "string",
-            "example": "অস্থায়ী পাসওয়ার্ড তৈরি করে ব্যবহারকারীর নোটিফিকেশন ইমেইলে পাঠানো হয়েছে। প্রথম লগইনে পাসওয়ার্ড পরিবর্তন করতে হবে।"
+            "example": "অস্থায়ী Password তৈরি করে ব্যবহারকারীর Notification Email-এ পাঠানো হয়েছে। প্রথম Login-এ Password পরিবর্তন করতে হবে।"
           }
         },
         "required": [

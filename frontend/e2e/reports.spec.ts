@@ -33,12 +33,12 @@ test("reports: period selector, summary, chart and PDF download", async ({ brows
 
     // PDF: "তৈরি হচ্ছে…" while waiting, then a file named by Content-Disposition.
     const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: "PDF ডাউনলোড" }).click();
+    await page.getByRole("button", { name: "Download PDF" }).click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toBe("meeting-report-fy-2026-27.pdf");
     const file = await download.path();
     expect(readFileSync(file).subarray(0, 5).toString()).toBe("%PDF-");
-    await expect(page.getByRole("button", { name: "PDF ডাউনলোড" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Download PDF" })).toBeEnabled();
   } finally {
     await page.context().close();
   }

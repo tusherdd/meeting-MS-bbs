@@ -32,7 +32,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (needsLogin) {
-      // "লগআউট" navigates to /login itself; do not add ?next= to it.
+      // "Logout" navigates to /login itself; do not add ?next= to it.
       if (isLoggingOut()) return;
       const here = `${window.location.pathname}${window.location.search}`;
       router.replace(loginUrlFor(here, hadUser.current ? "expired" : undefined));

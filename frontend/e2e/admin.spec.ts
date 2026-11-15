@@ -48,7 +48,7 @@ test("officer cannot open the admin pages (404) and has no admin menu", async ({
     }
     await page.goto("/dashboard");
     await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "অ্যাডমিন" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
   } finally {
     await page.context().close();
   }
@@ -64,7 +64,7 @@ test("admin creates an officer, who logs in with the default password", async ({
     // The form has no password field at all.
     await expect(admin.locator("input[type=password]")).toHaveCount(0);
 
-    await admin.getByLabel("লগইন ইমেইল").fill(email);
+    await admin.getByLabel("Login Email").fill(email);
     await admin.getByLabel("নাম (বাংলা)").fill("ই২ই নতুন কর্মকর্তা");
     await admin.getByLabel("নাম (ইংরেজি)").fill("E2E New Officer");
     await admin
@@ -75,7 +75,7 @@ test("admin creates an officer, who logs in with the default password", async ({
 
     await expect(
       admin
-        .getByText("কর্মকর্তা তৈরি হয়েছে। তিনি অফিসের ডিফল্ট পাসওয়ার্ড দিয়ে লগইন করতে পারবেন।")
+        .getByText("কর্মকর্তা তৈরি হয়েছে। তিনি অফিসের Default Password দিয়ে Login করতে পারবেন।")
         .first(),
     ).toBeVisible();
     await expect(admin).toHaveURL(/\/admin\/users\/[0-9a-f-]+/);
@@ -88,20 +88,17 @@ test("admin creates an officer, who logs in with the default password", async ({
     await fresh.goto("/login");
     await fillLogin(fresh, email, defaultOfficerPassword());
     await expect(fresh).toHaveURL(/\/dashboard$/);
-    await expect(fresh.getByRole("heading", { name: "ড্যাশবোর্ড", level: 1 })).toBeVisible();
+    await expect(fresh.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
     await context.close();
 
     // Clean up: deactivate (with a confirmation dialog).
     await admin.reload();
-    await admin
-      .getByTestId("user-actions")
-      .getByRole("button", { name: "নিষ্ক্রিয় করুন" })
-      .click();
-    const dialog = admin.getByRole("dialog", { name: "ব্যবহারকারী নিষ্ক্রিয় করবেন?" });
+    await admin.getByTestId("user-actions").getByRole("button", { name: "Inactive করুন" }).click();
+    const dialog = admin.getByRole("dialog", { name: "ব্যবহারকারী Inactive করবেন?" });
     await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: "নিষ্ক্রিয় করুন" }).click();
+    await dialog.getByRole("button", { name: "Inactive করুন" }).click();
     await expect(
-      admin.getByTestId("user-actions").getByRole("button", { name: "সক্রিয় করুন" }),
+      admin.getByTestId("user-actions").getByRole("button", { name: "Active করুন" }),
     ).toBeVisible();
   } finally {
     await admin.context().close();
@@ -115,7 +112,7 @@ test("admin cannot touch the SUPER_ADMIN, and cannot deactivate or demote themse
   try {
     await admin.goto("/admin/users?role=SUPER_ADMIN");
     const row = admin.getByTestId("users-table").getByRole("row").nth(1);
-    await expect(row).toContainText("সুপার অ্যাডমিন");
+    await expect(row).toContainText("Super Admin");
     await expect(row).toContainText("সুরক্ষিত");
     await expect(row.getByRole("link")).toHaveCount(0);
     await expect(row.getByRole("button")).toHaveCount(0);
@@ -135,13 +132,13 @@ test("admin cannot touch the SUPER_ADMIN, and cannot deactivate or demote themse
     const me = await findUser(admin, OFFICERS.admin.loginEmail);
     await admin.goto(`/admin/users/${me.id}`);
     await expect(
-      admin.getByText("নিজের অ্যাকাউন্ট নিষ্ক্রিয় বা অ্যাডমিন পদ থেকে সরানো যায় না।"),
+      admin.getByText("নিজের অ্যাকাউন্ট Inactive বা Admin পদ থেকে সরানো যায় না।"),
     ).toBeVisible();
     const actions = admin.getByTestId("user-actions");
-    await expect(actions.getByRole("button", { name: "নিষ্ক্রিয় করুন" })).toHaveCount(0);
-    await expect(actions.getByRole("button", { name: "অ্যাডমিন থেকে সরান" })).toHaveCount(0);
+    await expect(actions.getByRole("button", { name: "Inactive করুন" })).toHaveCount(0);
+    await expect(actions.getByRole("button", { name: "Admin থেকে সরান" })).toHaveCount(0);
     await expect(
-      actions.getByRole("button", { name: "পাসওয়ার্ড ডিফল্টে ফেরত নিন" }),
+      actions.getByRole("button", { name: "Password Default-এ ফেরত নিন" }),
     ).toBeVisible();
   } finally {
     await admin.context().close();
@@ -168,10 +165,10 @@ test("designation change request: officer asks, admin approves; own request cann
     // The officer asks for a new designation on the profile page.
     await officer.goto("/profile");
     await officer.getByLabel("নতুন পদবি").selectOption(target.id);
-    await officer.getByRole("button", { name: "পদবি পরিবর্তনের অনুরোধ পাঠান" }).click();
+    await officer.getByRole("button", { name: "পদবির Change Request পাঠান" }).click();
     await expect(
       officer.getByTestId("request-history").getByRole("listitem").first(),
-    ).toContainText("অপেক্ষমাণ");
+    ).toContainText("Pending");
 
     // The admin also asks for something (own request → cannot approve it).
     await apiAsPage(admin, "POST", "/profile/change-requests", {
@@ -191,9 +188,9 @@ test("designation change request: officer asks, admin approves; own request cann
     await row.getByRole("button", { name: /^অনুমোদন করুন/ }).click();
     const dialog = admin.getByRole("dialog", { name: "অনুরোধ অনুমোদন করবেন?" });
     await dialog.getByRole("button", { name: "অনুমোদন করুন" }).click();
-    await expect(admin.getByText("অনুরোধ অনুমোদিত হয়েছে।")).toBeVisible();
+    await expect(admin.getByText("Change Request Approved হয়েছে।")).toBeVisible();
 
-    await admin.getByRole("tab", { name: "অনুমোদিত" }).click();
+    await admin.getByRole("tab", { name: "Approved" }).click();
     await expect(
       table.getByRole("row").filter({ hasText: OFFICERS.so.nameBn }).first(),
     ).toBeVisible();

@@ -25,7 +25,7 @@ export function buttonClass(variant: Variant = "primary", size: Size = "md", cla
 interface ButtonProps extends ComponentProps<"button"> {
   variant?: Variant;
   size?: Size;
-  /** Disables the button and (optionally) swaps the text, e.g. "সংরক্ষণ হচ্ছে…". */
+  /** Disables the button and (optionally) swaps the text, e.g. "Saving…". */
   loading?: boolean;
   loadingText?: ReactNode;
 }

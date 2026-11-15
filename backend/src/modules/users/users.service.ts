@@ -88,8 +88,8 @@ type EditableField = (typeof EDITABLE_FIELDS)[number];
 
 /** NOT NULL columns: sending null for them is a validation error. */
 const REQUIRED_FIELDS: Partial<Record<EditableField, string>> = {
-  loginEmail: 'লগইন ইমেইল',
-  notificationEmail: 'নোটিফিকেশন ইমেইল',
+  loginEmail: 'Login Email',
+  notificationEmail: 'Notification Email',
   nameBn: 'বাংলা নাম',
   nameEn: 'ইংরেজি নাম',
   designationId: 'পদবি',
@@ -495,8 +495,8 @@ export class UsersService {
         type: created
           ? NotificationType.ACCOUNT_CREATED
           : NotificationType.PASSWORD_RESET_BY_ADMIN,
-        title: created ? 'অ্যাকাউন্ট তৈরি হয়েছে' : 'পাসওয়ার্ড রিসেট',
-        body: `${DEFAULT_PASSWORD_HINT_BN} দিয়ে লগইন করুন।`,
+        title: created ? 'অ্যাকাউন্ট তৈরি হয়েছে' : 'Password রিসেট',
+        body: `${DEFAULT_PASSWORD_HINT_BN} দিয়ে Login করুন।`,
         email: (r) =>
           (created ? accountCreatedMail : adminResetNoticeMail)({
             nameBn: r.nameBn,

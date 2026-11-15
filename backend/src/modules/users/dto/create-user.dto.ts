@@ -42,8 +42,8 @@ export class CreateUserDto {
     description: 'Unique, stored lowercase',
   })
   @Transform(normalizeEmail)
-  @IsEmail({}, { message: 'সঠিক লগইন ইমেইল দিন।' })
-  @MaxLength(254, { message: 'ইমেইল খুব দীর্ঘ।' })
+  @IsEmail({}, { message: 'সঠিক Login Email দিন।' })
+  @MaxLength(254, { message: 'Email খুব দীর্ঘ।' })
   loginEmail!: string;
 
   @ApiPropertyOptional({
@@ -52,8 +52,8 @@ export class CreateUserDto {
   })
   @IsOptional()
   @Transform(normalizeEmail)
-  @IsEmail({}, { message: 'সঠিক নোটিফিকেশন ইমেইল দিন।' })
-  @MaxLength(254, { message: 'ইমেইল খুব দীর্ঘ।' })
+  @IsEmail({}, { message: 'সঠিক Notification Email দিন।' })
+  @MaxLength(254, { message: 'Email খুব দীর্ঘ।' })
   notificationEmail?: string;
 
   @ApiProperty({ example: 'মোঃ রহিম উদ্দিন' })

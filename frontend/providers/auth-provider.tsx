@@ -29,7 +29,7 @@ interface AuthState {
   reload: () => Promise<void>;
   /** POST /auth/logout, then forget every cached server answer. */
   logout: () => Promise<void>;
-  /** True after the user clicked "লগআউট" (the guard then goes to /login without ?next=). */
+  /** True after the user clicked "Logout" (the guard then goes to /login without ?next=). */
   isLoggingOut: () => boolean;
 }
 

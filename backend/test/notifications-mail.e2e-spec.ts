@@ -187,7 +187,7 @@ describe('Notifications, mail worker, email outbox (e2e)', () => {
         .set(as('alice'))
         .expect(404);
       expect((res.body as { message: string }).message).toBe(
-        'নোটিফিকেশনটি পাওয়া যায়নি।',
+        'Notification-টি পাওয়া যায়নি।',
       );
 
       const mine = (await http().get(`${API}/notifications`).set(as('alice')))

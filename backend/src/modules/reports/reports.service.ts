@@ -184,8 +184,8 @@ export class ReportsService {
         { label: 'মোট সভা', value: o.totalMeetings },
         ...statusRows(o.byStatus),
         { label: 'মোট সময় (ঘণ্টা, বাতিল ছাড়া)', value: o.totalHours },
-        { label: 'অমীমাংসিত সংঘাত', value: conflicts.pending },
-        { label: 'মীমাংসিত সংঘাত', value: conflicts.resolved },
+        { label: 'Pending সংঘাত', value: conflicts.pending },
+        { label: 'Resolved সংঘাত', value: conflicts.resolved },
       ],
       extraTables: [
         {

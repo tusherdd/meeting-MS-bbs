@@ -109,7 +109,7 @@ describe('Meetings and conflict engine (e2e)', () => {
       ['shared2', 'Statistical Officer', UserRole.OFFICER, 'দ্বিতীয় যৌথ'],
       ['outsider', 'Statistical Officer', UserRole.OFFICER, 'বাইরের কর্মকর্তা'],
       ['admin', 'Deputy Director', UserRole.ADMIN, 'প্রশাসক'],
-      ['superadmin', null, UserRole.SUPER_ADMIN, 'সুপার অ্যাডমিন'],
+      ['superadmin', null, UserRole.SUPER_ADMIN, 'Super Admin'],
     ];
     for (const [who, designation, role, nameBn] of people) {
       ids[who] = (

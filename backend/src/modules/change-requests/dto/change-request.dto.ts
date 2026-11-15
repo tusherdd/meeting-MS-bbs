@@ -37,7 +37,7 @@ export class CreateChangeRequestDto {
   )
   @Transform(normalizeEmail)
   @IsEmail({}, { message: CHANGE_REQUEST_MESSAGES.loginEmailRequired })
-  @MaxLength(254, { message: 'ইমেইল খুব দীর্ঘ।' })
+  @MaxLength(254, { message: 'Email খুব দীর্ঘ।' })
   loginEmail?: string;
 
   @ApiPropertyOptional({

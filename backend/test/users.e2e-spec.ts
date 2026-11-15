@@ -351,7 +351,7 @@ describe('Users, designations, wings (e2e)', () => {
       const mail = await latestMailTo(email('new.officer'));
       expect(mail.subject).toContain('অ্যাকাউন্ট তৈরি হয়েছে');
       expect(mail.html).toContain(email('new.officer'));
-      expect(mail.text).toContain('অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড');
+      expect(mail.text).toContain('অফিস থেকে জানানো Default Password');
       // The mail never contains the password (HTML or text), and no link token.
       expect(`${mail.html}${mail.text}`).not.toContain(DEFAULT_PASSWORD);
       expect(`${mail.html}${mail.text}`).not.toMatch(/token=/);
@@ -425,7 +425,7 @@ describe('Users, designations, wings (e2e)', () => {
       const messages = body(res).message as string[];
       expect(messages).toEqual(
         expect.arrayContaining([
-          'সঠিক লগইন ইমেইল দিন।',
+          'সঠিক Login Email দিন।',
           'সঠিক পদবি নির্বাচন করুন।',
         ]),
       );
@@ -637,7 +637,7 @@ describe('Users, designations, wings (e2e)', () => {
 
       const mail = await latestMailTo(email('officer'));
       expect(mail.subject).toContain('রিসেট');
-      expect(mail.text).toContain('অফিস থেকে জানানো ডিফল্ট পাসওয়ার্ড');
+      expect(mail.text).toContain('অফিস থেকে জানানো Default Password');
       expect(`${mail.html}${mail.text}`).not.toContain(DEFAULT_PASSWORD);
       expect(`${mail.html}${mail.text}`).not.toMatch(/token=/);
 
@@ -769,7 +769,7 @@ describe('Users, designations, wings (e2e)', () => {
     it('an inactive designation cannot be given to users', async () => {
       const inactive = (
         await ds.getRepository(Designation).insert({
-          nameBn: 'ই২ইইউ নিষ্ক্রিয়',
+          nameBn: 'ই২ইইউ Inactive',
           nameEn: 'E2EU Inactive Post',
           priority: 60,
           isActive: false,
@@ -814,7 +814,7 @@ describe('Users, designations, wings (e2e)', () => {
     });
 
     it('designation delete message is the Bangla in-use text', () => {
-      expect(DESIGNATION_MESSAGES.inUse(2)).toContain('নিষ্ক্রিয় করুন');
+      expect(DESIGNATION_MESSAGES.inUse(2)).toContain('Inactive করুন');
     });
   });
 });

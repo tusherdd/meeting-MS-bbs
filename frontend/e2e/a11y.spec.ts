@@ -53,7 +53,7 @@ test("modals keep keyboard focus inside, close with Escape and return focus", as
     await page.goto("/admin/designations");
     const opener = page
       .getByTestId("designation-table")
-      .getByRole("button", { name: /^সম্পাদনা/ })
+      .getByRole("button", { name: /^Edit/ })
       .first();
     await opener.click();
     const dialog = page.getByRole("dialog");
@@ -83,7 +83,7 @@ test("offline message, toasts and the conflict panel are announced (aria-live)",
   const page = await pageAs(browser, "officer");
   try {
     await page.goto("/dashboard");
-    await expect(page.getByRole("heading", { name: "ড্যাশবোর্ড", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
     await page.context().setOffline(true);
     await expect(page.getByRole("alert").filter({ hasText: "ইন্টারনেট সংযোগ নেই।" })).toBeVisible();
     await page.context().setOffline(false);
@@ -103,7 +103,7 @@ test("unknown page: Bangla 404 page", async ({ browser }) => {
     const res = await page.goto("/no-such-page");
     expect(res?.status()).toBe(404);
     await expect(page.getByRole("heading", { name: "পাতাটি পাওয়া যায়নি" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "ড্যাশবোর্ডে যান" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Dashboard-এ যান" })).toBeVisible();
   } finally {
     await page.context().close();
   }

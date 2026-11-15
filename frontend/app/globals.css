@@ -36,6 +36,11 @@
 
 html {
   color-scheme: light;
+  /*
+   * 17 px base (instead of 16): Times New Roman reads small at 16 px. Nikosh is enlarged
+   * separately (size-adjust in app/layout.tsx), so Bangla and English match side by side.
+   */
+  font-size: 106.25%;
 }
 
 body {

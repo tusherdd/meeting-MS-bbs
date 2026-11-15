@@ -27,8 +27,8 @@ test("bell icon: unread badge in Bangla digits, aria-label, tooltip, dropdown", 
     await apiAsPage(officer, "PATCH", "/notifications/read-all");
     await officer.goto("/dashboard");
     const bell = officer.getByTestId("notifications-button");
-    await expect(bell).toHaveAccessibleName("নোটিফিকেশন");
-    await expect(bell).toHaveAttribute("title", "নোটিফিকেশন");
+    await expect(bell).toHaveAccessibleName("Notification");
+    await expect(bell).toHaveAttribute("title", "Notification");
     await expect(bell.locator("svg[data-header-icon='bell']")).toBeVisible();
     await expect(officer.getByTestId("notifications-badge")).toHaveCount(0);
     // An icon button: no visible text inside.
@@ -48,12 +48,12 @@ test("bell icon: unread badge in Bangla digits, aria-label, tooltip, dropdown", 
 
     await officer.reload();
     await expect(officer.getByTestId("notifications-badge")).toHaveText("১");
-    await expect(bell).toHaveAccessibleName("নোটিফিকেশন, ১টি অপঠিত");
+    await expect(bell).toHaveAccessibleName("Notification, ১টি Unread");
 
-    // Clicking opens the same dropdown as before; "সব পড়া হয়েছে" clears the badge.
+    // Clicking opens the same dropdown as before; "Mark all as read" clears the badge.
     await bell.click();
     await expect(officer.getByText(meeting.title).first()).toBeVisible();
-    await officer.getByRole("button", { name: "সব পড়া হয়েছে" }).click();
+    await officer.getByRole("button", { name: "Mark all as read" }).click();
     await expect(officer.getByTestId("notifications-badge")).toHaveCount(0);
     await officer.keyboard.press("Escape");
     await expect(bell).toBeFocused();
@@ -64,7 +64,7 @@ test("bell icon: unread badge in Bangla digits, aria-label, tooltip, dropdown", 
     );
     await officer.reload();
     await expect(officer.getByTestId("notifications-badge")).toHaveText("৯+");
-    await expect(bell).toHaveAccessibleName("নোটিফিকেশন, ১২টি অপঠিত");
+    await expect(bell).toHaveAccessibleName("Notification, ১২টি Unread");
   } finally {
     if (meetingId) await cancelMeetingAs(dg, meetingId);
     await officer.context().close();
@@ -96,9 +96,9 @@ test("profile icon: name as label and tooltip, menu with name, designation and l
     const header = page.getByTestId("user-menu-header");
     await expect(header).toContainText(OFFICERS.officer.nameBn);
     await expect(header).toContainText("পরিসংখ্যান কর্মকর্তা");
-    await expect(page.getByRole("link", { name: "প্রোফাইল" }).last()).toBeVisible();
-    await expect(page.getByRole("button", { name: "লগআউট" })).toBeVisible();
-    await page.getByRole("link", { name: "পাসওয়ার্ড পরিবর্তন" }).click();
+    await expect(page.getByRole("link", { name: "Profile" }).last()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();
+    await page.getByRole("link", { name: "Password পরিবর্তন" }).click();
     await expect(page).toHaveURL(/\/change-password$/);
 
     // Phone width: both icons stay in the header, same size, next to the menu button.

@@ -248,8 +248,8 @@ export class AuthService {
         [user.id],
         {
           type: NotificationType.PASSWORD_RESET_LINK,
-          title: 'পাসওয়ার্ড রিসেট',
-          body: 'পাসওয়ার্ড রিসেটের লিংক পাঠানো হয়েছে।',
+          title: 'Password রিসেট',
+          body: 'Password রিসেটের লিংক পাঠানো হয়েছে।',
           email: (r) =>
             passwordResetMail({
               nameBn: r.nameBn,

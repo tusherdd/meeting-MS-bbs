@@ -23,8 +23,8 @@ test.describe("Login and session", () => {
     ).toHaveText(INVALID_LOGIN_MESSAGE);
     await expect(page).toHaveURL(/\/login$/);
     // The password field is emptied, the email stays.
-    await expect(page.getByLabel("পাসওয়ার্ড", { exact: true })).toHaveValue("");
-    await expect(page.getByLabel("লগইন ইমেইল")).toHaveValue(officer.loginEmail);
+    await expect(page.getByLabel("Password", { exact: true })).toHaveValue("");
+    await expect(page.getByLabel("Login Email")).toHaveValue(officer.loginEmail);
   });
 
   test("correct password opens the dashboard; no token is stored in the browser", async ({
@@ -70,11 +70,11 @@ test.describe("Login and session", () => {
       await page.goto(path);
       await expect(page).toHaveURL(new RegExp(`${path}$`));
       await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
-      await expect(page.getByText(/ডিফল্ট পাসওয়ার্ড|পাসওয়ার্ড পরিবর্তন করুন/)).toHaveCount(0);
+      await expect(page.getByText(/Default Password|Password পরিবর্তন করুন/)).toHaveCount(0);
     }
     // Changing the password stays possible voluntarily.
     await page.goto("/change-password");
-    await expect(page.getByRole("heading", { name: "পাসওয়ার্ড পরিবর্তন" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Password পরিবর্তন" })).toBeVisible();
     await expect(page.getByText("নিরাপত্তার জন্য প্রথমে")).toHaveCount(0);
     await page.context().close();
   });
@@ -95,9 +95,9 @@ test.describe("Login and session", () => {
 
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/change-password$/);
-    await expect(page.getByRole("heading", { name: "পাসওয়ার্ড পরিবর্তন" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Password পরিবর্তন" })).toBeVisible();
     await expect(
-      page.getByText("নিরাপত্তার জন্য প্রথমে আপনার পাসওয়ার্ড পরিবর্তন করুন"),
+      page.getByText("নিরাপত্তার জন্য প্রথমে আপনার Password পরিবর্তন করুন"),
     ).toBeVisible();
     // Restricted layout: no menu, no bell.
     await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toHaveCount(0);
@@ -118,7 +118,7 @@ test.describe("Login and session", () => {
     const page = await pageAs(browser, "officer");
     try {
       await page.goto("/dashboard");
-      await expect(page.getByRole("heading", { name: "ড্যাশবোর্ড", level: 1 })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
       // The session disappears (as if it expired): no cookies any more.
       await page.context().clearCookies();
       await page
@@ -127,7 +127,7 @@ test.describe("Login and session", () => {
         .click();
       await expect(page).toHaveURL(/\/login\?next=%2Freports&reason=expired$/);
       await expect(
-        page.getByText("সেশনের মেয়াদ শেষ হয়েছে। অনুগ্রহ করে আবার লগইন করুন।"),
+        page.getByText("সেশনের মেয়াদ শেষ হয়েছে। অনুগ্রহ করে আবার Login করুন।"),
       ).toBeVisible();
     } finally {
       await page.context().close();
@@ -137,7 +137,7 @@ test.describe("Login and session", () => {
   test("logout ends the session", async ({ page }) => {
     await loginThroughForm(page, "officer");
     await page.getByRole("button", { name: OFFICERS.officer.nameBn }).click();
-    await page.getByRole("button", { name: "লগআউট" }).click();
+    await page.getByRole("button", { name: "Logout" }).click();
     await expect(page).toHaveURL(/\/login$/);
 
     // The cookies are gone: the dashboard is not reachable any more.
