@@ -41,8 +41,9 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      // Pages only: not the backend proxy paths, static files or the favicon.
-      source: "/((?!api/|uploads/|_next/static|_next/image|favicon.ico).*)",
+      // Pages only: not the backend proxy paths, static files or the app icons (app/favicon.ico,
+      // app/icon.png, app/apple-icon.png — served by Next.js from the file convention).
+      source: "/((?!api/|uploads/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },
