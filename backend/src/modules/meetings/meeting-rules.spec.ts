@@ -4,6 +4,7 @@ import {
   findClashes,
   lockOrder,
   meetingPeople,
+  meetingPriority,
   overlaps,
   timeProblems,
   type CandidateMeeting,
@@ -206,5 +207,16 @@ describe('timeProblems', () => {
 describe('lockOrder', () => {
   it('sorts and deduplicates so locks are always taken in the same order', () => {
     expect(lockOrder(['c', 'a', 'b', 'a'])).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('meetingPriority (SPEC.md §6.3, v1.5: priority comes from the chair)', () => {
+  it.each([
+    ['internal chair with a higher priority', 6, { priority: 1 }, 1],
+    ['internal chair with a lower priority', 2, { priority: 7 }, 7],
+    ['internal chair with the same priority', 6, { priority: 6 }, 6],
+    ['guest chair or no chair → organizer', 6, null, 6],
+  ])('%s', (_case, organizer, chair, expected) => {
+    expect(meetingPriority(organizer, chair)).toBe(expected);
   });
 });

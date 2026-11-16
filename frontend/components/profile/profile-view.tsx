@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardBody } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { profileApi, queryKeys } from "@/lib/endpoints";
-import { formatDateTime, formatNumber } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { t } from "@/messages";
 import { ChangeRequestsSection } from "./change-requests-section";
 import { NotificationEmailSection } from "./notification-email-section";
@@ -51,11 +51,6 @@ export function ProfileView() {
                 {p.designation
                   ? `${p.designation.nameBn}${p.designationRemark ? ` (${p.designationRemark})` : ""}`
                   : t.profile.none}
-                {p.designation && (
-                  <span className="ml-2 text-xs text-slate-600">
-                    {t.profile.priority(formatNumber(p.designation.priority))}
-                  </span>
-                )}
               </dd>
             </div>
             <div>

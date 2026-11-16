@@ -65,16 +65,20 @@ test("create a meeting with the form; it shows on the dashboard, calendar and li
   await dd1.goto("/dashboard");
   await dd1.getByRole("link", { name: "নতুন সভা" }).first().click();
   await expect(dd1).toHaveURL(/\/meetings\/new$/);
-  await expect(dd1.getByTestId("meeting-priority")).toHaveText(
-    "আপনার সভার অগ্রাধিকার: ৬ (উপপরিচালক)",
-  );
+  // v1.5: no priority box and no duration buttons / Dhaka hint; the end time is typed.
+  await expect(dd1.getByTestId("meeting-priority")).toHaveCount(0);
+  await expect(dd1.getByText("সময়কাল:")).toHaveCount(0);
+  await expect(dd1.getByRole("button", { name: "৩০ মিনিট" })).toHaveCount(0);
+  await expect(dd1.getByText("সব সময় ঢাকার সময় (Asia/Dhaka) অনুযায়ী।")).toHaveCount(0);
 
   await dd1.getByLabel("সভার শিরোনাম").fill(title);
   await fillMeetingTime(dd1, dhakaDate(0), time(start), time(end));
   await dd1.getByLabel("কক্ষ", { exact: true }).fill("সম্মেলন কক্ষ");
   await addParticipant(dd1, "so");
   await expect(panel(dd1)).toHaveAttribute("data-state", "ok");
-  await expect(panel(dd1)).toContainText("কোনো সংঘাত নেই");
+  // Green panel: only the line, no bold heading (v1.5).
+  await expect(panel(dd1)).toContainText("এই সময়ে নির্বাচিত কারও অন্য কোনো সভা নেই।");
+  await expect(panel(dd1).locator("p.font-semibold")).toHaveCount(0);
 
   await submit(dd1).click();
   await expect(dd1).toHaveURL(/\/meetings\/[0-9a-f-]{36}$/);
@@ -93,6 +97,8 @@ test("create a meeting with the form; it shows on the dashboard, calendar and li
   ).toBeVisible();
 
   await dd1.goto("/meetings");
+  // Only scheduled meetings: cancelled test meetings of earlier runs must not push it to page 2.
+  await dd1.getByLabel("অবস্থা", { exact: true }).selectOption({ label: "নির্ধারিত" });
   await expect(dd1.getByRole("row").filter({ hasText: title })).toBeVisible();
 });
 
@@ -106,7 +112,7 @@ test("equal priority clash: red panel, submit disabled; a touching slot turns it
   created.push({ page: () => dd2, id: other.id });
 
   await dd1.goto("/meetings/new");
-  await dd1.getByLabel("সভার শিরোনাম").fill(uniqueTitle("সংঘাত"));
+  await dd1.getByLabel("সভার শিরোনাম").fill(uniqueTitle("ডুপ্লিকেট"));
   await fillMeetingTime(dd1, day, "10:30", "11:30");
   await addParticipant(dd1, "dd2");
 
@@ -120,7 +126,7 @@ test("equal priority clash: red panel, submit disabled; a touching slot turns it
   // 11:00–12:00 only touches 10:00–11:00 → no clash.
   await fillMeetingTime(dd1, day, "11:00", "12:00");
   await expect(panel(dd1)).toHaveAttribute("data-state", "ok");
-  await expect(panel(dd1)).toContainText("কোনো সংঘাত নেই");
+  await expect(panel(dd1)).toContainText("এই সময়ে নির্বাচিত কারও অন্য কোনো সভা নেই।");
   await expect(submit(dd1)).toBeEnabled();
   await expect(dd1.locator("[data-clash]")).toHaveCount(0);
 });
@@ -138,23 +144,29 @@ test("higher priority overrides lower: amber panel, save, lower organizer is not
   // Director General books the same hour with dd2.
   const highTitle = uniqueTitle("উচ্চ");
   await dg.goto("/meetings/new");
-  await expect(dg.getByTestId("meeting-priority")).toContainText("২ (মহাপরিচালক)");
   await dg.getByLabel("সভার শিরোনাম").fill(highTitle);
   await fillMeetingTime(dg, day, "14:00", "15:00");
   await addParticipant(dg, "dd2");
   await expect(panel(dg)).toHaveAttribute("data-state", "warn");
+  await expect(panel(dg)).toContainText("নিম্ন অগ্রাধিকারের ডুপ্লিকেট সভা আছে");
   await expect(panel(dg)).toContainText(
-    "এই সভা তৈরি হলে নিচের সভাগুলোর আয়োজকদের কাছে বাতিল/পুনর্নির্ধারণের অনুরোধ যাবে",
+    "এই সভা তৈরি হলে নিচের সভাগুলোর আয়োজক ও যৌথ কর্মকর্তাদের জানানো হবে।",
   );
   await expect(panel(dg)).toContainText("উপপরিচালক"); // organizer designation of the lower one
   await submit(dg).click();
   await expect(dg).toHaveURL(/\/meetings\/[0-9a-f-]{36}$/);
   created.push({ page: () => dg, id: meetingIdFrom(dg) });
 
-  // The lower organizer sees the notification …
+  // The lower organizer (also the shared officer) gets ONE informational notice …
   await dd2.goto("/notifications");
-  await expect(dd2.getByTestId("notification-list")).toContainText(
-    `সময় সংঘাত: আপনার সভা “${lowTitle}”`,
+  const notice = dd2
+    .getByTestId("notification-list")
+    .getByRole("listitem")
+    .filter({ hasText: `সময় কনফ্লিক্ট: ${lowTitle}` });
+  await expect(notice).toHaveCount(1);
+  await expect(notice).toContainText("মহাপরিচালক মহোদয়ের সাথে আরেকটি সভা");
+  await expect(notice).toContainText(
+    `আপনি চাইলে আপনার সভা “${lowTitle}” বাতিল করতে পারেন অথবা অন্য সিদ্ধান্ত নিতে পারেন।`,
   );
 
   // … and the conflict, and cancels the lower meeting from there.

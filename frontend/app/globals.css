@@ -34,6 +34,38 @@
   --color-brand-900: #003d2d;
 }
 
+/*
+ * WebKit (Safari and every iOS browser; data-engine is set by the root layout from the
+ * User-Agent, v1.5): NikoshBAN's য় is drawn with a detached dot there, so Bangla comes from
+ * Kohinoor Bangla (installed on every Mac / iPhone / iPad; local() = no download, nothing for the
+ * CSP) and then the bundled Noto Sans Bengali. Same unicode-range as NikoshBAN, so Latin letters
+ * and digits stay in Times New Roman. Kohinoor and Noto are drawn at normal size: no size-adjust.
+ */
+@font-face {
+  font-family: "Kohinoor Bangla Local";
+  src: local("Kohinoor Bangla"), local("KohinoorBangla-Regular");
+  font-weight: 100 500;
+  unicode-range: U+0980-09FF, U+0964-0965, U+200C-200D;
+}
+@font-face {
+  font-family: "Kohinoor Bangla Local";
+  src: local("Kohinoor Bangla Semibold"), local("KohinoorBangla-Semibold");
+  font-weight: 600;
+  unicode-range: U+0980-09FF, U+0964-0965, U+200C-200D;
+}
+@font-face {
+  font-family: "Kohinoor Bangla Local";
+  src: local("Kohinoor Bangla Bold"), local("KohinoorBangla-Bold");
+  font-weight: 700 900;
+  unicode-range: U+0980-09FF, U+0964-0965, U+200C-200D;
+}
+
+html[data-engine="webkit"] {
+  --font-sans:
+    "Kohinoor Bangla Local", var(--font-noto-bengali), "Times New Roman", Times, "Liberation Serif",
+    Tinos, serif;
+}
+
 html {
   color-scheme: light;
   /*

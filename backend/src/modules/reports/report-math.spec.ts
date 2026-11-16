@@ -29,6 +29,8 @@ function meeting(overrides: Partial<ReportMeeting> = {}): ReportMeeting {
     organizerWingId: 'w1',
     organizerWingBn: 'কম্পিউটার উইং',
     myRole: ParticipantRole.ORGANIZER,
+    chairNameBn: null,
+    guests: [],
     ...overrides,
   };
 }
@@ -82,6 +84,22 @@ describe('report math', () => {
       conflictsIRaised: 1,
       byStatus: { SCHEDULED: 0, COMPLETED: 2, CANCELLED: 1 },
     });
+  });
+
+  it('guest officers are listed only: they change no count (v1.5)', () => {
+    const plain = [meeting(), meeting({ organizerId: 'other' })];
+    const withGuests = plain.map((m) => ({
+      ...m,
+      guests: [
+        { name: 'অতিথি এক', designation: 'যুগ্মসচিব' },
+        { name: 'অতিথি দুই', designation: 'পরামর্শক' },
+      ],
+    }));
+    const conflicts = { againstMine: 0, raisedByMe: 0 };
+    expect(personalSummary(withGuests, 'me', conflicts)).toEqual(
+      personalSummary(plain, 'me', conflicts),
+    );
+    expect(officeBreakdown(withGuests)).toEqual(officeBreakdown(plain));
   });
 
   it('empty period gives zeros, not errors', () => {

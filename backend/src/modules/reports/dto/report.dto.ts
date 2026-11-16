@@ -112,6 +112,12 @@ export class DayCountDto {
   @ApiProperty({ example: 3.5 }) hours!: number;
 }
 
+export class ReportGuestDto {
+  @ApiProperty({ example: 'ড. ফারহানা ইসলাম' }) name!: string;
+  @ApiProperty({ example: 'যুগ্মসচিব, পরিকল্পনা মন্ত্রণালয়' })
+  designation!: string;
+}
+
 export class ReportMeetingDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'বার্ষিক উন্নয়ন কর্মসূচি পর্যালোচনা সভা' })
@@ -130,6 +136,18 @@ export class ReportMeetingDto {
     description: 'Personal report only',
   })
   myRole!: ParticipantRole | null;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'মোঃ ফিরোজ সরকার',
+    description: 'Chair: the internal chair, else the guest chair',
+  })
+  chairNameBn!: string | null;
+  @ApiProperty({
+    type: [ReportGuestDto],
+    description: 'Guest officers (listed only, never counted)',
+  })
+  guests!: ReportGuestDto[];
 }
 
 export class ReportMeetingPageDto {

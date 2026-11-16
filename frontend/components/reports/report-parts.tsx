@@ -173,6 +173,7 @@ export function ReportMeetingsTable({
           <Th>{t.meeting.title}</Th>
           <Th>{t.meeting.room}</Th>
           <Th>{t.reports.organizer}</Th>
+          <Th>{t.reports.chair}</Th>
           {showMyRole && <Th>{t.meeting.role}</Th>}
           <Th>{t.meeting.statusLabel}</Th>
         </tr>
@@ -195,6 +196,13 @@ export function ReportMeetingsTable({
               >
                 {m.title}
               </Link>
+              {m.guests.length > 0 && (
+                // Guest officers are listed under the meeting only; they are never counted.
+                <p className="mt-1 text-xs text-slate-600" data-testid="report-guests">
+                  <span className="font-semibold">{t.reports.guests}:</span>{" "}
+                  {m.guests.map((g) => `${g.name} — ${g.designation}`).join("; ")}
+                </p>
+              )}
             </Td>
             <Td>{m.room ?? <span className="text-slate-500">{t.meeting.noRoom}</span>}</Td>
             <Td>
@@ -203,6 +211,7 @@ export function ReportMeetingsTable({
                 <span className="block text-xs text-slate-600">{m.organizerDesignationBn}</span>
               )}
             </Td>
+            <Td>{m.chairNameBn ?? "—"}</Td>
             {showMyRole && (
               <Td>
                 <RoleBadge role={m.myRole} />

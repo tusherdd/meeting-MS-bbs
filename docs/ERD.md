@@ -2,7 +2,7 @@
 
 Source of truth: the TypeORM entities in `backend/src/modules/*/entities/` and **all** migrations in
 `backend/src/database/migrations/` (list at the end). Business rules: [`SPEC.md`](../SPEC.md) §6–7.
-Last checked against the code: 2026-11-13 (v1.0).
+Last checked against the code: 2026-11-16 (v1.5).
 
 Every table also has `id uuid PK DEFAULT gen_random_uuid()`, `createdAt timestamptz` and
 `updatedAt timestamptz` (left out of the boxes below to keep the diagram readable).
@@ -25,6 +25,7 @@ erDiagram
     users ||--o{ meetings : "organizes (RESTRICT)"
     users |o--o{ meetings : "chairs (SET NULL)"
     meetings ||--o{ meeting_participants : "has (CASCADE)"
+    meetings ||--o{ meeting_guests : "guest officers (CASCADE)"
     users ||--o{ meeting_participants : "attends (RESTRICT)"
 
     meetings ||--o{ meeting_conflicts : "higher (CASCADE)"
@@ -111,7 +112,7 @@ erDiagram
         varchar onlineLink
         uuid organizerId FK
         uuid chairId FK "nullable"
-        int priority "snapshot at creation"
+        int priority "snapshot: internal chair's, else organizer's"
         varchar status "SCHEDULED | CANCELLED | COMPLETED"
         text cancelReason
         text notes
@@ -122,6 +123,13 @@ erDiagram
         uuid meetingId FK "UK with userId"
         uuid userId FK "indexed"
         varchar role "ORGANIZER | CHAIR | MEMBER"
+    }
+    meeting_guests {
+        uuid meetingId FK "indexed; UK with lower(email)"
+        varchar name
+        varchar designation
+        varchar email "lowercased; CHECK"
+        boolean isChair "at most one per meeting"
     }
     meeting_conflicts {
         uuid higherMeetingId FK "indexed"
@@ -172,6 +180,10 @@ erDiagram
 | meetings | `IDX_meetings_startAt_endAt_status` | overlap search in the conflict engine, date-range lists |
 | meeting_participants | `UQ_meeting_participants_meetingId_userId` (unique) | an officer is in a meeting at most once |
 | meeting_participants | `IDX_meeting_participants_userId` | "which meetings is this officer in?" |
+| meeting_guests | `UQ_meeting_guests_meetingId_email` (unique on `meetingId, lower(email)`) | one guest officer per address per meeting |
+| meeting_guests | `UQ_meeting_guests_one_chair` (unique on `meetingId` where `isChair`) | at most one guest chair |
+| meeting_guests | `IDX_meeting_guests_meetingId`, `CHK_meeting_guests_email_lowercase` (check) | guests of a meeting; emails stored lowercased |
+| meetings + meeting_guests | `TRG_meeting_single_chair_meetings` / `_guests` (deferred constraint triggers) | a meeting never has an officer chair (`meetings.chairId`) and a guest chair at once |
 | meeting_conflicts | `IDX_meeting_conflicts_higherMeetingId`, `IDX_meeting_conflicts_lowerMeetingId` | conflicts of a meeting (detail page, auto-resolve) |
 | meeting_conflicts | `IDX_meeting_conflicts_userId_status` | "my pending conflicts" |
 | notifications | `IDX_notifications_userId_readAt` | bell list and unread count |
@@ -185,7 +197,7 @@ erDiagram
   `RESTRICT` (organizer, participant, shared officer, change-request owner, audit actor);
   optional references use `SET NULL` (chair, reviewer, replaced token).
 - Data owned by a user goes with the user: additional charges, tokens, notifications (`CASCADE`).
-- Data owned by a meeting goes with the meeting: participants, conflicts (`CASCADE`).
+- Data owned by a meeting goes with the meeting: participants, guest officers, conflicts (`CASCADE`).
 - A designation or wing cannot be deleted while any user uses it (`RESTRICT`).
 
 ## Migrations (in order)
@@ -199,6 +211,8 @@ erDiagram
 | `1794205166989-MailOutboxAndTokenPurpose` | `password_reset_tokens.purpose`; `email_outbox.text`; `html` nullable (bodies are purged after sending) |
 | `1794214531030-MeetingConflictIndexes` | indexes on `meeting_conflicts` |
 | `1794300000000-UserPasswordIsDefault` | `users.passwordIsDefault` (default officer password, owner decision 2026-11-09) |
+| `1794400000000-NormalizeBanglaNukta` | Bangla nukta letters in the stored form in every text column |
+| `1794802927549-MeetingGuests` | `meeting_guests` (guest officers, v1.5) with its unique indexes, email check and the one-chair triggers |
 
 Schema changes are made only through migrations (`synchronize` is always `false`):
 `npm run migration:generate -- src/database/migrations/<Name>`, then `npm run migration:run`.

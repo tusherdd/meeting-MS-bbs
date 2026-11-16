@@ -8,6 +8,7 @@ import { RefreshToken } from '../modules/auth/entities/refresh-token.entity';
 import { ChangeRequest } from '../modules/change-requests/entities/change-request.entity';
 import { Designation } from '../modules/designations/entities/designation.entity';
 import { EmailOutbox } from '../modules/mail/entities/email-outbox.entity';
+import { MeetingGuest } from '../modules/meetings/entities/meeting-guest.entity';
 import { MeetingConflict } from '../modules/meetings/entities/meeting-conflict.entity';
 import { MeetingParticipant } from '../modules/meetings/entities/meeting-participant.entity';
 import { Meeting } from '../modules/meetings/entities/meeting.entity';
@@ -27,6 +28,7 @@ export const ENTITIES = [
   Meeting,
   MeetingParticipant,
   MeetingConflict,
+  MeetingGuest,
   Notification,
   EmailOutbox,
   AuditLog,

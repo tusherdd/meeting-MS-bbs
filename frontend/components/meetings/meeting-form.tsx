@@ -14,14 +14,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import { isApiError } from "@/lib/api";
 import { meetingsApi } from "@/lib/endpoints";
-import { formatNumber } from "@/lib/format";
 import { invalidateMeetingData } from "@/lib/invalidate";
-import { addMinutesToTime, fromIso, toIso } from "@/lib/meeting-time";
+import { fromIso, toIso } from "@/lib/meeting-time";
 import { meetingFormSchema, type MeetingFormValues } from "@/lib/schemas";
 import type { Clash, MeetingDetail } from "@/lib/types";
 import { t } from "@/messages";
 import { useCurrentUser } from "@/providers/auth-provider";
 import { ConflictPanel } from "./conflict-panel";
+import {
+  GUEST_CHAIR_PREFIX,
+  GuestOfficers,
+  guestChairValue,
+  type GuestEntry,
+} from "./guest-officers";
 import { ParticipantPicker } from "./participant-picker";
 import { fromParticipant, type SelectedPerson } from "./people";
 import { clashingOfficerIds, useConflictCheck } from "./use-conflict-check";
@@ -32,12 +37,6 @@ interface Props {
   /** New meeting: prefilled Dhaka date and times (from the calendar or defaults). */
   initialSlot?: { date: string; start: string; end: string };
 }
-
-const DURATIONS = [
-  { minutes: 30, label: t.meetingForm.d30 },
-  { minutes: 60, label: t.meetingForm.d60 },
-  { minutes: 120, label: t.meetingForm.d120 },
-];
 
 function initialValues(meeting?: MeetingDetail, slot?: Props["initialSlot"]): MeetingFormValues {
   if (meeting) {
@@ -50,7 +49,12 @@ function initialValues(meeting?: MeetingDetail, slot?: Props["initialSlot"]): Me
       endTime: fromIso(meeting.endAt).time,
       room: meeting.room ?? "",
       onlineLink: meeting.onlineLink ?? "",
-      chairId: meeting.chair?.id ?? "",
+      // The chair select holds an officer id, or "guest:<email>" for a guest chair.
+      chairId:
+        meeting.chair?.id ??
+        (meeting.guests.find((g) => g.isChair)
+          ? guestChairValue(meeting.guests.find((g) => g.isChair)!.email)
+          : ""),
     };
   }
   return {
@@ -82,6 +86,13 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
   const [people, setPeople] = useState<SelectedPerson[]>(() =>
     (meeting?.participants ?? []).filter((p) => p.id !== organizer.id).map(fromParticipant),
   );
+  const [guests, setGuests] = useState<GuestEntry[]>(() =>
+    (meeting?.guests ?? []).map((g) => ({
+      name: g.name,
+      designation: g.designation,
+      email: g.email,
+    })),
+  );
 
   const [date, startTime, endTime, chairId] = useWatch({
     control: form.control,
@@ -91,18 +102,16 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
   const endAt = toIso(date, endTime);
   const participantIds = useMemo(() => people.map((p) => p.id), [people]);
 
-  // Priority shown before saving: my designation now (new) or the stored snapshot (edit).
-  const priority = isEdit ? meeting.priority : me.priority;
-  const priorityDesignation = isEdit
-    ? (meeting.organizer.designation?.nameBn ?? "")
-    : (me.designation?.nameBn ?? "");
-  const cannotOrganize = !isEdit && priority === null;
+  // Priority numbers are never shown (v1.5); a SUPER_ADMIN (no designation) cannot organize.
+  const cannotOrganize = !isEdit && me.priority === null;
+  // Only an officer chair counts for the conflict check (a guest chair gives the organizer's priority).
+  const officerChairId = chairId && !chairId.startsWith(GUEST_CHAIR_PREFIX) ? chairId : null;
 
   const check = useConflictCheck({
     startAt,
     endAt,
     participantIds,
-    chairId: chairId || null,
+    chairId: officerChairId,
     meetingId: meeting?.id,
     enabled: !cannotOrganize,
   });
@@ -118,8 +127,13 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
         agenda: values.agenda.trim() || null,
         room: values.room.trim() || null,
         onlineLink: values.onlineLink.trim() || null,
-        chairId: values.chairId || null,
+        chairId:
+          values.chairId && !values.chairId.startsWith(GUEST_CHAIR_PREFIX) ? values.chairId : null,
         participantIds,
+        guests: guests.map((g) => ({
+          ...g,
+          isChair: values.chairId === guestChairValue(g.email),
+        })),
       };
       if (!meeting) return meetingsApi.create({ ...common, startAt: start, endAt: end });
       // Unchanged times are not sent (a meeting that already started may still be edited).
@@ -147,16 +161,26 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
     save.isError &&
     !(isApiError(save.error) && save.error.status === 409 && save.error.body?.blocking);
 
-  function setDuration(minutes: number) {
-    if (!startTime) return;
-    form.setValue("endTime", addMinutesToTime(startTime, minutes), { shouldValidate: true });
-  }
-
-  // The chair is chosen from the people of the meeting (organizer + selected).
+  // The chair is chosen from the people of the meeting (organizer + selected) or the guests.
   const chairOptions = [
     { value: organizer.id, label: t.meetingForm.organizerOption(organizer.nameBn) },
     ...people.map((p) => ({ value: p.id, label: p.nameBn })),
+    ...guests.map((g) => ({
+      value: guestChairValue(g.email),
+      label: t.meetingForm.guestOption(g.name),
+    })),
   ];
+
+  function onGuestsChange(next: GuestEntry[]) {
+    setGuests(next);
+    const chair = form.getValues("chairId");
+    if (
+      chair.startsWith(GUEST_CHAIR_PREFIX) &&
+      !next.some((g) => guestChairValue(g.email) === chair)
+    ) {
+      form.setValue("chairId", ""); // the guest who chaired was removed
+    }
+  }
 
   function onPeopleChange(next: SelectedPerson[]) {
     setPeople(next);
@@ -172,18 +196,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
         {isEdit ? t.meetingForm.editTitle : t.meetingForm.newTitle}
       </h1>
 
-      {cannotOrganize ? (
-        <Alert tone="error">{t.meetingForm.noDesignation}</Alert>
-      ) : (
-        <Alert tone="info" className="flex flex-col gap-0.5">
-          <p className="font-semibold" data-testid="meeting-priority">
-            {isEdit
-              ? t.meetingForm.priorityStored(formatNumber(priority ?? 0), priorityDesignation)
-              : t.meetingForm.priorityMine(formatNumber(priority ?? 0), priorityDesignation)}
-          </p>
-          <p className="text-xs">{t.meetingForm.priorityHint}</p>
-        </Alert>
-      )}
+      {cannotOrganize && <Alert tone="error">{t.meetingForm.noDesignation}</Alert>}
 
       <form
         noValidate
@@ -236,21 +249,6 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                   {...form.register("endTime")}
                 />
               </div>
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="text-slate-600">{t.meetingForm.duration}</span>
-                {DURATIONS.map((d) => (
-                  <Button
-                    key={d.minutes}
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setDuration(d.minutes)}
-                    disabled={!startTime}
-                  >
-                    {d.label}
-                  </Button>
-                ))}
-                <span className="text-xs text-slate-500">{t.meetingForm.timeHint}</span>
-              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input
                   id="room"
@@ -282,6 +280,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                 organizerId={organizer.id}
                 clashingIds={clashing}
               />
+              <GuestOfficers guests={guests} onChange={onGuestsChange} />
               <Select
                 id="chairId"
                 label={t.meetingForm.chair}

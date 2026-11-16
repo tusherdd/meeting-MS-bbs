@@ -55,7 +55,9 @@ test("modals keep keyboard focus inside, close with Escape and return focus", as
       .getByTestId("designation-table")
       .getByRole("button", { name: /^Edit/ })
       .first();
-    await opener.click();
+    // Keyboard user: focus the button and press Enter (Safari never focuses a button on click).
+    await opener.focus();
+    await page.keyboard.press("Enter");
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
 

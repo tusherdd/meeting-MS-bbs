@@ -19,6 +19,18 @@ export function meetingPeople(
   ];
 }
 
+/**
+ * Meeting priority snapshot (SPEC.md §6.3, v1.5): an internal chair gives the meeting the
+ * chair's designation priority; a guest chair or no chair leaves the organizer's.
+ * `chair` is the internal chair (null when the chair is a guest officer or there is none).
+ */
+export function meetingPriority(
+  organizerPriority: number,
+  chair: { priority: number } | null,
+): number {
+  return chair ? chair.priority : organizerPriority;
+}
+
 export interface TimeRange {
   startAt: Date;
   endAt: Date;

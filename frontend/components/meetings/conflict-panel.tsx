@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
-import { formatDate, formatNumber, formatTimeRange } from "@/lib/format";
+import { formatDate, formatTimeRange } from "@/lib/format";
 import type { Clash } from "@/lib/types";
 import { t } from "@/messages";
 import type { ConflictCheckState } from "./use-conflict-check";
@@ -29,11 +29,6 @@ function ClashList({ clashes, blocking }: { clashes: Clash[]; blocking: boolean 
           ) : (
             <p>
               {t.conflictPanel.organizerDesignation} {c.organizer.designation ?? "—"}
-            </p>
-          )}
-          {blocking && (
-            <p>
-              {t.conflictPanel.priority} {formatNumber(c.priority)}
             </p>
           )}
           <p>
@@ -75,8 +70,7 @@ export function ConflictPanel({ state }: { state: ConflictCheckState }) {
       )}
       {state.kind === "ok" && (
         <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-brand-900">
-          <p className="flex items-center gap-2 font-semibold">{t.conflictPanel.ok}</p>
-          <p className="mt-1 text-sm">{t.conflictPanel.okBody}</p>
+          <p className="text-sm">{t.conflictPanel.okBody}</p>
         </div>
       )}
       {state.kind === "warn" && (

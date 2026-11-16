@@ -37,10 +37,10 @@ describe('toErrorBody', () => {
   });
 
   it('keeps an object message payload such as a conflict list', () => {
-    const body = toErrorBody(new ConflictException('সময় সংঘাত আছে'), true);
+    const body = toErrorBody(new ConflictException('সময় কনফ্লিক্ট আছে'), true);
     expect(body).toEqual({
       statusCode: 409,
-      message: 'সময় সংঘাত আছে',
+      message: 'সময় কনফ্লিক্ট আছে',
       error: 'Conflict',
     });
   });
@@ -98,12 +98,12 @@ describe('toErrorBody', () => {
 
   it('keeps structured details of a 4xx (e.g. meeting 409 blocking list)', () => {
     const ex = new ConflictException({
-      message: 'সংঘাত',
+      message: 'ডুপ্লিকেট সভা',
       blocking: [{ meetingId: 'm1' }],
     });
     expect(toErrorBody(ex, true)).toEqual({
       statusCode: 409,
-      message: 'সংঘাত',
+      message: 'ডুপ্লিকেট সভা',
       error: 'Conflict',
       blocking: [{ meetingId: 'm1' }],
     });

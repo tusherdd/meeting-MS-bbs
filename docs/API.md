@@ -86,10 +86,10 @@ Errors always have the shape `{ statusCode, message, error, requestId }` (Bangla
 |---|---|---|---|---|---|
 | GET | `/meetings/today` | 👤 | My meetings today (Asia/Dhaka day), ordered by start — dashboard default | — | 200 |
 | GET | `/meetings` | 👤 | My meetings by range | `page` (query), `limit` (query), `from` (query), `to` (query), `status` (query), `role` (query), `scope` (query) | 200, 403 |
-| POST | `/meetings` | 👤 | Create a meeting (you are the organizer; priority = your designation priority now) | `title`*, `agenda`, `startAt`*, `endAt`*, `room`, `onlineLink`, `chairId`, `participantIds` | 201, 400, 403, 409 |
-| POST | `/meetings/check-conflicts` | 👤 | Dry run of the conflict engine (nothing is saved) | `title`*, `agenda`, `startAt`*, `endAt`*, `room`, `onlineLink`, `chairId`, `participantIds`, `meetingId` | 200, 400 |
+| POST | `/meetings` | 👤 | Create a meeting (you are the organizer; priority = your designation priority now) | `title`*, `agenda`, `startAt`*, `endAt`*, `room`, `onlineLink`, `chairId`, `participantIds`, `guests` | 201, 400, 403, 409 |
+| POST | `/meetings/check-conflicts` | 👤 | Dry run of the conflict engine (nothing is saved) | `title`*, `agenda`, `startAt`*, `endAt`*, `room`, `onlineLink`, `chairId`, `participantIds`, `guests`, `meetingId` | 200, 400 |
 | GET | `/meetings/:id` | 👤 | Meeting detail with people, chair and conflicts (its people and admins only) | — | 200, 404 |
-| PATCH | `/meetings/:id` | 👤 | Update (organizer or ADMIN; not after the meeting ended) | `title`, `agenda`, `startAt`, `endAt`, `room`, `onlineLink`, `chairId`, `participantIds` | 200, 403, 404, 409 |
+| PATCH | `/meetings/:id` | 👤 | Update (organizer or ADMIN; not after the meeting ended) | `title`, `agenda`, `startAt`, `endAt`, `room`, `onlineLink`, `chairId`, `participantIds`, `guests` | 200, 403, 404, 409 |
 | DELETE | `/meetings/:id` | 🛡 | Hard delete (ADMIN); participants and conflicts are deleted too | — | 204, 403, 404 |
 | POST | `/meetings/:id/cancel` | 👤 | Cancel with a reason (organizer or ADMIN); resolves its conflicts | `reason`* | 200, 403, 404, 409 |
 | POST | `/meetings/:id/complete` | 👤 | Mark completed and save notes/minutes (after the start; organizer or ADMIN) | `notes` | 200, 403, 409 |

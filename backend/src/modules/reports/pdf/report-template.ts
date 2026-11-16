@@ -125,6 +125,32 @@ export interface ExtraTable {
   rows: Cell[][];
 }
 
+interface MeetingRow {
+  cells: Cell[];
+  guests: ReadonlyArray<{ name: string; designation: string }>;
+}
+
+/** Guest officer label (v1.5, SPEC.md §6.7). */
+export const GUESTS_LABEL_BN = 'অতিথি কর্মকর্তা';
+
+/**
+ * The meeting list: one row per meeting; a meeting with guest officers gets a second row under
+ * it, across all columns: "অতিথি কর্মকর্তা: name — designation; …" (user text, unchanged).
+ */
+function meetingTable(headers: string[], rows: MeetingRow[]): string {
+  if (rows.length === 0) return '<p class="empty">কোনো তথ্য নেই।</p>';
+  return `<table><thead><tr>${headers.map((h) => `<th>${e(h)}</th>`).join('')}</tr></thead><tbody>${rows
+    .map((r) => {
+      const main = `<tr>${r.cells.map((c) => `<td>${cell(c)}</td>`).join('')}</tr>`;
+      if (r.guests.length === 0) return main;
+      const list = r.guests
+        .map((g) => `${e(g.name)} — ${e(g.designation)}`)
+        .join('; ');
+      return `${main}<tr class="guests"><td colspan="${headers.length}"><b>${e(GUESTS_LABEL_BN)}:</b> ${list}</td></tr>`;
+    })
+    .join('')}</tbody></table>`;
+}
+
 function table(headers: string[], rows: Cell[][]): string {
   if (rows.length === 0) return '<p class="empty">কোনো তথ্য নেই।</p>';
   return `<table><thead><tr>${headers.map((h) => `<th>${e(h)}</th>`).join('')}</tr></thead><tbody>${rows
@@ -155,15 +181,28 @@ export function renderReportHtml(input: {
   totalMeetings: number;
 }): string {
   const { header } = input;
-  const meetingRows: Cell[][] = input.meetings.map((m) => [
-    // System-generated time range (already Bangla); title, room and names are user text.
-    sys(formatDhakaRange(m.startAt, m.endAt)),
-    m.title,
-    m.room ?? '—',
-    `${m.organizerNameBn}${m.organizerDesignationBn ? ` (${m.organizerDesignationBn})` : ''}`,
-    ...(input.showMyRole ? [m.myRole ? ROLE_BN[m.myRole] : '—'] : []),
-    STATUS_BN[m.status] ?? m.status,
-  ]);
+  const meetingHeaders = [
+    'সময়',
+    'শিরোনাম',
+    'স্থান',
+    'আয়োজক',
+    'সভাপতি',
+    ...(input.showMyRole ? ['আমার ভূমিকা'] : []),
+    'অবস্থা',
+  ];
+  const meetingRows: MeetingRow[] = input.meetings.map((m) => ({
+    cells: [
+      // System-generated time range (already Bangla); title, room and names are user text.
+      sys(formatDhakaRange(m.startAt, m.endAt)),
+      m.title,
+      m.room ?? '—',
+      `${m.organizerNameBn}${m.organizerDesignationBn ? ` (${m.organizerDesignationBn})` : ''}`,
+      m.chairNameBn ?? '—',
+      ...(input.showMyRole ? [m.myRole ? ROLE_BN[m.myRole] : '—'] : []),
+      STATUS_BN[m.status] ?? m.status,
+    ],
+    guests: m.guests,
+  }));
   const capped =
     input.meetings.length < input.totalMeetings
       ? `<p class="note">প্রথম ${num(input.meetings.length)}টি সভা দেখানো হয়েছে (মোট ${num(input.totalMeetings)}টি)।</p>`
@@ -198,6 +237,7 @@ th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; vertical-al
 th { background: #eef6f2; font-weight: 700; }
 .summary td:last-child { text-align: right; font-weight: 700; width: 25%; }
 .empty, .note { color: #666; font-size: 10pt; }
+tr.guests td { font-size: 10pt; background: #fafafa; }
 </style></head>
 <body>
 <header>
@@ -218,16 +258,6 @@ ${input.extraTables.map((t) => `<h2>${e(t.title)}</h2>${table(t.headers, t.rows)
 
 <h2>সভার তালিকা</h2>
 ${capped}
-${table(
-  [
-    'সময়',
-    'শিরোনাম',
-    'স্থান',
-    'আয়োজক',
-    ...(input.showMyRole ? ['আমার ভূমিকা'] : []),
-    'অবস্থা',
-  ],
-  meetingRows,
-)}
+${meetingTable(meetingHeaders, meetingRows)}
 </body></html>`;
 }

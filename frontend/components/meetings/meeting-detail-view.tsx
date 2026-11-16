@@ -62,8 +62,7 @@ function ConflictList({ title, items }: { title: string; items: MeetingConflict[
               </Badge>
             </div>
             <p className="text-slate-600">
-              {formatDateTime(c.otherMeeting.startAt)} · {t.meetingDetail.priority}{" "}
-              {formatNumber(c.otherMeeting.priority)}
+              {formatDateTime(c.otherMeeting.startAt)}
               {c.otherMeeting.organizerDesignation && ` · ${c.otherMeeting.organizerDesignation}`}
             </p>
             <p className="text-slate-600">
@@ -80,6 +79,7 @@ function Detail({ meeting }: { meeting: MeetingDetail }) {
   const overrides = meeting.conflicts.filter((c) => c.relation === "HIGHER");
   const overriddenBy = meeting.conflicts.filter((c) => c.relation === "LOWER");
   const hasPending = meeting.conflicts.some((c) => c.status === "PENDING");
+  const guestChair = meeting.guests.find((g) => g.isChair);
 
   return (
     <div className="space-y-6">
@@ -126,9 +126,12 @@ function Detail({ meeting }: { meeting: MeetingDetail }) {
                 </Row>
                 <Row label={t.meetingDetail.organizer}>{personLine(meeting.organizer)}</Row>
                 <Row label={t.meetingDetail.chair}>
-                  {meeting.chair ? personLine(meeting.chair) : "—"}
+                  {meeting.chair
+                    ? personLine(meeting.chair)
+                    : guestChair
+                      ? `${guestChair.name}, ${guestChair.designation} (${t.meetingDetail.guestTag})`
+                      : "—"}
                 </Row>
-                <Row label={t.meetingDetail.priority}>{formatNumber(meeting.priority)}</Row>
                 {meeting.cancelReason && (
                   <Row label={t.meetingDetail.cancelReason}>{meeting.cancelReason}</Row>
                 )}
@@ -188,6 +191,30 @@ function Detail({ meeting }: { meeting: MeetingDetail }) {
               </li>
             ))}
           </ul>
+          {meeting.guests.length > 0 && (
+            <>
+              <CardHeader
+                className="border-t border-slate-200"
+                title={`${t.meetingDetail.guests} (${formatNumber(meeting.guests.length)})`}
+              />
+              <ul className="divide-y divide-slate-100" data-testid="meeting-guests">
+                {meeting.guests.map((g) => (
+                  <li
+                    key={g.id}
+                    className="flex items-start justify-between gap-3 px-4 py-2.5 sm:px-5"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-900">{g.name}</p>
+                      <p className="text-xs break-words text-slate-500">
+                        {g.designation} · {g.email}
+                      </p>
+                    </div>
+                    {g.isChair && <RoleBadge role="CHAIR" />}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </Card>
       </div>
     </div>

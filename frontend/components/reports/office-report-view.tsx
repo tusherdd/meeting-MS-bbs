@@ -210,7 +210,6 @@ function DesignationTable({ rows }: { rows: DesignationCount[] }) {
       head={
         <>
           <Th>{t.reports.colDesignation}</Th>
-          <Th>{t.reports.colPriority}</Th>
           <Th>{t.reports.colMeetings}</Th>
           <Th>{t.reports.colHours}</Th>
         </>
@@ -219,7 +218,6 @@ function DesignationTable({ rows }: { rows: DesignationCount[] }) {
       {rows.map((r) => (
         <Tr key={r.id ?? "none"}>
           <Td>{r.nameBn}</Td>
-          <Td>{r.priority === null ? t.profile.none : formatNumber(r.priority)}</Td>
           <Td>{formatNumber(r.meetings)}</Td>
           <Td>{formatNumber(r.hours)}</Td>
         </Tr>

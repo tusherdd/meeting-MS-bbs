@@ -9,9 +9,10 @@
 ## 1. Goal
 
 An office-wide web application where every officer can create and manage meetings.
-Meetings carry a **priority taken from the organizer's designation**. A higher-priority
-meeting is never blocked by a conflict; instead the organizers and officers of the
-lower-priority meetings that clash are notified to cancel or reschedule.
+Meetings carry a **priority taken from the chair's designation** (the organizer's when the chair is
+a guest officer or there is none, v1.5). A higher-priority meeting is never blocked by a conflict;
+instead the organizers and shared officers of the lower-priority meetings that clash are informed
+and may cancel or decide otherwise.
 Every officer has a personal dashboard with today / weekly / monthly / yearly reports,
 downloadable as PDF.
 
@@ -112,6 +113,11 @@ Controllers stay thin; business rules live in services. Every endpoint has Swagg
 - "(ভারপ্রাপ্ত)" / "(চলতি দায়িত্ব)" / "(in charge)" / "(current charge)" are stored as a free-text
   `designationRemark` on the user. They do **not** change priority.
 - Roles such as "Focal Point Officer" are additional charges, not designations.
+- **Priority numbers are never shown (v1.5, owner decision 2026-11-16)** in the UI, mails, bell
+  notifications or PDFs — not on the profile, in designation selects (profile change request, admin
+  user form, admin change requests), the meeting form / detail, the ডুপ্লিকেট সভা pages and panels or
+  the office report. The ONLY place a priority is shown and edited is Admin → "পদবি ও অগ্রাধিকার".
+  The API still returns priorities (the logic is unchanged). Test: `e2e/priority-hidden.spec.ts`.
 
 Initial seed (final list approved by the owner; admins can still change it later from the admin panel):
 
@@ -162,11 +168,22 @@ On re-run, the seed updates the priority of an existing designation to match thi
 
 ### 6.3 Meetings
 - Fields: title, agenda (text), start, end, room (free text, typed manually), optional online link,
-  organizer (creator), optional chairperson, participants (officers), notes/minutes, status.
+  organizer (creator), optional chairperson (an officer OR one guest officer, §6.7), participants
+  (officers), guest officers (§6.7), notes/minutes, status.
 - Status: `SCHEDULED`, `CANCELLED`, `COMPLETED`. Only `SCHEDULED` meetings take part in conflict checks.
-- `meeting.priority` = organizer's designation priority **at the time of creation** (snapshot, stored on the meeting).
+- **Meeting priority comes from the chair (v1.5, owner decision 2026-11-16)** — `meeting.priority` is a
+  snapshot stored on the meeting (`meeting-rules.ts` `meetingPriority()`):
+  - the chair is an internal officer → the chair's designation priority (higher or lower than the organizer's);
+  - the chair is a guest officer, or there is no chair → the organizer's designation priority.
+  - Taken on create; taken again on edit **only when the internal chair changes** (then the conflict check
+    re-runs with the new priority, even if time and people are the same). Otherwise it stays a snapshot
+    (later designation changes do not touch it). Meetings created before v1.5 were **not** backfilled.
+  - When an internal officer other than the organizer becomes chair (create or edit), that chair gets a
+    separate bell + mail notice (`MEETING_CHAIR_ASSIGNED`): "আপনাকে “[শিরোনাম]” সভার সভাপতি করা হয়েছে,
+    তাই সভাটি আপনার পদবির অগ্রাধিকার পেয়েছে। ([তারিখ, সময়])" — no number. Audit entry
+    `MEETING_CHAIR_PRIORITY_APPLIED` (actor, meeting, before `{priority}`, after `{chairId, priority}`).
 - Every officer creates their own meetings. There is **no "on behalf of" option**: nobody can create a meeting
-  for someone else or borrow another officer's priority. The chairperson does not affect priority.
+  for someone else. Choosing a chair is how a meeting gets a higher (or lower) priority.
 - Only the organizer or an admin can edit, cancel or complete a meeting.
 - `end` must be after `start`. Meetings cannot be created in the past.
 - Room is **not** checked for conflicts.
@@ -185,10 +202,19 @@ meeting **E** that shares at least one officer:
 
 | Case | Result |
 |---|---|
-| `p < E.priority` (N is higher) | N is saved. A `meeting_conflicts` row is created (status `PENDING`). E's organizer **and** each shared officer get a bell notification + email asking E to be cancelled or rescheduled. |
+| `p < E.priority` (N is higher) | N is saved. A `meeting_conflicts` row is created (status `PENDING`). E's organizer **and** each shared officer get an **informational** bell notification + email (v1.5, not a cancel request; see below). |
 | `p >= E.priority` (equal or lower) | N is **blocked**. API returns `409 Conflict` with the list of clashing meetings and officers. Nothing is saved. |
 
 - If any clash is blocking, the whole request is rejected (even if other clashes would be allowed).
+- **Conflict notice (v1.5):** the same message to E's organizer and to each newly affected shared officer,
+  once per person (someone who is both gets one): title "সময় কনফ্লিক্ট: [E-এর শিরোনাম]", body
+  "সময় কনফ্লিক্ট: একই সময়ে [শেয়ার্ড ব্যক্তির নাম]-এর [পদবি] মহোদয়ের সাথে আরেকটি সভা আছে ([তারিখ, সময়])।
+  আপনি চাইলে আপনার সভা “[E-এর শিরোনাম]” বাতিল করতে পারেন অথবা অন্য সিদ্ধান্ত নিতে পারেন।"
+  [পদবি] = designation of N's internal chair, else N's organizer. A shared officer reads "আপনার" (or
+  "আপনার ও [নাম]-এর") and, when not E's organizer, "… সভাটি বাতিলের জন্য আয়োজককে বলতে পারেন …". N's title
+  appears as "আরেকটি সভা (“…”)" only for people invited to N. The conflict stays PENDING until it
+  resolves by itself; cancel / reschedule stay on the ডুপ্লিকেট সভা page. Guest officers are never part of
+  the check and never get this notice.
 - `POST /meetings/check-conflicts` runs the same logic without saving (used by the form to warn live).
 - A pending conflict is marked `RESOLVED` automatically when E is cancelled, rescheduled out of the
   overlap, or the shared officer is removed from E.
@@ -201,7 +227,8 @@ meeting **E** that shares at least one officer:
   Titles of other meetings are shown only to their people and admins ("অন্য একটি সভা" otherwise); the same
   rule applies to the conflict notice (N's title only for N's invitees).
 - A PENDING conflict is also RESOLVED when either meeting is completed or moved, or the shared officer is
-  removed from either meeting.
+  removed from either meeting, or (v1.5, after a chair change) the higher meeting no longer has a
+  strictly higher priority than the lower one.
 
 ### 6.5 Notifications
 - Channels: in-app bell (always) and email (to the notification email).
@@ -225,6 +252,10 @@ meeting **E** that shares at least one officer:
 - Officer report: meetings I organized / attended, counts by status, total hours, conflicts raised against my meetings.
 - Admin report: same, across the office, filterable by wing and designation.
 - PDF download for every report, Bangla text, BBS header, generated date.
+- Guest officers (v1.5): every meeting row of the day/week/month/year/fiscal-year reports (web and PDF) shows
+  its chair (`chairNameBn`: the internal chair, else the guest chair's name) and, under the meeting, its
+  guests as "অতিথি কর্মকর্তা: নাম — পদবি; …". Guests are never counted in any total or statistic and have
+  no dashboard or report of their own.
 - The dashboard opens on **today's meetings** by default.
 - A meeting belongs to a period when its **start** lies in the Asia/Dhaka range `[start, end)` from
   `common/utils/time`; `?period=day|week|month|year|fiscal-year&date=YYYY-MM-DD` (default: month, today).
@@ -237,6 +268,25 @@ meeting **E** that shares at least one officer:
   time (Asia/Dhaka), summary and meeting tables, footer "পৃষ্ঠা X / Y", Bangla digits. One shared browser,
   max 2 renders at once, 30 s timeout, JavaScript off and all network requests blocked; file name like
   `meeting-report-2026-11.pdf`.
+
+### 6.7 Guest officers — "অতিথি কর্মকর্তা" (v1.5, owner decision 2026-11-16)
+People invited to a meeting who are not in the database. They never log in.
+- Table `meeting_guests` (§7). Create/update DTOs take an optional `guests` array (on update it replaces
+  the whole list, matched by email): `name` and `designation` (required, trimmed, `normalizeBangla`, max
+  200), `email` (required, valid, trimmed and lowercased, max 254), optional `isChair`. At most 50 per meeting.
+- Rejected with a Bangla message: duplicate email in the meeting (case-insensitive); an email that belongs
+  to an existing account (login or notification email) — "select that officer from the list instead";
+  more than one chair in total (officer `chairId` + a guest chair, or two guest chairs). When an update
+  sends only one side (`chairId` or `guests`) and it sets a chair, the stored chair of the other kind is
+  cleared; removing the guest who chairs leaves the meeting without a chair. The database enforces one
+  guest chair (partial unique index) and "never both kinds" (deferred constraint triggers).
+- A guest chair gives the meeting the organizer's priority (§6.3). Guests are not in the conflict check.
+- Mail only (outbox, respects `MAIL_DRY_RUN`, `guestMeetingMail`): invitation (create or added), update
+  (title / time / room / online link / agenda / chair changed), cancellation (with reason), removal. Each
+  mail carries every detail (title, date and Dhaka time range, room, online link, agenda, organizer name
+  and designation, chair) and no link that needs a login; never a password.
+- `GET /meetings/:id` returns `guests` (chair first). The phrase for outside guests used before is never
+  used; the term is always "অতিথি কর্মকর্তা" (checked by `wording.spec.ts`).
 
 ## 7. Data model (TypeORM entities)
 
@@ -259,6 +309,8 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
 - **meetings**: title, agenda, startAt, endAt, room, onlineLink, organizerId, chairId, priority,
   status, cancelReason, notes, cancelledAt, completedAt
 - **meeting_participants**: meetingId, userId, role (`ORGANIZER` | `CHAIR` | `MEMBER`) — unique (meetingId, userId)
+- **meeting_guests** (v1.5): meetingId (→ meetings, CASCADE), name, designation, email (lowercased), isChair —
+  unique (meetingId, lower(email)); one guest chair per meeting; never together with `meetings.chairId`
 - **meeting_conflicts**: higherMeetingId, lowerMeetingId, userId (shared officer), status
   (`PENDING` | `RESOLVED`), resolvedAt
 - **notifications**: userId, type, title, body, link, readAt
@@ -337,7 +389,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 |---|---|---|---|
 | GET | `/meetings/today` | 👤 | My meetings today (dashboard default) |
 | GET | `/meetings` | 👤 | My meetings by range (`from`, `to`, `status`, `role=organizer|participant`, page). Admin may pass `scope=all`. |
-| GET | `/meetings/:id` | 👤 | Detail (organizer, participants, admins only); people with designation and wing |
+| GET | `/meetings/:id` | 👤 | Detail (organizer, participants, admins only); people with designation and wing; guest officers |
 | POST | `/meetings/check-conflicts` | 👤 | Dry run of the conflict engine |
 | POST | `/meetings` | 👤 | Create (409 on blocking conflict) |
 | PATCH | `/meetings/:id` | 👤 | Update (organizer/admin; re-runs conflict engine) |
@@ -497,6 +549,11 @@ cancel/complete), calendar, conflicts, notifications → F3 reports + PDF, profi
 readiness (accessibility, error pages, CSP, standalone build, deployment guide).
 **Status: F1, F2 and F3 are complete. The whole system is finished (tag `v1.0`).**
 
+Release **v1.5** (2026-11-16, tag `v1.5`): (1) dashboard card for conflicts on my meetings removed;
+(2) wording "সময় কনফ্লিক্ট" / "ডুপ্লিকেট সভা" (§13.12); (3) priority numbers hidden (§6.1); (4) priority from
+the chair (§6.3); (5) informational conflict notice (§6.4); (6–7) meeting form without the priority box,
+the green heading and the duration buttons (§13.6); (8) WebKit Bangla font (§13.10); (9) guest officers (§6.7).
+
 ## 13. Frontend (`frontend/`)
 
 ### 13.1 Stack
@@ -534,7 +591,7 @@ frontend/
 |---|---|---|
 | `/login`, `/forgot-password`, `/reset-password?token=`, `/set-password?token=`, `/verify-email?token=` | public | F1 |
 | `/change-password` | app (voluntary; forced only for the SUPER_ADMIN while `mustChangePassword`) | F1 |
-| `/dashboard` (default after login): today's meetings, week/month tabs, today's summary, pending-conflict warning | app | F1 |
+| `/dashboard` (default after login): today's meetings, week/month tabs, today's summary (total, organized, attended, hours — the conflict card was removed in v1.5), pending-conflict warning | app | F1 |
 | `/meetings` (filters, admin "সকল সভা"), `/meetings/new?start=&end=`, `/meetings/:id`, `/meetings/:id/edit` | app | F2 |
 | `/calendar` (week 08–18 grid / month / phone day list), `/conflicts` (pending, resolved, admin all), `/notifications` | app | F2 |
 | `/reports?period=&date=&page=` | app | F3 |
@@ -584,13 +641,19 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
 - Every data view has loading, empty and error states; errors show the backend message and the `requestId`.
 
 ### 13.6 Meeting form and live conflict check (F2)
-- One form for create and edit; Dhaka date + start/end time (quick 30 min / 1 h / 2 h), room, https link,
-  participants from `GET /users/directory` (search, wing filter, "add the whole wing" with a count), chair
-  chosen from the meeting's people. The priority is shown before saving (my designation now; on edit the
-  stored snapshot).
+- One form for create and edit; Dhaka date + start/end time (both typed; end after start, Asia/Dhaka logic
+  unchanged; the quick-duration buttons and the time-zone hint were removed in v1.5), room, https link,
+  participants from `GET /users/directory` (search, wing filter, "add the whole wing" with a count).
+- v1.5: no priority box. Directly above the chair select, the optional section "অতিথি কর্মকর্তা"
+  (`guest-officers.tsx`): নাম, পদবি, Email and "যোগ করুন" (enabled once all three are filled and the email is
+  valid and new; Enter adds instead of submitting; fields clear after adding; inline errors for an invalid or
+  duplicate email); the list "নাম — পদবি — email" with "বাদ দিন". The chair select lists the organizer, the
+  participants and the guests ("নাম (অতিথি কর্মকর্তা)", stored as `guest:<email>` in the form); removing the
+  guest who chairs clears the chair. The detail page has an "অতিথি কর্মকর্তা" section; guests are editable.
 - Whenever the time or the people change, `POST /meetings/check-conflicts` runs 600 ms later (older requests
-  aborted): green = no clash, amber = lower meetings will be asked to move, red = blocked (submit disabled,
-  clashing people highlighted). A 409 on save shows the same red panel and keeps the form data.
+  aborted): green = only the line "এই সময়ে নির্বাচিত কারও অন্য কোনো সভা নেই।" (no heading, v1.5), amber =
+  "নিম্ন অগ্রাধিকারের ডুপ্লিকেট সভা আছে" (their organizers and shared officers will be informed), red = blocked
+  (submit disabled, clashing people highlighted). Only an officer chair is sent to the check. A 409 on save shows the same red panel and keeps the form data.
 - After create/edit/cancel/complete/delete, every cached "meetings", "conflicts", "notifications" and "reports"
   query is refreshed (`lib/invalidate.ts`).
 
@@ -605,7 +668,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   and are sent as `01XXXXXXXXX`; additional charges as an editable list (max 20). Photo: preview, client-side
   type/size check (JPEG/PNG/WebP, 2 MB; the server decides), remove with confirmation; the photo is shown next
   to the name in the header. Notification email: current address, request form, "যাচাইয়ের অপেক্ষায়: …" while
-  pending. Change requests: login email and designation (the select shows each priority), history with status
+  pending. Change requests: login email and designation (the select shows names only, v1.5), history with status
   and admin note, cancel a PENDING request. Voluntary password change.
 - **Admin panel** (`/admin/*`): the layout shows the normal 404 page to officers; the backend checks every role
   again. User actions mirror `users/user-policy.ts` (`lib/user-policy.ts`): the SUPER_ADMIN row shows the text
@@ -634,6 +697,11 @@ Real browser against the real backend (`MAIL_DRY_RUN=true`), only with test acco
 admin (create officer → login with the default password, SUPER_ADMIN protection, designation change request
 approved, officers get 404), accessibility (labels, modal keyboard handling, offline message, 404), the two header icons (badge, menus) and "no
 icons" on every page including the admin panel.
+Since v1.5 the suite runs in **Chromium and WebKit** (projects in `playwright.config.ts`) and adds
+`guests.spec.ts`, `priority-hidden.spec.ts` and `webkit-font.spec.ts`. `@playwright/test` is pinned to
+**1.61.1**: on macOS 14 Playwright only has a frozen WebKit build (2251) and 1.62+ can no longer open pages in
+it ("Unknown setting: PushAPIEnabled"). The pin can go after a macOS upgrade (15+). The WebKit screenshot
+baseline is per platform (`*-webkit-darwin.png`).
 
 ### 13.10 Fonts: Bangla in NikoshBAN, English in Times New Roman (owner decisions 2026-11-14 and 2026-11-15)
 NikoshBAN, the Bangladesh government's standard Bangla font, is used for Bangla everywhere (until 2026-11-15:
@@ -646,7 +714,22 @@ ASCII digits) is shown in Times New Roman.
 | Times New Roman | English on web pages and in mails | **the user's computer** (a licensed Microsoft font: never bundled) | — |
 | Tinos (Regular, Bold) | English in PDF reports (the server has no Times New Roman); metric-compatible with it | `backend/assets/fonts/Tinos-Regular.ttf`, `Tinos-Bold.ttf`, `LICENSE-Tinos.txt` | SIL OFL 1.1 (version 1.340; older releases were Apache 2.0) |
 
+| Kohinoor Bangla | Bangla in **WebKit** (Safari, every iOS browser), v1.5 | the user's Apple system (`local()`, never bundled) | — |
+| Noto Sans Bengali (variable) | Bangla in WebKit when Kohinoor is missing, v1.5 | `frontend/app/fonts/NotoSansBengali.ttf` + `LICENSE-NotoSansBengali.txt` | SIL OFL 1.1 |
+
 The files under `frontend/app/fonts/` and `backend/assets/fonts/` **must be deployed with the app**.
+
+- **WebKit (v1.5, owner decision 2026-11-16).** Diagnosis with screenshots in Chromium and WebKit (CoreText)
+  of "সময়", "প্রলয়", "নিয়ম" in both forms: Chromium draws NikoshBAN's precomposed U+09DF with a detached dot
+  and YA + NUKTA correctly; WebKit is the exact opposite (YA + NUKTA detached, U+09DF correct). Kohinoor
+  Bangla and Noto Sans Bengali draw YA + NUKTA correctly in WebKit. `normalizeBangla()` and the
+  unicode-range are correct, so no single stored text form works in both engines: the cause is NikoshBAN's
+  shaping in WebKit. The font file is not changed (CC BY-NC-ND). Instead the root layout reads the
+  User-Agent on the server (`lib/engine.ts`: Safari and every browser on iPhone/iPad = WebKit; anything with
+  `Chrome/`/`Chromium/` and Firefox = other) and renders `<html data-engine="webkit">` (no flash, nothing
+  for the CSP). For that attribute `--font-sans` is "Kohinoor Bangla Local" (`local()` faces in
+  `globals.css`, regular / semibold / bold), then Noto Sans Bengali (`next/font/local`, `preload: false`), both
+  with the NikoshBAN unicode-range, then Times New Roman. PDFs (Chromium) are unchanged.
 
 - **NikoshBAN vs Nikosh (owner decision 2026-11-15):** the Bangla letters, conjuncts, layout tables and
   metrics of the two fonts are identical. The only difference: NikoshBAN draws the ASCII digits 0–9 with
@@ -698,7 +781,7 @@ Some Bangla translations sounded unnatural. Words that office staff normally say
 English (Latin script); everything else stays Bangla.
 
 - **English:** the words in the list below, as labels, buttons, tabs, menu items, badges and column titles.
-- **Bangla:** সভা, সভাপতি, আয়োজক, আলোচ্যসূচি, কক্ষ, কার্যবিবরণী, অগ্রাধিকার, পদবি, উইং, সংঘাত, কর্মকর্তা, and all full
+- **Bangla:** সভা, সভাপতি, আয়োজক, আলোচ্যসূচি, কক্ষ, কার্যবিবরণী, অগ্রাধিকার, পদবি, উইং, ডুপ্লিকেট সভা, কর্মকর্তা, অতিথি কর্মকর্তা, and all full
   sentences, help texts, confirmations and error messages. Inside such a sentence the listed nouns are still
   written in English ("Password দিন।", "কোনো Notification নেই।"), with the Bangla ending after a hyphen
   ("Email-এর Link", "Session-এর মেয়াদ"). Verbs inside sentences stay Bangla ("সংরক্ষণ করা যাবে না").
@@ -707,7 +790,7 @@ English (Latin script); everything else stays Bangla.
   "Remove Admin", "Reset to Default Password", "Send Request", "Cancel Request", "Upload Photo", "Change Password",
   "Send Reset Link", "Send Verification Link", "Request New Link", "Go to Dashboard", "Back to Login".
   Bangla buttons stay Bangla: "সভা বাতিল করুন", "সম্পন্ন করুন", "সভা তৈরি করুন", "ফিরে যান", "আবার চেষ্টা করুন", "বন্ধ করুন".
-- **Mixed labels and titles:** only the listed word changes ("Pending সংঘাত", "আজকের Summary", "নাম দিয়ে Search করুন",
+- **Mixed labels and titles:** only the listed word changes ("Pending ডুপ্লিকেট সভা", "আজকের Summary", "নাম দিয়ে Search করুন",
   "Resolved: <date>"). Page titles of edit forms stay Bangla: "সভা সম্পাদনা", "কর্মকর্তা সম্পাদনা".
 - **Capitals:** labels of one or two words in Title Case ("Save", "Email Queue", "Change Request"); longer action
   phrases start with one capital ("Mark all as read").
@@ -717,8 +800,13 @@ English (Latin script); everything else stays Bangla.
 - Names stored in the database (for example the seeded account name "সুপার অ্যাডমিন") are data, not labels.
 - **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
   and statuses stay as in v1.2.**
-  - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, সংঘাত, রিপোর্ট, প্রোফাইল, অ্যাডমিন.
-  - Admin menu: সারসংক্ষেপ, কর্মকর্তা, পদবি, উইং, পরিবর্তনের অনুরোধ, সকল সভা, সকল সংঘাত, অফিস রিপোর্ট, ইমেইল সারি, অডিট লগ.
+  - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, ডুপ্লিকেট সভা, রিপোর্ট, প্রোফাইল, অ্যাডমিন.
+  - Admin menu: সারসংক্ষেপ, কর্মকর্তা, পদবি, উইং, পরিবর্তনের অনুরোধ, সকল সভা, সকল ডুপ্লিকেট সভা, অফিস রিপোর্ট, ইমেইল সারি, অডিট লগ.
+- **v1.5 (owner decision 2026-11-16):** the old Bangla word for "conflict" is gone everywhere (UI, mails,
+  notifications, PDFs, backend messages, Swagger, tests). The time clash is "সময় কনফ্লিক্ট"; everything else
+  is "ডুপ্লিকেট সভা" ("Pending ডুপ্লিকেট সভা", "সকল ডুপ্লিকেট সভা", "ডুপ্লিকেট সভা যাচাই"), phrased so "সভা" is
+  never doubled. Guests are "অতিথি কর্মকর্তা". Guards: `backend/src/common/utils/wording.spec.ts` scans every
+  git-tracked text file; the frontend ESLint config has a `no-restricted-syntax` rule for UI strings.
   - Each page heading (and browser-tab title) uses the same word as its menu item. Menu names for screen readers:
     "প্রধান মেনু", "অ্যাডমিন মেনু"; the phone menu button "মেনু".
   - Header profile menu: "প্রোফাইল" and "লগআউট"; the profile page heading "প্রোফাইল".

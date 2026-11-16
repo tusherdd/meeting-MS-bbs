@@ -2,8 +2,10 @@
 
 An office-wide web application for the Bangladesh Bureau of Statistics (BBS) and the Statistics &
 Informatics Division (SID). Every officer creates and manages meetings. Each meeting carries a
-**priority taken from the organizer's designation**: a higher-priority meeting is never blocked by a
-clash; the organizers and officers of the lower-priority meetings are notified to cancel or reschedule.
+**priority taken from the chair's designation** (the organizer's with a guest chair or no chair): a
+higher-priority meeting is never blocked by a clash; the organizers and shared officers of the lower-priority
+meetings are informed and may cancel or decide otherwise. Guest officers (অতিথি কর্মকর্তা) without an account
+can be invited by email (v1.5).
 Officers have a dashboard and day / week / month / year / fiscal-year reports (with Bangla PDF);
 admins manage users, designations, wings, change requests, office reports, the mail queue and the
 audit log. The UI is in Bangla.
@@ -39,6 +41,9 @@ flowchart LR
   conflict engine with advisory locks, mail outbox, cron jobs, Puppeteer PDFs.
 - **Database**: PostgreSQL. Times are stored in UTC; days, weeks, months and years are computed in Asia/Dhaka.
 - **Fonts**: Bangla in NikoshBAN (Bangladesh government standard), English in Times New Roman. See SPEC.md §13.10.
+  Safari and all iOS browsers (WebKit) draw Bangla in Kohinoor Bangla (Apple system font) or the bundled
+  `frontend/app/fonts/NotoSansBengali.ttf` (SIL OFL 1.1, `LICENSE-NotoSansBengali.txt`), because WebKit draws
+  NikoshBAN's য় incorrectly (v1.5).
   - Font files that ship with the app and **must be deployed with it**:
     - `frontend/app/fonts/NikoshBAN.ttf` (bundled into the frontend build), licence CC BY-NC-ND 3.0
       (`LICENSE-NikoshBAN.txt`);
@@ -88,7 +93,7 @@ Officers log in with their official email and the office default password (`DEFA
 | backend | `npm run test:e2e` | API end-to-end tests on the separate `bbs_meeting_test` database |
 | frontend | `npm run lint` / `npm run typecheck` | ESLint / route types + TypeScript |
 | frontend | `npm run build` | production build |
-| frontend | `npm run test:e2e` | Playwright in Chromium against the running backend (`MAIL_DRY_RUN=true`); needs `frontend/.env.e2e` with an admin login. Uses only test accounts ending in `@example.com` |
+| frontend | `npm run test:e2e` | Playwright in Chromium and WebKit against the running backend (`MAIL_DRY_RUN=true`); needs `frontend/.env.e2e` with an admin login. Uses only test accounts ending in `@example.com` |
 
 ## 4. Production deployment (one Linux server)
 

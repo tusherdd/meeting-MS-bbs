@@ -14,5 +14,8 @@ export enum NotificationType {
   MEETING_UPDATED = 'MEETING_UPDATED',
   MEETING_REMOVED = 'MEETING_REMOVED',
   MEETING_CANCELLED = 'MEETING_CANCELLED',
+  /** Informational since v1.5: a higher meeting overlaps through a shared officer. */
   MEETING_CONFLICT = 'MEETING_CONFLICT',
+  /** v1.5: an officer became chair, the meeting took their designation priority. */
+  MEETING_CHAIR_ASSIGNED = 'MEETING_CHAIR_ASSIGNED',
 }

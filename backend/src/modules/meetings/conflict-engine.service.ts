@@ -116,7 +116,8 @@ export class ConflictEngineService {
   /**
    * Auto-resolve (SPEC.md §6.4): every PENDING conflict touching these meetings that is no
    * longer real becomes RESOLVED — a meeting is no longer SCHEDULED, the times no longer
-   * overlap, or the officer is no longer in both meetings. One atomic UPDATE; each resolved
+   * overlap, the officer is no longer in both meetings, or (v1.5, chair change) the higher
+   * meeting no longer has a strictly higher priority. One atomic UPDATE; each resolved
    * row is audited (CONFLICT_RESOLVED). Returns the resolved rows.
    */
   async resolveStale(
@@ -139,6 +140,7 @@ export class ConflictEngineService {
           AND NOT (
                 h.status = $4 AND l.status = $4
             AND h."startAt" < l."endAt" AND l."startAt" < h."endAt"
+            AND h.priority < l.priority
             AND EXISTS (SELECT 1 FROM meeting_participants p
                          WHERE p."meetingId" = h.id AND p."userId" = c."userId")
             AND EXISTS (SELECT 1 FROM meeting_participants p

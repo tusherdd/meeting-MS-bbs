@@ -6,6 +6,10 @@ import { defineConfig, devices } from "@playwright/test";
  * - The frontend runs on http://localhost:3000 (it must match the backend's CORS_ORIGINS,
  *   because the backend checks the Origin header). An already running `npm run dev` is reused.
  * - One worker, in order: the backend limits logins to 10 per minute per IP.
+ * - Two browsers (v1.5): Chromium and WebKit (Safari's engine; the Bangla font differs there,
+ *   SPEC.md §13.10). @playwright/test is pinned to 1.61.1: on macOS 14 Playwright only has a
+ *   frozen WebKit build (2251), and Playwright 1.62+ can no longer open pages in it. After
+ *   upgrading macOS (15+), the pin can go.
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -24,7 +28,10 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+  ],
   webServer: {
     command: "npm run dev",
     url: "http://localhost:3000/login",

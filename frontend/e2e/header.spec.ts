@@ -74,6 +74,7 @@ test("bell icon: unread badge in Bangla digits, aria-label, tooltip, dropdown", 
 
 test("profile icon: name as label and tooltip, menu with name, designation and links", async ({
   browser,
+  browserName,
 }) => {
   const page = await pageAs(browser, "officer");
   try {
@@ -87,8 +88,11 @@ test("profile icon: name as label and tooltip, menu with name, designation and l
 
     // Keyboard: focus is visible (outline) and Enter opens the menu.
     await button.focus();
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Shift+Tab");
+    // Safari's Tab key skips buttons by default (only form fields), so the round trip is Chromium only.
+    if (browserName !== "webkit") {
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Shift+Tab");
+    }
     await expect(button).toBeFocused();
     expect(await button.evaluate((el) => getComputedStyle(el).outlineStyle)).not.toBe("none");
     await page.keyboard.press("Enter");

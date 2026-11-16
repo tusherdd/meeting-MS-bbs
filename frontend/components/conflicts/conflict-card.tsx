@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/dashboard/meeting-badges";
 import { CancelMeetingModal } from "@/components/meetings/cancel-meeting-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
-import { formatDateTime, formatDateWithWeekday, formatNumber, formatTimeRange } from "@/lib/format";
+import { formatDateTime, formatDateWithWeekday, formatTimeRange } from "@/lib/format";
 import type { ConflictListItem, ConflictMeetingRef } from "@/lib/types";
 import { t } from "@/messages";
 
@@ -45,10 +45,7 @@ function MeetingSide({
       </p>
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
         <StatusBadge status={meeting.status} />
-        <span>
-          {t.conflictsPage.priority} {formatNumber(meeting.priority)}
-        </span>
-        {meeting.organizerDesignation && <span>· {meeting.organizerDesignation}</span>}
+        {meeting.organizerDesignation && <span>{meeting.organizerDesignation}</span>}
       </div>
     </div>
   );

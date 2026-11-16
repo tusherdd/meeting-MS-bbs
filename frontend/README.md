@@ -71,7 +71,7 @@ Requirements:
 
 ```bash
 cp .env.e2e.example .env.e2e      # fill in the admin login
-npx playwright install chromium   # once
+npx playwright install chromium webkit   # once (@playwright/test is pinned to 1.61.1: see SPEC.md §13.9)
 npm run test:e2e                  # starts `npm run dev` if it is not running yet
 ```
 

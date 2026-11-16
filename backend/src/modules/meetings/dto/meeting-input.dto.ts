@@ -1,9 +1,11 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type, type TransformFnParams } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayUnique,
   IsArray,
+  IsBoolean,
+  IsEmail,
   IsEnum,
   IsIn,
   IsISO8601,
@@ -14,9 +16,15 @@ import {
   Length,
   Matches,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
 import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
-import { trimText, trimToNull } from '../../../common/dto/transforms';
+import {
+  normalizeEmail,
+  trimText,
+  trimToNull,
+} from '../../../common/dto/transforms';
+import { normalizeBangla } from '../../../common/utils/bangla';
 import { ConflictStatus } from '../enums/conflict-status.enum';
 import { MeetingStatus } from '../enums/meeting-status.enum';
 
@@ -25,6 +33,49 @@ const ISO_WITH_OFFSET =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
 const TIME_MESSAGE =
   'সময় ISO 8601 আকারে, অফসেটসহ দিন (যেমন 2026-12-01T10:30:00+06:00)।';
+
+/** Trimmed, inner whitespace collapsed, Bangla nukta letters in the stored form (§13.13). */
+const trimBangla = (params: TransformFnParams): unknown => {
+  const value = trimText(params);
+  return typeof value === 'string' ? normalizeBangla(value) : value;
+};
+
+export const MAX_GUESTS = 50;
+
+/** A guest officer (অতিথি কর্মকর্তা): invited by name and email, without an account (v1.5). */
+export class MeetingGuestInputDto {
+  @ApiProperty({ example: 'ড. ফারহানা ইসলাম', maxLength: 200 })
+  @Transform(trimBangla)
+  @IsString({ message: 'অতিথি কর্মকর্তার নাম দিন।' })
+  @Length(1, 200, {
+    message: 'অতিথি কর্মকর্তার নাম ১ থেকে ২০০ অক্ষরের হতে হবে।',
+  })
+  name!: string;
+
+  @ApiProperty({ example: 'যুগ্মসচিব, পরিকল্পনা মন্ত্রণালয়', maxLength: 200 })
+  @Transform(trimBangla)
+  @IsString({ message: 'অতিথি কর্মকর্তার পদবি দিন।' })
+  @Length(1, 200, {
+    message: 'অতিথি কর্মকর্তার পদবি ১ থেকে ২০০ অক্ষরের হতে হবে।',
+  })
+  designation!: string;
+
+  @ApiProperty({ example: 'farhana@plancomm.gov.bd', maxLength: 254 })
+  @Transform(normalizeEmail)
+  @IsString({ message: 'অতিথি কর্মকর্তার Email দিন।' })
+  @MaxLength(254, { message: 'অতিথি কর্মকর্তার Email খুব দীর্ঘ।' })
+  @IsEmail({}, { message: 'অতিথি কর্মকর্তার সঠিক Email ঠিকানা দিন।' })
+  email!: string;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'This guest chairs the meeting (then chairId must be empty; at most one chair in total)',
+  })
+  @IsOptional()
+  @IsBoolean({ message: 'isChair true অথবা false হতে হবে।' })
+  isChair?: boolean;
+}
 
 export class CreateMeetingDto {
   @ApiProperty({
@@ -95,7 +146,8 @@ export class CreateMeetingDto {
     type: String,
     format: 'uuid',
     nullable: true,
-    description: 'Chairperson (does not affect priority)',
+    description:
+      "Internal chairperson (an officer). The meeting gets the chair's designation priority; with a guest chair (guests[].isChair) or no chair it gets the organizer's.",
   })
   @IsOptional()
   @IsUUID('4', { message: 'সঠিক সভাপতি নির্বাচন করুন।' })
@@ -114,10 +166,26 @@ export class CreateMeetingDto {
   @ArrayMaxSize(200, { message: 'সর্বোচ্চ ২০০ জন অংশগ্রহণকারী দেওয়া যাবে।' })
   @IsUUID('4', { each: true, message: 'অংশগ্রহণকারীর আইডি সঠিক নয়।' })
   participantIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [MeetingGuestInputDto],
+    maxItems: MAX_GUESTS,
+    description:
+      'Guest officers (no account; mail only). On update the whole list is replaced. Not part of the conflict check.',
+  })
+  @IsOptional()
+  @IsArray({ message: 'অতিথি কর্মকর্তাদের তালিকা দিন।' })
+  @ArrayMaxSize(MAX_GUESTS, {
+    message: 'সর্বোচ্চ ৫০ জন অতিথি কর্মকর্তা দেওয়া যাবে।',
+  })
+  @ValidateNested({ each: true })
+  @Type(() => MeetingGuestInputDto)
+  guests?: MeetingGuestInputDto[];
 }
 
 /**
- * Any subset. `participantIds` replaces the whole list; `null` clears room/link/chair/agenda.
+ * Any subset. `participantIds` and `guests` replace the whole list; `null` clears
+ * room/link/chair/agenda.
  * The conflict engine re-runs only when the time or the people change.
  */
 export class UpdateMeetingDto extends PartialType(CreateMeetingDto) {}
@@ -126,7 +194,7 @@ export class CheckConflictsDto extends CreateMeetingDto {
   @ApiPropertyOptional({
     format: 'uuid',
     description:
-      'Set when editing an existing meeting: it is excluded and its stored priority is used',
+      'Set when editing an existing meeting: it is excluded; its stored priority is used unless the chair changes',
   })
   @IsOptional()
   @IsUUID('4', { message: 'সভার আইডি সঠিক নয়।' })

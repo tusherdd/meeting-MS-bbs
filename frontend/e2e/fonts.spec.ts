@@ -5,7 +5,12 @@ import { expect, test } from "@playwright/test";
  * limited by unicode-range to Bangla characters, so typed digits 0–9 never use its
  * Bangla-looking digit shapes.
  */
-test("NikoshBAN loads in the browser and is limited to Bangla characters", async ({ page }) => {
+test("NikoshBAN loads in the browser and is limited to Bangla characters", async ({
+  page,
+  browserName,
+}) => {
+  // WebKit uses Kohinoor Bangla / Noto Sans Bengali instead (webkit-font.spec.ts).
+  test.skip(browserName === "webkit", "WebKit has its own Bangla font (v1.5)");
   const fontResponses: { url: string; status: number }[] = [];
   page.on("response", (res) => {
     if (/\.(ttf|woff2?)(\?|$)/.test(res.url())) {
@@ -15,6 +20,7 @@ test("NikoshBAN loads in the browser and is limited to Bangla characters", async
 
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "লগইন", level: 1 })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-engine", "other");
 
   const faces = await page.evaluate(async () => {
     await document.fonts.ready;
@@ -27,6 +33,8 @@ test("NikoshBAN loads in the browser and is limited to Bangla characters", async
       unicodeRange: f.unicodeRange,
     }));
   });
+  // The WebKit-only faces (Kohinoor local(), Noto Sans Bengali) are declared but never loaded here.
+  const loaded = faces.filter((f) => f.status !== "unloaded");
 
   // The served file is NikoshBAN (the old Nikosh file is gone) and nothing comes from elsewhere.
   expect(fontResponses.length).toBeGreaterThan(0);
@@ -36,10 +44,11 @@ test("NikoshBAN loads in the browser and is limited to Bangla characters", async
     expect(r.url).toContain("NikoshBAN");
   }
 
-  // Exactly one Bangla face, loaded without an error, and only for the Bangla ranges.
-  expect(faces).toHaveLength(1);
-  expect(faces[0].status).toBe("loaded");
-  const range = faces[0].unicodeRange.toUpperCase();
+  // Exactly one Bangla face in use, loaded without an error, and only for the Bangla ranges.
+  expect(loaded).toHaveLength(1);
+  expect(loaded[0].status).toBe("loaded");
+  expect(loaded[0].family.toLowerCase()).toContain("nikosh");
+  const range = loaded[0].unicodeRange.toUpperCase();
   expect(range).toContain("U+980-9FF");
   expect(range).not.toMatch(/U\+3[0-9]/); // no ASCII digits (U+0030–U+0039)
 });

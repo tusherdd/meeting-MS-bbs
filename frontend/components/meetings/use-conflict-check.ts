@@ -24,7 +24,7 @@ interface Input {
 
 export const CHECK_DEBOUNCE_MS = 600;
 /** The title does not influence clashes; the dry run only needs a valid one. */
-const CHECK_TITLE = "সংঘাত যাচাই";
+const CHECK_TITLE = "ডুপ্লিকেট সভা যাচাই";
 
 /**
  * Live dry run of the conflict engine (POST /meetings/check-conflicts):

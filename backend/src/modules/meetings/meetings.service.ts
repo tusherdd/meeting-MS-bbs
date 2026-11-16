@@ -26,6 +26,7 @@ import type {
   CheckConflictsDto,
   CompleteMeetingDto,
   CreateMeetingDto,
+  MeetingGuestInputDto,
   MeetingQueryDto,
   UpdateMeetingDto,
 } from './dto/meeting-input.dto';
@@ -38,6 +39,7 @@ import type {
   PersonDto,
 } from './dto/meeting-response.dto';
 import { MeetingConflict } from './entities/meeting-conflict.entity';
+import { MeetingGuest } from './entities/meeting-guest.entity';
 import { MeetingParticipant } from './entities/meeting-participant.entity';
 import { Meeting } from './entities/meeting.entity';
 import { ConflictStatus } from './enums/conflict-status.enum';
@@ -51,6 +53,7 @@ import {
 } from './meeting-notifier.service';
 import {
   meetingPeople,
+  meetingPriority,
   timeProblems,
   type Clash,
   type TimeProblem,
@@ -108,6 +111,9 @@ export class MeetingsService {
     const id = await this.dataSource.transaction(async (manager) => {
       const organizer = await this.loadOrganizer(manager, actor.id);
       const chairId = dto.chairId ?? null;
+      const guests = guestInputs(dto.guests);
+      this.assertGuestList(guests, chairId);
+      await this.assertGuestsAreNotOfficers(manager, guests);
       const memberIds = (dto.participantIds ?? []).filter(
         (p) => p !== actor.id,
       );
@@ -115,8 +121,13 @@ export class MeetingsService {
       const invitees = people.filter((p) => p !== actor.id);
       await this.assertPeopleUsable(manager, invitees);
 
-      // Snapshot (SPEC.md §6.3): never recalculated later.
-      const priority = organizer.designation!.priority;
+      // Snapshot (SPEC.md §6.3, v1.5): the internal chair's priority, else the organizer's.
+      const organizerPriority = organizer.designation!.priority;
+      const priority = await this.priorityFor(
+        manager,
+        organizerPriority,
+        chairId,
+      );
       await this.engine.lockPeople(manager, people);
       const { allowed, blocking } = await this.engine.evaluate(manager, {
         startAt,
@@ -149,6 +160,7 @@ export class MeetingsService {
         chairId,
         memberIds,
       );
+      await this.writeGuests(manager, meeting.id, guests);
 
       await this.audit.log(
         {
@@ -162,13 +174,23 @@ export class MeetingsService {
             endAt: endAt.toISOString(),
             priority,
             people,
+            guests: guests.map((g) => g.email).sort(),
+            chairGuest: guests.find((g) => g.isChair)?.email ?? null,
           },
           ip,
         },
         manager,
       );
+      const chairNotice = !!chairId && chairId !== actor.id;
+      if (chairNotice) {
+        await this.auditChairPriority(manager, actor, ip, meeting.id, {
+          chairId: chairId,
+          oldPriority: organizerPriority,
+          newPriority: priority,
+        });
+      }
 
-      const info = this.info(meeting, organizer);
+      const info = await this.meetingInfo(manager, meeting, guests);
       await this.createConflicts(
         manager,
         actor,
@@ -178,6 +200,9 @@ export class MeetingsService {
         allowed,
       );
       await this.notifier.invited(manager, info, invitees);
+      if (chairNotice)
+        await this.notifier.chairAssigned(manager, info, chairId);
+      await this.notifier.guests(manager, 'invited', info, guests);
       return meeting.id;
     });
 
@@ -212,7 +237,33 @@ export class MeetingsService {
         this.assertTimes(startAt, endAt, timeChanged);
       }
 
-      const chairId = dto.chairId !== undefined ? dto.chairId : meeting.chairId;
+      // Chair: an officer (chairId) OR one guest (guests[].isChair), never both. When only one
+      // side is sent and it sets a chair, the stored chair of the other kind is cleared.
+      const oldGuests = await manager.getRepository(MeetingGuest).find({
+        where: { meetingId: meeting.id },
+        order: { createdAt: 'ASC' },
+      });
+      let chairId = dto.chairId !== undefined ? dto.chairId : meeting.chairId;
+      let nextGuests =
+        dto.guests !== undefined
+          ? guestInputs(dto.guests)
+          : oldGuests.map(toGuestInput);
+      if (chairId && nextGuests.some((g) => g.isChair)) {
+        if (dto.chairId !== undefined && dto.guests !== undefined)
+          throw new BadRequestException(MSG.oneChair);
+        if (dto.chairId !== undefined) {
+          nextGuests = nextGuests.map((g) => ({ ...g, isChair: false }));
+        } else {
+          chairId = null;
+        }
+      }
+      this.assertGuestList(nextGuests, chairId);
+      const oldEmails = new Set(oldGuests.map((g) => g.email));
+      await this.assertGuestsAreNotOfficers(
+        manager,
+        nextGuests.filter((g) => !oldEmails.has(g.email)),
+      );
+
       const memberIds = (
         dto.participantIds !== undefined
           ? dto.participantIds
@@ -232,15 +283,26 @@ export class MeetingsService {
         ...(chairChanged && chairId ? [chairId] : []),
       ]);
 
-      // SPEC.md §6.4: the engine re-runs when the time or the people change.
+      // SPEC.md §6.3 (v1.5): the snapshot is taken again only when the internal chair changes.
+      const organizer = await this.loadUser(manager, meeting.organizerId);
+      const priority = chairChanged
+        ? await this.priorityFor(
+            manager,
+            organizer.designation?.priority ?? meeting.priority,
+            chairId,
+          )
+        : meeting.priority;
+      const priorityChanged = priority !== meeting.priority;
+
+      // SPEC.md §6.4: the engine re-runs when the time, the people or the priority change.
       let allowed: Clash<LoadedMeeting>[] = [];
-      if (timeChanged || peopleChanged) {
+      if (timeChanged || peopleChanged || priorityChanged) {
         await this.engine.lockPeople(manager, [...oldPeople, ...newPeople]);
         const result = await this.engine.evaluate(manager, {
           id: meeting.id,
           startAt,
           endAt,
-          priority: meeting.priority, // the snapshot, never the organizer's current priority
+          priority,
           peopleIds: newPeople,
         });
         if (result.blocking.length > 0) {
@@ -249,7 +311,8 @@ export class MeetingsService {
         allowed = result.allowed;
       }
 
-      const before = this.snapshot(meeting, oldPeople);
+      const before = this.snapshot(meeting, oldPeople, oldGuests);
+      const oldInfo = await this.meetingInfo(manager, meeting, oldGuests);
       const changes = this.describeChanges(meeting, {
         title: dto.title ?? meeting.title,
         startAt,
@@ -268,6 +331,7 @@ export class MeetingsService {
         onlineLink:
           dto.onlineLink !== undefined ? dto.onlineLink : meeting.onlineLink,
         chairId,
+        priority,
       });
       if (peopleChanged || chairChanged || dto.participantIds !== undefined) {
         await manager
@@ -281,12 +345,17 @@ export class MeetingsService {
           memberIds,
         );
       }
+      const guestDiff = await this.syncGuests(
+        manager,
+        meeting.id,
+        oldGuests,
+        nextGuests,
+      );
 
       // Conflicts: drop those that disappeared, add new ones (never duplicates).
       await this.engine.resolveStale(manager, [meeting.id], actor.id, ip);
       const updated = await this.lockMeeting(manager, meeting.id);
-      const organizer = await this.loadUser(manager, meeting.organizerId);
-      const info = this.info(updated, organizer);
+      const info = await this.meetingInfo(manager, updated);
       if (allowed.length > 0) {
         await this.createConflicts(manager, actor, ip, info, newSet, allowed);
       }
@@ -298,11 +367,20 @@ export class MeetingsService {
           entityType: 'meeting',
           entityId: meeting.id,
           before,
-          after: this.snapshot(updated, newPeople),
+          after: this.snapshot(updated, newPeople, guestDiff.all),
           ip,
         },
         manager,
       );
+      const chairNotice =
+        chairChanged && !!chairId && chairId !== meeting.organizerId;
+      if (chairNotice) {
+        await this.auditChairPriority(manager, actor, ip, meeting.id, {
+          chairId: chairId!,
+          oldPriority: meeting.priority,
+          newPriority: priority,
+        });
+      }
 
       const remaining = newPeople.filter(
         (p) => oldSet.has(p) && p !== actor.id,
@@ -318,6 +396,38 @@ export class MeetingsService {
         added.filter((p) => p !== actor.id),
       );
       await this.notifier.updated(manager, info, remaining, changes);
+      if (chairNotice && chairId !== actor.id)
+        await this.notifier.chairAssigned(manager, info, chairId!);
+
+      // Guest officers: mail for removal, invitation and changes they care about.
+      const agendaAfter =
+        dto.agenda !== undefined ? dto.agenda : meeting.agenda;
+      const guestChanges: MeetingChange[] = [
+        ...changes,
+        ...((agendaAfter ?? null) !== (meeting.agenda ?? null)
+          ? [
+              {
+                label: 'আলোচ্যসূচি',
+                before: '',
+                after: 'হালনাগাদ করা হয়েছে (নিচে দেখুন)',
+              },
+            ]
+          : []),
+        ...(oldInfo.chairLine !== info.chairLine
+          ? [
+              {
+                label: 'সভাপতি',
+                before: oldInfo.chairLine ?? '—',
+                after: info.chairLine ?? '—',
+              },
+            ]
+          : []),
+      ];
+      await this.notifier.guests(manager, 'removed', info, guestDiff.removed);
+      await this.notifier.guests(manager, 'invited', info, guestDiff.added);
+      await this.notifier.guests(manager, 'updated', info, guestDiff.kept, {
+        changes: guestChanges,
+      });
     });
     return this.findOne(actor, id);
   }
@@ -358,13 +468,19 @@ export class MeetingsService {
         },
         manager,
       );
-      const organizer = await this.loadUser(manager, meeting.organizerId);
+      const guests = await manager
+        .getRepository(MeetingGuest)
+        .findBy({ meetingId: id });
+      const info = await this.meetingInfo(manager, meeting, guests);
       await this.notifier.cancelled(
         manager,
-        this.info(meeting, organizer),
+        info,
         people.filter((p) => p !== actor.id),
         dto.reason,
       );
+      await this.notifier.guests(manager, 'cancelled', info, guests, {
+        cancelReason: dto.reason,
+      });
     });
     return this.findOne(actor, id);
   }
@@ -427,6 +543,7 @@ export class MeetingsService {
           before: this.snapshot(
             meeting,
             meeting.participants.map((p) => p.userId),
+            await manager.getRepository(MeetingGuest).findBy({ meetingId: id }),
           ),
           ip,
         },
@@ -445,9 +562,12 @@ export class MeetingsService {
   ): Promise<CheckConflictsResponseDto> {
     const manager = this.dataSource.manager;
     let organizerId = actor.id;
-    let priority: number;
     let existingTimes: { startAt: Date; endAt: Date } | null = null;
 
+    // The dry run describes the whole form: no chairId = no internal chair.
+    const chairId = dto.chairId ?? null;
+    let organizerPriority: number;
+    let storedChair: { chairId: string | null; priority: number } | null = null;
     if (dto.meetingId) {
       const meeting = await this.loadMeeting(manager, dto.meetingId);
       this.assertCanManage(
@@ -456,11 +576,14 @@ export class MeetingsService {
         meeting.participants.map((p) => p.userId),
       );
       organizerId = meeting.organizerId;
-      priority = meeting.priority;
+      organizerPriority =
+        (await this.loadUser(manager, organizerId)).designation?.priority ??
+        meeting.priority;
+      storedChair = { chairId: meeting.chairId, priority: meeting.priority };
       existingTimes = { startAt: meeting.startAt, endAt: meeting.endAt };
     } else {
-      priority = (await this.loadOrganizer(manager, actor.id)).designation!
-        .priority;
+      organizerPriority = (await this.loadOrganizer(manager, actor.id))
+        .designation!.priority;
     }
 
     const startAt = new Date(dto.startAt);
@@ -474,11 +597,16 @@ export class MeetingsService {
     const memberIds = (dto.participantIds ?? []).filter(
       (p) => p !== organizerId,
     );
-    const people = meetingPeople(organizerId, dto.chairId ?? null, memberIds);
+    const people = meetingPeople(organizerId, chairId, memberIds);
     await this.assertPeopleUsable(
       manager,
       people.filter((p) => p !== organizerId),
     );
+    // Same rule as update: the stored snapshot unless the internal chair changes.
+    const priority =
+      storedChair && (storedChair.chairId ?? null) === chairId
+        ? storedChair.priority
+        : await this.priorityFor(manager, organizerPriority, chairId);
 
     const { allowed, blocking } = await this.engine.evaluate(manager, {
       id: dto.meetingId,
@@ -503,6 +631,7 @@ export class MeetingsService {
         organizer: { designation: true },
         chair: { designation: true },
         participants: { user: { designation: true, wing: true } },
+        guests: true,
       },
     });
     const people = meeting?.participants.map((p) => p.userId) ?? [];
@@ -514,6 +643,13 @@ export class MeetingsService {
       ...this.summary(meeting, actor),
       agenda: meeting.agenda,
       chair: meeting.chair ? personDto(meeting.chair) : null,
+      guests: sortGuests(meeting.guests).map((g) => ({
+        id: g.id,
+        name: g.name,
+        designation: g.designation,
+        email: g.email,
+        isChair: g.isChair,
+      })),
       participants: meeting.participants
         .map((p) => ({
           ...personDto(p.user),
@@ -647,7 +783,133 @@ export class MeetingsService {
     }
   }
 
+  /** Priority for a chair choice (SPEC.md §6.3, v1.5). The chair must already be checked usable. */
+  private async priorityFor(
+    manager: EntityManager,
+    organizerPriority: number,
+    chairId: string | null,
+  ): Promise<number> {
+    const chair = chairId ? await this.loadUser(manager, chairId) : null;
+    return meetingPriority(
+      organizerPriority,
+      chair?.designation ? { priority: chair.designation.priority } : null,
+    );
+  }
+
+  /** One chair at most: an officer or one guest; one guest per email (case-insensitive). */
+  private assertGuestList(
+    guests: readonly GuestInput[],
+    chairId: string | null,
+  ): void {
+    const seen = new Set<string>();
+    for (const g of guests) {
+      if (seen.has(g.email))
+        throw new BadRequestException(MSG.guestDuplicateEmail(g.email));
+      seen.add(g.email);
+    }
+    const guestChairs = guests.filter((g) => g.isChair).length;
+    if (guestChairs > 1 || (guestChairs === 1 && chairId))
+      throw new BadRequestException(MSG.oneChair);
+  }
+
+  /** A guest's email must not belong to an account: that officer is chosen from the list. */
+  private async assertGuestsAreNotOfficers(
+    manager: EntityManager,
+    guests: readonly GuestInput[],
+  ): Promise<void> {
+    if (guests.length === 0) return;
+    const emails = guests.map((g) => g.email);
+    const user = await manager.getRepository(User).findOne({
+      select: {
+        id: true,
+        nameBn: true,
+        loginEmail: true,
+        notificationEmail: true,
+      },
+      where: [{ loginEmail: In(emails) }, { notificationEmail: In(emails) }],
+    });
+    if (!user) return;
+    const email =
+      emails.find(
+        (e) => e === user.loginEmail || e === user.notificationEmail,
+      ) ?? emails[0];
+    throw new BadRequestException(MSG.guestIsOfficer(email, user.nameBn));
+  }
+
+  private async auditChairPriority(
+    manager: EntityManager,
+    actor: AuthUser,
+    ip: string | null,
+    meetingId: string,
+    change: { chairId: string; oldPriority: number; newPriority: number },
+  ): Promise<void> {
+    await this.audit.log(
+      {
+        actorId: actor.id,
+        action: AuditAction.MEETING_CHAIR_PRIORITY_APPLIED,
+        entityType: 'meeting',
+        entityId: meetingId,
+        before: { priority: change.oldPriority },
+        after: { chairId: change.chairId, priority: change.newPriority },
+        ip,
+      },
+      manager,
+    );
+  }
+
   // ================================================================= helpers: persistence
+
+  private async writeGuests(
+    manager: EntityManager,
+    meetingId: string,
+    guests: readonly GuestInput[],
+  ): Promise<void> {
+    if (guests.length === 0) return;
+    await manager
+      .getRepository(MeetingGuest)
+      .insert(guests.map((g) => ({ ...g, meetingId })));
+  }
+
+  /**
+   * Replace the guest list (matched by email): removed rows are deleted, kept rows updated
+   * (name, designation, chair), new rows inserted. Returns who was added / removed / kept.
+   */
+  private async syncGuests(
+    manager: EntityManager,
+    meetingId: string,
+    before: MeetingGuest[],
+    next: GuestInput[],
+  ): Promise<{
+    added: GuestInput[];
+    removed: MeetingGuest[];
+    kept: GuestInput[];
+    all: GuestInput[];
+  }> {
+    const repo = manager.getRepository(MeetingGuest);
+    const nextByEmail = new Map(next.map((g) => [g.email, g]));
+    const beforeByEmail = new Map(before.map((g) => [g.email, g]));
+    const removed = before.filter((g) => !nextByEmail.has(g.email));
+    const added = next.filter((g) => !beforeByEmail.has(g.email));
+    const kept = next.filter((g) => beforeByEmail.has(g.email));
+    if (removed.length > 0)
+      await repo.delete({ id: In(removed.map((g) => g.id)) });
+    for (const g of kept) {
+      const old = beforeByEmail.get(g.email)!;
+      if (
+        old.name !== g.name ||
+        old.designation !== g.designation ||
+        old.isChair !== g.isChair
+      ) {
+        await repo.update(old.id, {
+          name: g.name,
+          designation: g.designation,
+          isChair: g.isChair,
+        });
+      }
+    }
+    await this.writeGuests(manager, meetingId, added);
+    return { added, removed, kept, all: next };
+  }
 
   /** Row lock on the meeting (no outer joins under FOR UPDATE), then its participants. */
   private async lockMeeting(
@@ -765,7 +1027,10 @@ export class MeetingsService {
         higher,
         higherPeople,
         clash.meeting,
-        clash.sharedPeopleIds.map((u) => names.get(u) ?? '—'),
+        clash.sharedPeopleIds.map((u) => ({
+          id: u,
+          nameBn: names.get(u) ?? '—',
+        })),
         [...new Set([clash.meeting.organizerId, ...fresh])],
       );
     }
@@ -827,16 +1092,43 @@ export class MeetingsService {
     return new Map(users.map((u) => [u.id, u.nameBn]));
   }
 
-  private info(meeting: Meeting, organizer: User): MeetingInfo {
+  /** Everything the notices need, incl. the chair (officer or guest) and the lead designation. */
+  private async meetingInfo(
+    manager: EntityManager,
+    meeting: Meeting,
+    guests?: ReadonlyArray<
+      Pick<MeetingGuest, 'name' | 'designation' | 'isChair'>
+    >,
+  ): Promise<MeetingInfo> {
+    const organizer = await this.loadUser(manager, meeting.organizerId);
+    const chair = meeting.chairId
+      ? await this.loadUser(manager, meeting.chairId)
+      : null;
+    const guestChair = (
+      guests ??
+      (await manager
+        .getRepository(MeetingGuest)
+        .findBy({ meetingId: meeting.id }))
+    ).find((g) => g.isChair);
+    const line = (name: string, designation: string | null | undefined) =>
+      designation ? `${name}, ${designation}` : name;
     return {
       id: meeting.id,
       title: meeting.title,
+      agenda: meeting.agenda,
       startAt: meeting.startAt,
       endAt: meeting.endAt,
       room: meeting.room,
       onlineLink: meeting.onlineLink,
       organizerNameBn: organizer.nameBn,
       organizerDesignationBn: organizer.designation?.nameBn ?? null,
+      chairLine: chair
+        ? line(chair.nameBn, chair.designation?.nameBn)
+        : guestChair
+          ? `${line(guestChair.name, guestChair.designation)} (অতিথি কর্মকর্তা)`
+          : null,
+      leadDesignationBn:
+        chair?.designation?.nameBn ?? organizer.designation?.nameBn ?? null,
     };
   }
 
@@ -885,7 +1177,11 @@ export class MeetingsService {
     return changes;
   }
 
-  private snapshot(m: Meeting, people: string[]): Record<string, unknown> {
+  private snapshot(
+    m: Meeting,
+    people: string[],
+    guests: ReadonlyArray<Pick<MeetingGuest, 'email' | 'isChair'>>,
+  ): Record<string, unknown> {
     return {
       title: m.title,
       startAt: m.startAt.toISOString(),
@@ -895,6 +1191,9 @@ export class MeetingsService {
       chairId: m.chairId,
       status: m.status,
       people: [...people].sort(),
+      priority: m.priority,
+      guests: guests.map((g) => g.email).sort(),
+      chairGuest: guests.find((g) => g.isChair)?.email ?? null,
     };
   }
 
@@ -1011,4 +1310,39 @@ function roleRank(role: ParticipantRole): number {
     : role === ParticipantRole.CHAIR
       ? 1
       : 2;
+}
+
+/** A guest as stored (email lowercased by the DTO, isChair always set). */
+interface GuestInput {
+  name: string;
+  designation: string;
+  email: string;
+  isChair: boolean;
+}
+
+function guestInputs(guests: MeetingGuestInputDto[] | undefined): GuestInput[] {
+  return (guests ?? []).map((g) => ({
+    name: g.name,
+    designation: g.designation,
+    email: g.email.trim().toLowerCase(),
+    isChair: g.isChair === true,
+  }));
+}
+
+function toGuestInput(g: MeetingGuest): GuestInput {
+  return {
+    name: g.name,
+    designation: g.designation,
+    email: g.email,
+    isChair: g.isChair,
+  };
+}
+
+/** Chair first, then by name. */
+function sortGuests(guests: MeetingGuest[] | undefined): MeetingGuest[] {
+  return [...(guests ?? [])].sort(
+    (a, b) =>
+      Number(b.isChair) - Number(a.isChair) ||
+      a.name.localeCompare(b.name, 'bn'),
+  );
 }

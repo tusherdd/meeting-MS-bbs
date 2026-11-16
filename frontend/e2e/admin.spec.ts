@@ -69,7 +69,7 @@ test("admin creates an officer, who logs in with the default password", async ({
     await admin.getByLabel("নাম (ইংরেজি)").fill("E2E New Officer");
     await admin
       .getByRole("combobox", { name: "পদবি", exact: true })
-      .selectOption({ label: "পরিসংখ্যান কর্মকর্তা (অগ্রাধিকার ৭)" });
+      .selectOption({ label: "পরিসংখ্যান কর্মকর্তা" });
     await admin.getByLabel("Mobile", { exact: true }).fill("০১৮১১০০০০০২");
     await admin.getByRole("button", { name: "কর্মকর্তা তৈরি করুন" }).click();
 

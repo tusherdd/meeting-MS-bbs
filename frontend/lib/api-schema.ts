@@ -936,7 +936,7 @@ export interface components {
              * @example MEETING_CREATE
              * @enum {string}
              */
-            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
             /** @example meeting */
             entityType: string;
             entityId: string | null;
@@ -1726,7 +1726,7 @@ export interface components {
             /** @enum {string} */
             status: "SCHEDULED" | "CANCELLED" | "COMPLETED";
             /**
-             * @description Organizer's designation priority when the meeting was created (snapshot)
+             * @description Snapshot: the internal chair's designation priority, else the organizer's (taken on create and when the chair changes). Never shown in the UI.
              * @example 6
              */
             priority: number;
@@ -1736,6 +1736,19 @@ export interface components {
              * @enum {string|null}
              */
             myRole: "ORGANIZER" | "CHAIR" | "MEMBER" | null;
+        };
+        MeetingGuestInputDto: {
+            /** @example ড. ফারহানা ইসলাম */
+            name: string;
+            /** @example যুগ্মসচিব, পরিকল্পনা মন্ত্রণালয় */
+            designation: string;
+            /** @example farhana@plancomm.gov.bd */
+            email: string;
+            /**
+             * @description This guest chairs the meeting (then chairId must be empty; at most one chair in total)
+             * @default false
+             */
+            isChair: boolean;
         };
         CheckConflictsDto: {
             /** @example বার্ষিক উন্নয়ন কর্মসূচি পর্যালোচনা সভা */
@@ -1762,14 +1775,16 @@ export interface components {
             onlineLink?: string | null;
             /**
              * Format: uuid
-             * @description Chairperson (does not affect priority)
+             * @description Internal chairperson (an officer). The meeting gets the chair's designation priority; with a guest chair (guests[].isChair) or no chair it gets the organizer's.
              */
             chairId?: string | null;
             /** @description Invited officers (ids from GET /users/directory). The organizer is added automatically. */
             participantIds?: string[];
+            /** @description Guest officers (no account; mail only). On update the whole list is replaced. Not part of the conflict check. */
+            guests?: components["schemas"]["MeetingGuestInputDto"][];
             /**
              * Format: uuid
-             * @description Set when editing an existing meeting: it is excluded and its stored priority is used
+             * @description Set when editing an existing meeting: it is excluded; its stored priority is used unless the chair changes
              */
             meetingId?: string;
         };
@@ -1812,6 +1827,21 @@ export interface components {
             blocking: components["schemas"]["ClashDto"][];
             /** @description Lower meetings whose people would be asked to cancel/reschedule */
             willNotify: components["schemas"]["ClashDto"][];
+        };
+        MeetingGuestDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example ড. ফারহানা ইসলাম */
+            name: string;
+            /** @example যুগ্মসচিব, পরিকল্পনা মন্ত্রণালয় */
+            designation: string;
+            /** @example farhana@plancomm.gov.bd */
+            email: string;
+            /**
+             * @description This guest chairs the meeting
+             * @example false
+             */
+            isChair: boolean;
         };
         ParticipantDto: {
             /** Format: uuid */
@@ -1886,7 +1916,7 @@ export interface components {
             /** @enum {string} */
             status: "SCHEDULED" | "CANCELLED" | "COMPLETED";
             /**
-             * @description Organizer's designation priority when the meeting was created (snapshot)
+             * @description Snapshot: the internal chair's designation priority, else the organizer's (taken on create and when the chair changes). Never shown in the UI.
              * @example 6
              */
             priority: number;
@@ -1897,7 +1927,10 @@ export interface components {
              */
             myRole: "ORGANIZER" | "CHAIR" | "MEMBER" | null;
             agenda: string | null;
+            /** @description Internal chair (null when the chair is a guest, see guests[].isChair) */
             chair: components["schemas"]["PersonDto"] | null;
+            /** @description Guest officers (chair first, then by name) */
+            guests: components["schemas"]["MeetingGuestDto"][];
             /** @description Everyone incl. organizer and chair */
             participants: components["schemas"]["ParticipantDto"][];
             notes: string | null;
@@ -1937,11 +1970,13 @@ export interface components {
             onlineLink?: string | null;
             /**
              * Format: uuid
-             * @description Chairperson (does not affect priority)
+             * @description Internal chairperson (an officer). The meeting gets the chair's designation priority; with a guest chair (guests[].isChair) or no chair it gets the organizer's.
              */
             chairId?: string | null;
             /** @description Invited officers (ids from GET /users/directory). The organizer is added automatically. */
             participantIds?: string[];
+            /** @description Guest officers (no account; mail only). On update the whole list is replaced. Not part of the conflict check. */
+            guests?: components["schemas"]["MeetingGuestInputDto"][];
         };
         MeetingConflictErrorDto: {
             /** @example 409 */
@@ -1977,11 +2012,13 @@ export interface components {
             onlineLink?: string | null;
             /**
              * Format: uuid
-             * @description Chairperson (does not affect priority)
+             * @description Internal chairperson (an officer). The meeting gets the chair's designation priority; with a guest chair (guests[].isChair) or no chair it gets the organizer's.
              */
             chairId?: string | null;
             /** @description Invited officers (ids from GET /users/directory). The organizer is added automatically. */
             participantIds?: string[];
+            /** @description Guest officers (no account; mail only). On update the whole list is replaced. Not part of the conflict check. */
+            guests?: components["schemas"]["MeetingGuestInputDto"][];
         };
         CancelMeetingDto: {
             /** @example মাননীয় সচিব মহোদয়ের জরুরি সভার কারণে স্থগিত। */
@@ -2080,6 +2117,12 @@ export interface components {
             conflictsIRaised: number;
             byDay: components["schemas"]["DayCountDto"][];
         };
+        ReportGuestDto: {
+            /** @example ড. ফারহানা ইসলাম */
+            name: string;
+            /** @example যুগ্মসচিব, পরিকল্পনা মন্ত্রণালয় */
+            designation: string;
+        };
         ReportMeetingDto: {
             /** Format: uuid */
             id: string;
@@ -2102,6 +2145,13 @@ export interface components {
              * @enum {string|null}
              */
             myRole: "ORGANIZER" | "CHAIR" | "MEMBER" | null;
+            /**
+             * @description Chair: the internal chair, else the guest chair
+             * @example মোঃ ফিরোজ সরকার
+             */
+            chairNameBn: string | null;
+            /** @description Guest officers (listed only, never counted) */
+            guests: components["schemas"]["ReportGuestDto"][];
         };
         ReportMeetingPageDto: {
             items: components["schemas"]["ReportMeetingDto"][];
@@ -2268,7 +2318,7 @@ export interface operations {
                 limit?: number;
                 /** @description Who did it */
                 actorId?: string;
-                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
                 /** @description user, meeting, designation, change_request, … */
                 entityType?: string;
                 /** @description Id of the changed record */

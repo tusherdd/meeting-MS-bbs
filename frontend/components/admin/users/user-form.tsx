@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { designationsApi, queryKeys, usersApi, wingsApi } from "@/lib/endpoints";
-import { formatNumber } from "@/lib/format";
 import {
   toUserPayload,
   userFormSchema,
@@ -100,7 +99,7 @@ export function UserForm({ user }: { user?: UserDetail }) {
     .filter((d) => d.isActive || d.id === user?.designation?.id)
     .map((d) => ({
       value: d.id,
-      label: t.profile.designationOption(d.nameBn, formatNumber(d.priority)),
+      label: d.nameBn,
     }));
 
   return (
@@ -128,7 +127,7 @@ export function UserForm({ user }: { user?: UserDetail }) {
               required
               placeholder={t.admin.designationChoose}
               options={designationChoices}
-              hint={editing ? t.admin.designationEditNote : t.admin.priorityExplain}
+              hint={editing ? t.admin.designationEditNote : undefined}
               error={errors.designationId?.message}
               {...form.register("designationId")}
             />

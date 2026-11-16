@@ -18,7 +18,7 @@ import { Select } from "@/components/ui/select";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
 import { designationsApi, profileApi, queryKeys } from "@/lib/endpoints";
-import { formatDateTime, formatNumber } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { loginEmailRequestSchema, type LoginEmailRequestValues } from "@/lib/schemas";
 import type {
   ChangeRequest,
@@ -77,7 +77,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
     .filter((d) => d.id !== profile.designation?.id)
     .map((d) => ({
       value: d.id,
-      label: t.profile.designationOption(d.nameBn, formatNumber(d.priority)),
+      label: d.nameBn,
     }));
 
   return (
@@ -133,12 +133,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
             <p className="text-sm text-slate-700">
               {t.profile.designation}:{" "}
               <span className="font-medium">
-                {profile.designation
-                  ? t.profile.designationOption(
-                      profile.designation.nameBn,
-                      formatNumber(profile.designation.priority),
-                    )
-                  : t.profile.none}
+                {profile.designation ? profile.designation.nameBn : t.profile.none}
               </span>
             </p>
             <Select

@@ -29,6 +29,8 @@ function html() {
         organizerWingId: null,
         organizerWingBn: null,
         myRole: ParticipantRole.ORGANIZER,
+        chairNameBn: evil,
+        guests: [{ name: evil, designation: evil }],
       },
     ],
     showMyRole: true,
@@ -94,6 +96,11 @@ describe('report PDF template', () => {
           organizerWingId: null,
           organizerWingBn: null,
           myRole: ParticipantRole.ORGANIZER,
+          chairNameBn: 'ড. ফারহানা ইসলাম',
+          guests: [
+            { name: 'ড. ফারহানা ইসলাম', designation: 'যুগ্মসচিব (Planning)' },
+            { name: 'Mr. John Doe', designation: 'Consultant, UNFPA' },
+          ],
         },
       ],
       showMyRole: true,
@@ -115,5 +122,47 @@ describe('report PDF template', () => {
     expect(out).toContain('<td>২০২৬-১২-০১</td><td>৫</td><td>১.৫</td>');
     expect(out).toContain('১ ডিসেম্বর ২০২৬');
     expect(out).not.toContain('<td>2026-12-01</td>');
+    // v1.5: chair column and the guest officers under the meeting, typed text unchanged.
+    expect(out).toContain('<th>সভাপতি</th>');
+    expect(out).toContain('<td>ড. ফারহানা ইসলাম</td>');
+    expect(out).toContain(
+      '<b>অতিথি কর্মকর্তা:</b> ড. ফারহানা ইসলাম — যুগ্মসচিব (Planning); Mr. John Doe — Consultant, UNFPA',
+    );
+  });
+
+  it('adds no guest row for a meeting without guest officers', () => {
+    const out = renderReportHtml({
+      header: {
+        subjectLines: [],
+        periodLabelBn: 'ডিসেম্বর ২০২৬',
+        generatedAtBn: 'প্রস্তুত',
+      },
+      summary: [],
+      extraTables: [],
+      meetings: [
+        {
+          id: 'm1',
+          title: 'সভা',
+          startAt: new Date('2026-12-01T04:00:00Z'),
+          endAt: new Date('2026-12-01T05:00:00Z'),
+          room: null,
+          status: MeetingStatus.SCHEDULED,
+          organizerId: 'o',
+          organizerNameBn: 'আয়োজক',
+          organizerDesignationId: null,
+          organizerDesignationBn: null,
+          organizerDesignationPriority: null,
+          organizerWingId: null,
+          organizerWingBn: null,
+          myRole: null,
+          chairNameBn: null,
+          guests: [],
+        },
+      ],
+      showMyRole: false,
+      totalMeetings: 1,
+    });
+    expect(out).not.toContain('class="guests"');
+    expect(out).not.toContain('অতিথি কর্মকর্তা:');
   });
 });

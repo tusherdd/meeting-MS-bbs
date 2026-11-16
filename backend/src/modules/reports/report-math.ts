@@ -26,6 +26,13 @@ export interface ReportMeeting {
   organizerWingBn: string | null;
   /** Role of the report's officer (personal report only). */
   myRole: ParticipantRole | null;
+  /** Chair's name: the internal chair, else the guest chair (v1.5); null = no chair. */
+  chairNameBn: string | null;
+  /**
+   * Guest officers (v1.5): listed under the meeting, never counted in any statistic
+   * (the counts only use organizer and participant rows).
+   */
+  guests: Array<{ name: string; designation: string }>;
 }
 
 export type StatusCounts = Record<MeetingStatus, number>;

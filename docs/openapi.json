@@ -80,6 +80,7 @@
                 "MEETING_CANCEL",
                 "MEETING_COMPLETE",
                 "MEETING_DELETE",
+                "MEETING_CHAIR_PRIORITY_APPLIED",
                 "CONFLICT_CREATED",
                 "CONFLICT_RESOLVED"
               ]
@@ -3324,6 +3325,7 @@
               "MEETING_CANCEL",
               "MEETING_COMPLETE",
               "MEETING_DELETE",
+              "MEETING_CHAIR_PRIORITY_APPLIED",
               "CONFLICT_CREATED",
               "CONFLICT_RESOLVED"
             ],
@@ -5153,7 +5155,7 @@
           "priority": {
             "type": "number",
             "example": 6,
-            "description": "Organizer's designation priority when the meeting was created (snapshot)"
+            "description": "Snapshot: the internal chair's designation priority, else the organizer's (taken on create and when the chair changes). Never shown in the UI."
           },
           "organizer": {
             "$ref": "#/components/schemas/PersonDto"
@@ -5180,6 +5182,36 @@
           "priority",
           "organizer",
           "myRole"
+        ]
+      },
+      "MeetingGuestInputDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "ড. ফারহানা ইসলাম",
+            "maxLength": 200
+          },
+          "designation": {
+            "type": "string",
+            "example": "যুগ্মসচিব, পরিকল্পনা মন্ত্রণালয়",
+            "maxLength": 200
+          },
+          "email": {
+            "type": "string",
+            "example": "farhana@plancomm.gov.bd",
+            "maxLength": 254
+          },
+          "isChair": {
+            "type": "boolean",
+            "default": false,
+            "description": "This guest chairs the meeting (then chairId must be empty; at most one chair in total)"
+          }
+        },
+        "required": [
+          "name",
+          "designation",
+          "email"
         ]
       },
       "CheckConflictsDto": {
@@ -5221,7 +5253,7 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Chairperson (does not affect priority)"
+            "description": "Internal chairperson (an officer). The meeting gets the chair's designation priority; with a guest chair (guests[].isChair) or no chair it gets the organizer's."
           },
           "participantIds": {
             "maxItems": 200,
@@ -5232,10 +5264,18 @@
               "format": "uuid"
             }
           },
+          "guests": {
+            "maxItems": 50,
+            "description": "Guest officers (no account; mail only). On update the whole list is replaced. Not part of the conflict check.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetingGuestInputDto"
+            }
+          },
           "meetingId": {
             "type": "string",
             "format": "uuid",
-            "description": "Set when editing an existing meeting: it is excluded and its stored priority is used"
+            "description": "Set when editing an existing meeting: it is excluded; its stored priority is used unless the chair changes"
           }
         },
         "required": [
@@ -5350,6 +5390,39 @@
           "allowed",
           "blocking",
           "willNotify"
+        ]
+      },
+      "MeetingGuestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "ড. ফারহানা ইসলাম"
+          },
+          "designation": {
+            "type": "string",
+            "example": "যুগ্মসচিব, পরিকল্পনা মন্ত্রণালয়"
+          },
+          "email": {
+            "type": "string",
+            "example": "farhana@plancomm.gov.bd"
+          },
+          "isChair": {
+            "type": "boolean",
+            "example": false,
+            "description": "This guest chairs the meeting"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "designation",
+          "email",
+          "isChair"
         ]
       },
       "ParticipantDto": {
@@ -5542,7 +5615,7 @@
           "priority": {
             "type": "number",
             "example": 6,
-            "description": "Organizer's designation priority when the meeting was created (snapshot)"
+            "description": "Snapshot: the internal chair's designation priority, else the organizer's (taken on create and when the chair changes). Never shown in the UI."
           },
           "organizer": {
             "$ref": "#/components/schemas/PersonDto"
@@ -5563,12 +5636,20 @@
           },
           "chair": {
             "nullable": true,
+            "description": "Internal chair (null when the chair is a guest, see guests[].isChair)",
             "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/PersonDto"
               }
             ]
+          },
+          "guests": {
+            "description": "Guest officers (chair first, then by name)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetingGuestDto"
+            }
           },
           "participants": {
             "description": "Everyone incl. organizer and chair",
@@ -5623,6 +5704,7 @@
           "myRole",
           "agenda",
           "chair",
+          "guests",
           "participants",
           "notes",
           "cancelReason",
@@ -5672,7 +5754,7 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Chairperson (does not affect priority)"
+            "description": "Internal chairperson (an officer). The meeting gets the chair's designation priority; with a guest chair (guests[].isChair) or no chair it gets the organizer's."
           },
           "participantIds": {
             "maxItems": 200,
@@ -5681,6 +5763,14 @@
             "items": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          "guests": {
+            "maxItems": 50,
+            "description": "Guest officers (no account; mail only). On update the whole list is replaced. Not part of the conflict check.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetingGuestInputDto"
             }
           }
         },
@@ -5758,7 +5848,7 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Chairperson (does not affect priority)"
+            "description": "Internal chairperson (an officer). The meeting gets the chair's designation priority; with a guest chair (guests[].isChair) or no chair it gets the organizer's."
           },
           "participantIds": {
             "maxItems": 200,
@@ -5767,6 +5857,14 @@
             "items": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          "guests": {
+            "maxItems": 50,
+            "description": "Guest officers (no account; mail only). On update the whole list is replaced. Not part of the conflict check.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetingGuestInputDto"
             }
           }
         }
@@ -6012,6 +6110,23 @@
           "byDay"
         ]
       },
+      "ReportGuestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "ড. ফারহানা ইসলাম"
+          },
+          "designation": {
+            "type": "string",
+            "example": "যুগ্মসচিব, পরিকল্পনা মন্ত্রণালয়"
+          }
+        },
+        "required": [
+          "name",
+          "designation"
+        ]
+      },
       "ReportMeetingDto": {
         "type": "object",
         "properties": {
@@ -6062,6 +6177,19 @@
             ],
             "nullable": true,
             "description": "Personal report only"
+          },
+          "chairNameBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "মোঃ ফিরোজ সরকার",
+            "description": "Chair: the internal chair, else the guest chair"
+          },
+          "guests": {
+            "description": "Guest officers (listed only, never counted)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportGuestDto"
+            }
           }
         },
         "required": [
@@ -6073,7 +6201,9 @@
           "status",
           "organizerNameBn",
           "organizerDesignationBn",
-          "myRole"
+          "myRole",
+          "chairNameBn",
+          "guests"
         ]
       },
       "ReportMeetingPageDto": {

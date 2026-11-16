@@ -24,29 +24,19 @@ export function SummaryRow() {
     { label: t.dashboard.summary.organized, value: s && formatNumber(s.organized) },
     { label: t.dashboard.summary.attended, value: s && formatNumber(s.attended) },
     { label: t.dashboard.summary.hours, value: s && formatHours(s.totalHours) },
-    {
-      label: t.dashboard.summary.conflicts,
-      value: s && formatNumber(s.conflictsRaisedAgainstMyMeetings),
-      warn: !!s && s.conflictsRaisedAgainstMyMeetings > 0,
-    },
   ];
 
   return (
     <section aria-label={t.dashboard.summaryTitle}>
       <h2 className="sr-only">{t.dashboard.summaryTitle}</h2>
-      <dl
-        className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
-        aria-busy={report.isPending}
-      >
+      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-busy={report.isPending}>
         {items.map((item) => (
           <div
             key={item.label}
             className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
           >
             <dt className="text-xs text-slate-500">{item.label}</dt>
-            <dd
-              className={`mt-1 text-xl font-semibold ${item.warn ? "text-red-700" : "text-slate-900"}`}
-            >
+            <dd className="mt-1 text-xl font-semibold text-slate-900">
               {item.value ?? (
                 <span className="inline-block h-6 w-10 animate-pulse rounded bg-slate-100" />
               )}

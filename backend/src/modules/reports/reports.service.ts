@@ -114,10 +114,10 @@ export class ReportsService {
         ...statusRows(s.byStatus),
         { label: 'মোট সময় (ঘণ্টা, বাতিল ছাড়া)', value: s.totalHours },
         {
-          label: 'আমার সভার বিরুদ্ধে সংঘাত',
+          label: 'আমার সভার বিপরীতে ডুপ্লিকেট সভা',
           value: s.conflictsRaisedAgainstMyMeetings,
         },
-        { label: 'আমার সভা থেকে সৃষ্ট সংঘাত', value: s.conflictsIRaised },
+        { label: 'আমার সভার কারণে ডুপ্লিকেট সভা', value: s.conflictsIRaised },
       ],
       extraTables: [
         {
@@ -184,8 +184,8 @@ export class ReportsService {
         { label: 'মোট সভা', value: o.totalMeetings },
         ...statusRows(o.byStatus),
         { label: 'মোট সময় (ঘণ্টা, বাতিল ছাড়া)', value: o.totalHours },
-        { label: 'Pending সংঘাত', value: conflicts.pending },
-        { label: 'Resolved সংঘাত', value: conflicts.resolved },
+        { label: 'Pending ডুপ্লিকেট সভা', value: conflicts.pending },
+        { label: 'Resolved ডুপ্লিকেট সভা', value: conflicts.resolved },
       ],
       extraTables: [
         {
@@ -195,13 +195,9 @@ export class ReportsService {
         },
         {
           title: 'পদবিভিত্তিক (আয়োজকের পদবি)',
-          headers: ['পদবি', 'অগ্রাধিকার', 'সভা', 'ঘণ্টা'],
-          rows: o.byDesignation.map((d) => [
-            d.nameBn,
-            d.priority ?? '—',
-            d.meetings,
-            d.hours,
-          ]),
+          // No priority column: priority numbers are shown only on the admin designations page (v1.5).
+          headers: ['পদবি', 'সভা', 'ঘণ্টা'],
+          rows: o.byDesignation.map((d) => [d.nameBn, d.meetings, d.hours]),
         },
         {
           title: 'সর্বাধিক সভা আয়োজনকারী (শীর্ষ ১০)',
@@ -241,12 +237,15 @@ export class ReportsService {
       .innerJoinAndSelect('m.organizer', 'o')
       .leftJoinAndSelect('o.designation', 'd')
       .leftJoinAndSelect('o.wing', 'w')
+      .leftJoinAndSelect('m.chair', 'ch')
+      .leftJoinAndSelect('m.guests', 'g')
       .where('m.startAt >= :start AND m.startAt < :end', {
         start: range.start,
         end: range.end,
       })
       .orderBy('m.startAt', 'ASC')
-      .addOrderBy('m.id', 'ASC');
+      .addOrderBy('m.id', 'ASC')
+      .addOrderBy('g.createdAt', 'ASC');
 
     if ('personId' in scope) {
       qb.andWhere(
@@ -294,6 +293,12 @@ export class ReportsService {
       organizerWingId: m.organizer.wingId,
       organizerWingBn: m.organizer.wing?.nameBn ?? null,
       myRole: roles.get(m.id) ?? null,
+      chairNameBn:
+        m.chair?.nameBn ?? m.guests.find((g) => g.isChair)?.name ?? null,
+      guests: m.guests.map((g) => ({
+        name: g.name,
+        designation: g.designation,
+      })),
     }));
   }
 
@@ -397,5 +402,7 @@ function toItem(m: ReportMeeting): ReportMeetingDto {
     organizerNameBn: m.organizerNameBn,
     organizerDesignationBn: m.organizerDesignationBn,
     myRole: m.myRole,
+    chairNameBn: m.chairNameBn,
+    guests: m.guests,
   };
 }

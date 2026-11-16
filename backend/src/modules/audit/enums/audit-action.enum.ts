@@ -45,6 +45,8 @@ export enum AuditAction {
   MEETING_CANCEL = 'MEETING_CANCEL',
   MEETING_COMPLETE = 'MEETING_COMPLETE',
   MEETING_DELETE = 'MEETING_DELETE',
+  /** v1.5: an internal chair (not the organizer) gave the meeting their designation priority. */
+  MEETING_CHAIR_PRIORITY_APPLIED = 'MEETING_CHAIR_PRIORITY_APPLIED',
   CONFLICT_CREATED = 'CONFLICT_CREATED',
   CONFLICT_RESOLVED = 'CONFLICT_RESOLVED',
 }

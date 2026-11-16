@@ -70,7 +70,7 @@ export class MeetingSummaryDto {
   @ApiProperty({
     example: 6,
     description:
-      "Organizer's designation priority when the meeting was created (snapshot)",
+      "Snapshot: the internal chair's designation priority, else the organizer's (taken on create and when the chair changes). Never shown in the UI.",
   })
   priority!: number;
 
@@ -154,12 +154,41 @@ export class MeetingConflictDto {
   resolvedAt!: Date | null;
 }
 
+/** A guest officer of the meeting (অতিথি কর্মকর্তা, no account). */
+export class MeetingGuestDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ example: 'ড. ফারহানা ইসলাম' })
+  name!: string;
+
+  @ApiProperty({ example: 'যুগ্মসচিব, পরিকল্পনা মন্ত্রণালয়' })
+  designation!: string;
+
+  @ApiProperty({ example: 'farhana@plancomm.gov.bd' })
+  email!: string;
+
+  @ApiProperty({ example: false, description: 'This guest chairs the meeting' })
+  isChair!: boolean;
+}
+
 export class MeetingDetailDto extends MeetingSummaryDto {
   @ApiProperty({ type: String, nullable: true })
   agenda!: string | null;
 
-  @ApiProperty({ type: PersonDto, nullable: true })
+  @ApiProperty({
+    type: PersonDto,
+    nullable: true,
+    description:
+      'Internal chair (null when the chair is a guest, see guests[].isChair)',
+  })
   chair!: PersonDto | null;
+
+  @ApiProperty({
+    type: [MeetingGuestDto],
+    description: 'Guest officers (chair first, then by name)',
+  })
+  guests!: MeetingGuestDto[];
 
   @ApiProperty({
     type: [ParticipantDto],

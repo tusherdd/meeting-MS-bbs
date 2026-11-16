@@ -11,11 +11,14 @@ import {
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 import { MeetingStatus } from '../enums/meeting-status.enum';
+import { MeetingGuest } from './meeting-guest.entity';
 import { MeetingParticipant } from './meeting-participant.entity';
 
 /**
- * A meeting created by an officer (the organizer). `priority` is a snapshot of the organizer's
- * designation priority at creation time and drives the conflict engine (SPEC.md §6.3–6.4).
+ * A meeting created by an officer (the organizer). `priority` is a snapshot that drives the
+ * conflict engine (SPEC.md §6.3–6.4): the internal chair's designation priority, or the
+ * organizer's when the chair is a guest officer or there is no chair (v1.5). Taken on create and
+ * again only when the chair changes on edit.
  */
 @Entity('meetings')
 @Index('IDX_meetings_startAt_endAt_status', ['startAt', 'endAt', 'status'])
@@ -47,7 +50,8 @@ export class Meeting extends BaseEntity {
   @JoinColumn({ name: 'organizerId' })
   organizer!: Relation<User>;
 
-  /** Optional chairperson. Does not affect priority. */
+  /** Optional internal chairperson (an officer). Sets the priority (v1.5). A guest chair is
+   *  stored on meeting_guests.isChair instead; never both. */
   @Column({ type: 'uuid', nullable: true })
   chairId!: string | null;
 
@@ -77,4 +81,7 @@ export class Meeting extends BaseEntity {
 
   @OneToMany(() => MeetingParticipant, (participant) => participant.meeting)
   participants!: Relation<MeetingParticipant>[];
+
+  @OneToMany(() => MeetingGuest, (guest) => guest.meeting)
+  guests!: Relation<MeetingGuest>[];
 }

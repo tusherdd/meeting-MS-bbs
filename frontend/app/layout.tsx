@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { connection } from "next/server";
 import localFont from "next/font/local";
+import { engineFromUserAgent } from "@/lib/engine";
 import { AppProviders } from "@/providers/app-providers";
 import { t } from "@/messages";
 import "./globals.css";
@@ -33,6 +35,25 @@ const nikosh = localFont({
   ],
 });
 
+/**
+ * Safari and all iOS browsers (WebKit, v1.5 SPEC.md §13.10): WebKit's shaper draws NikoshBAN's
+ * য় (YA + NUKTA, the stored form) with the dot detached, and the opposite form is broken in
+ * Chromium, so the text cannot fix it. For WebKit only, Bangla comes from Kohinoor Bangla (built
+ * into Apple systems, `local()` face in globals.css) and then this bundled Noto Sans Bengali
+ * (SIL OFL 1.1, LICENSE-NotoSansBengali.txt). Same unicode-range: Latin stays Times New Roman.
+ * preload: false, so other browsers never download it (they never use it).
+ */
+const notoBengali = localFont({
+  src: "./fonts/NotoSansBengali.ttf",
+  weight: "100 900",
+  style: "normal",
+  variable: "--font-noto-bengali",
+  display: "swap",
+  preload: false,
+  adjustFontFallback: false,
+  declarations: [{ prop: "unicode-range", value: "U+0980-09FF, U+0964-0965, U+200C-200D" }],
+});
+
 export const metadata: Metadata = {
   title: { default: t.app.name, template: `%s — ${t.app.name}` },
   description: t.app.org,
@@ -46,8 +67,14 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   // Render per request: Next.js puts the CSP nonce from proxy.ts on its scripts (no static pages).
   await connection();
+  // Server-side engine detection: the right font is in the first HTML, no flash, no script.
+  const engine = engineFromUserAgent((await headers()).get("user-agent"));
   return (
-    <html lang="bn" className={`${nikosh.variable} h-full antialiased`}>
+    <html
+      lang="bn"
+      data-engine={engine}
+      className={`${nikosh.variable} ${notoBengali.variable} h-full antialiased`}
+    >
       <body className="min-h-full bg-slate-50 font-sans text-slate-900">
         <AppProviders>{children}</AppProviders>
       </body>

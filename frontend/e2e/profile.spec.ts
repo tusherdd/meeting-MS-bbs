@@ -78,8 +78,11 @@ test("profile: edit with Bangla digits, charges list, photo upload and remove", 
 
 test("profile: notification email pending, change request created and cancelled", async ({
   browser,
+  browserName,
 }) => {
-  const page = await pageAs(browser, "officer");
+  // One officer per browser: the backend allows only a few verification mails per user per minute.
+  const key = browserName === "webkit" ? "so" : "officer";
+  const page = await pageAs(browser, key);
   try {
     // Cancel leftovers of earlier runs.
     const mine = await apiAsPage<{ id: string; status: string }[]>(
@@ -92,14 +95,14 @@ test("profile: notification email pending, change request created and cancelled"
     }
 
     await page.goto("/profile");
-    const newAddress = `e2e-officer+${Date.now().toString(36)}@example.com`;
+    const newAddress = `e2e-${key}+${Date.now().toString(36)}@example.com`;
     await page.getByLabel("নতুন Notification Email").fill(newAddress);
     await page.getByRole("button", { name: "Send Verification Link" }).click();
     await expect(page.getByText(`যাচাইয়ের অপেক্ষায়: ${newAddress}`)).toBeVisible();
-    await expect(page.getByTestId("notification-email")).toHaveText(OFFICERS.officer.loginEmail);
+    await expect(page.getByTestId("notification-email")).toHaveText(OFFICERS[key].loginEmail);
 
     // Login email change request → in the history as "Pending" → cancel it.
-    const requested = `e2e-officer-new-${Date.now().toString(36)}@example.com`;
+    const requested = `e2e-${key}-new-${Date.now().toString(36)}@example.com`;
     await page.getByLabel("নতুন Login Email").fill(requested);
     await page
       .getByTestId("request-login-email-form")
@@ -112,10 +115,13 @@ test("profile: notification email pending, change request created and cancelled"
     await expect(item).toContainText("Pending");
     await expect(page.getByLabel("নতুন Login Email")).toBeDisabled();
 
-    // The designation select shows each designation's priority.
+    // v1.5: the designation select shows names only, never a priority number.
     await expect(
-      page.getByLabel("নতুন পদবি").locator("option", { hasText: "(অগ্রাধিকার ২)" }),
+      page.getByLabel("নতুন পদবি").locator("option", { hasText: /^মহাপরিচালক$/ }),
     ).toHaveCount(1);
+    await expect(
+      page.getByLabel("নতুন পদবি").locator("option", { hasText: "অগ্রাধিকার" }),
+    ).toHaveCount(0);
 
     await item.getByRole("button", { name: "Cancel Request" }).click();
     await page

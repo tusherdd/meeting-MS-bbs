@@ -246,3 +246,113 @@ export function genericNotificationMail(input: {
       : []),
   ]);
 }
+
+// ------------------------------------------------------------------ guest officers (v1.5)
+
+/** What a guest officer's mail shows about the meeting (all user text unchanged). */
+export interface GuestMeetingDetails {
+  title: string;
+  /** System text, e.g. "১ ডিসেম্বর ২০২৬ (মঙ্গলবার), সকাল ১০:৩০ – সকাল ১১:৩০" (Asia/Dhaka). */
+  when: string;
+  room: string | null;
+  onlineLink: string | null;
+  agenda: string | null;
+  /** "name, designation" */
+  organizer: string;
+  /** "name, designation" of the officer or guest chair; null = no chair. */
+  chair: string | null;
+}
+
+export type GuestMailKind = 'invited' | 'updated' | 'cancelled' | 'removed';
+
+const GUEST_INTRO: Record<GuestMailKind, (title: string) => [string, string]> =
+  {
+    invited: (title) => [
+      `সভার আমন্ত্রণ: ${title}`,
+      'আপনাকে অতিথি কর্মকর্তা হিসেবে নিচের সভায় আমন্ত্রণ জানানো হয়েছে।',
+    ],
+    updated: (title) => [
+      `সভায় পরিবর্তন: ${title}`,
+      'যে সভায় আপনাকে অতিথি কর্মকর্তা হিসেবে আমন্ত্রণ জানানো হয়েছে, তাতে পরিবর্তন করা হয়েছে।',
+    ],
+    cancelled: (title) => [
+      `সভা বাতিল: ${title}`,
+      'যে সভায় আপনাকে অতিথি কর্মকর্তা হিসেবে আমন্ত্রণ জানানো হয়েছিল, সেটি বাতিল করা হয়েছে।',
+    ],
+    removed: (title) => [
+      `অতিথি কর্মকর্তার তালিকা থেকে বাদ: ${title}`,
+      'আপনাকে এই সভার অতিথি কর্মকর্তার তালিকা থেকে বাদ দেওয়া হয়েছে; আপনার উপস্থিতির প্রয়োজন নেই।',
+    ],
+  };
+
+/**
+ * Mail to a guest officer (no account, SPEC.md §6.7). Guests cannot log in, so the mail carries
+ * every detail itself and has no button or link that needs a login (the meeting's own online
+ * link is shown as text). Never a password.
+ */
+export function guestMeetingMail(input: {
+  guestName: string;
+  kind: GuestMailKind;
+  meeting: GuestMeetingDetails;
+  changes?: ReadonlyArray<{ label: string; before: string; after: string }>;
+  cancelReason?: string;
+}): MailContent {
+  const m = input.meeting;
+  const [subject, intro] = GUEST_INTRO[input.kind](m.title);
+  const details: Array<[string, string]> = [
+    ['শিরোনাম', m.title],
+    ['তারিখ ও সময়', m.when],
+    ['কক্ষ', m.room ?? '—'],
+    ['Online Link', m.onlineLink ?? '—'],
+    ['আয়োজক', m.organizer],
+    ['সভাপতি', m.chair ?? '—'],
+  ];
+  const showDetails = input.kind === 'invited' || input.kind === 'updated';
+  const agendaLines = (m.agenda ?? '')
+    .split('\n')
+    .filter((line) => line.trim() !== '');
+
+  return renderMail(subject, input.guestName, [
+    { kind: 'paragraph', text: intro },
+    ...(input.changes?.length
+      ? [
+          { kind: 'paragraph' as const, text: 'যা বদলেছে:' },
+          ...input.changes.map((c) => ({
+            kind: 'paragraph' as const,
+            text: c.before
+              ? `${c.label}: ${c.before} → ${c.after}`
+              : `${c.label}: ${c.after}`,
+          })),
+        ]
+      : []),
+    ...(input.cancelReason
+      ? [
+          {
+            kind: 'paragraph' as const,
+            text: `বাতিলের কারণ: ${input.cancelReason}`,
+          },
+        ]
+      : []),
+    {
+      kind: 'table',
+      rows: showDetails
+        ? details
+        : details.filter(([label]) =>
+            ['শিরোনাম', 'তারিখ ও সময়', 'আয়োজক'].includes(label),
+          ),
+    },
+    ...(showDetails && agendaLines.length > 0
+      ? [
+          { kind: 'paragraph' as const, text: 'আলোচ্যসূচি:' },
+          ...agendaLines.map((line) => ({
+            kind: 'paragraph' as const,
+            text: line,
+          })),
+        ]
+      : []),
+    {
+      kind: 'note',
+      text: 'এই সভার জন্য কোনো Login লাগবে না। কোনো প্রশ্ন থাকলে আয়োজকের সাথে যোগাযোগ করুন।',
+    },
+  ]);
+}
