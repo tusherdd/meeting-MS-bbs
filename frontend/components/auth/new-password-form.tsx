@@ -8,8 +8,9 @@ import { useForm, useWatch } from "react-hook-form";
 import { Alert, ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { authApi } from "@/lib/endpoints";
-import { newPasswordSchema, type NewPasswordForm as Values } from "@/lib/schemas";
-import { t } from "@/messages";
+import { type NewPasswordForm as Values } from "@/lib/schemas";
+import { useSchemas } from "@/lib/hooks/use-schemas";
+import { useT } from "@/providers/locale-provider";
 import { AuthCard } from "./auth-card";
 import { PasswordInput } from "./password-input";
 import { PasswordRules } from "./password-rules";
@@ -19,6 +20,8 @@ import { PasswordRules } from "./password-rules";
  * POST /auth/reset-password; the backend knows from the token which kind it is.
  */
 export function NewPasswordForm({ mode }: { mode: "reset" | "set" }) {
+  const { newPasswordSchema } = useSchemas();
+  const t = useT();
   const token = useSearchParams().get("token")?.trim() ?? "";
   const form = useForm<Values>({
     resolver: zodResolver(newPasswordSchema),

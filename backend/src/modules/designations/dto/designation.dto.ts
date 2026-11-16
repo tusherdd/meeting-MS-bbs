@@ -11,6 +11,7 @@ import {
   Min,
 } from 'class-validator';
 import { toBoolean, trimText } from '../../../common/dto/transforms';
+import { IsEnglishName } from '../../../common/validators/english-name';
 
 export class CreateDesignationDto {
   @ApiProperty({ example: 'উপপরিচালক' })
@@ -28,6 +29,7 @@ export class CreateDesignationDto {
   @IsString({ message: 'ইংরেজি নাম দিন।' })
   @IsNotEmpty({ message: 'ইংরেজি নাম দিন।' })
   @MaxLength(150, { message: 'ইংরেজি নাম সর্বোচ্চ ১৫০ অক্ষরের হতে পারে।' })
+  @IsEnglishName()
   nameEn!: string;
 
   @ApiProperty({

@@ -128,8 +128,11 @@ export class ReportMeetingDto {
   room!: string | null;
   @ApiProperty({ enum: MeetingStatus }) status!: MeetingStatus;
   @ApiProperty({ example: 'মোঃ ফিরোজ সরকার' }) organizerNameBn!: string;
+  @ApiProperty({ example: 'Md. Firoz Sarker' }) organizerNameEn!: string;
   @ApiProperty({ type: String, nullable: true, example: 'সচিব' })
   organizerDesignationBn!: string | null;
+  @ApiProperty({ type: String, nullable: true, example: 'Secretary' })
+  organizerDesignationEn!: string | null;
   @ApiProperty({
     enum: ParticipantRole,
     nullable: true,
@@ -143,6 +146,14 @@ export class ReportMeetingDto {
     description: 'Chair: the internal chair, else the guest chair',
   })
   chairNameBn!: string | null;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Md. Firoz Sarker',
+    description:
+      "Internal chair's English name; a guest chair's name as typed (v1.7)",
+  })
+  chairNameEn!: string | null;
   @ApiProperty({
     type: [ReportGuestDto],
     description: 'Guest officers (listed only, never counted)',
@@ -184,8 +195,11 @@ export class PersonalSummaryDto {
 export class ReportOfficerDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'মোঃ ফিরোজ সরকার' }) nameBn!: string;
+  @ApiProperty({ example: 'Md. Firoz Sarker' }) nameEn!: string;
   @ApiProperty({ type: String, nullable: true, example: 'সচিব' })
   designationBn!: string | null;
+  @ApiProperty({ type: String, nullable: true, example: 'Secretary' })
+  designationEn!: string | null;
 }
 
 export class PersonalReportDto {
@@ -199,6 +213,13 @@ export class GroupCountDto {
   @ApiProperty({ type: String, nullable: true, format: 'uuid' }) id!:
     string | null;
   @ApiProperty({ example: 'কম্পিউটার উইং' }) nameBn!: string;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Computer Wing',
+    description: 'null = no wing / no designation (v1.7)',
+  })
+  nameEn!: string | null;
   @ApiProperty({ example: 7 }) meetings!: number;
   @ApiProperty({ example: 9.5 }) hours!: number;
 }
@@ -211,8 +232,11 @@ export class DesignationCountDto extends GroupCountDto {
 export class OrganizerCountDto {
   @ApiProperty({ format: 'uuid' }) userId!: string;
   @ApiProperty({ example: 'আকলিমা খাতুন' }) nameBn!: string;
+  @ApiProperty({ example: 'Aklima Khatun' }) nameEn!: string;
   @ApiProperty({ type: String, nullable: true, example: 'উপপরিচালক' })
   designationBn!: string | null;
+  @ApiProperty({ type: String, nullable: true, example: 'Deputy Director' })
+  designationEn!: string | null;
   @ApiProperty({ example: 4 }) meetings!: number;
   @ApiProperty({ example: 6 }) hours!: number;
 }
@@ -249,8 +273,12 @@ export class OfficeSummaryDto {
 export class OfficeFiltersDto {
   @ApiProperty({ type: String, nullable: true, example: 'কম্পিউটার উইং' })
   wingBn!: string | null;
+  @ApiProperty({ type: String, nullable: true, example: 'Computer Wing' })
+  wingEn!: string | null;
   @ApiProperty({ type: String, nullable: true, example: 'উপপরিচালক' })
   designationBn!: string | null;
+  @ApiProperty({ type: String, nullable: true, example: 'Deputy Director' })
+  designationEn!: string | null;
 }
 
 export class OfficeReportDto {

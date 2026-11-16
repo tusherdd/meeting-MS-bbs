@@ -6,9 +6,12 @@ import {
   OFFICERS,
   TEST_MEETING_PREFIX,
   credentialsOf,
+  langCookie,
   storageStateOf,
   type OfficerKey,
+  type UiLang,
 } from "./officers";
+import { readFileSync } from "node:fs";
 
 type S = components["schemas"];
 export type MeetingSummary = S["MeetingSummaryDto"];
@@ -33,9 +36,24 @@ export async function loginThroughForm(page: Page, key: OfficerKey) {
   await expect(page.getByRole("heading", { name: "ড্যাশবোর্ড", level: 1 })).toBeVisible();
 }
 
-/** A new browser context that is already logged in as `key` (session saved by global-setup). */
-export async function pageAs(browser: Browser, key: OfficerKey): Promise<Page> {
-  const context = await browser.newContext({ storageState: storageStateOf(key) });
+/**
+ * A new browser context that is already logged in as `key` (session saved by global-setup),
+ * with the UI language cookie (v1.6: `bn` unless a test asks for English; null = no cookie).
+ */
+export async function pageAs(
+  browser: Browser,
+  key: OfficerKey,
+  lang: UiLang | null = "bn",
+): Promise<Page> {
+  const state = JSON.parse(readFileSync(storageStateOf(key), "utf8")) as {
+    cookies: ReturnType<typeof langCookie>[];
+    origins: unknown[];
+  };
+  const cookies = state.cookies.filter((c) => c.name !== "lang");
+  if (lang) cookies.push(langCookie(lang));
+  const context = await browser.newContext({
+    storageState: { ...state, cookies } as never, // same shape as the saved file
+  });
   return context.newPage();
 }
 

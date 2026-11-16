@@ -1,10 +1,12 @@
+"use client";
+
 import clsx from "clsx";
 import Link from "next/link";
-import { formatPlainDate } from "@/lib/format";
+
 import { toIso } from "@/lib/meeting-time";
 import { addDays, dhakaToday } from "@/lib/time";
 import type { MeetingSummary } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 import { groupByDate } from "./calendar-layout";
 import { LineMeeting } from "./meeting-chip";
 import { isWeekend } from "./week-grid";
@@ -19,6 +21,8 @@ export function DayList({
   meetings: MeetingSummary[];
   conflictIds: ReadonlySet<string>;
 }) {
+  const t = useT();
+  const { formatPlainDate } = useFormat();
   const today = dhakaToday();
   const byDate = groupByDate(meetings);
   return (

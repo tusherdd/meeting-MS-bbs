@@ -11,7 +11,7 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { Tabs } from "@/components/ui/tabs";
 import { meetingsApi, queryKeys } from "@/lib/endpoints";
 import type { ConflictListItem, ConflictStatus } from "@/lib/types";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { ConflictCard } from "./conflict-card";
 
@@ -29,6 +29,7 @@ function ConflictItems({ items, empty }: { items: ConflictListItem[]; empty: str
 }
 
 function MyConflicts({ status }: { status: ConflictStatus }) {
+  const t = useT();
   const list = useQuery({
     queryKey: queryKeys.myConflictsByStatus(status),
     queryFn: () => meetingsApi.myConflicts(status),
@@ -55,6 +56,7 @@ function MyConflicts({ status }: { status: ConflictStatus }) {
 }
 
 function AllConflicts() {
+  const t = useT();
   const [status, setStatus] = useState<ConflictStatus | "">("PENDING");
   const [page, setPage] = useState(1);
   const list = useQuery({
@@ -98,6 +100,7 @@ function AllConflicts() {
 
 /** /conflicts (mine; admins also get an "all" tab) and /admin/conflicts (`scope="all"`: all only). */
 export function ConflictsView({ scope = "mine" }: { scope?: "mine" | "all" }) {
+  const t = useT();
   const { isAdmin } = useAuth();
   if (scope === "all") {
     return (
@@ -113,6 +116,7 @@ export function ConflictsView({ scope = "mine" }: { scope?: "mine" | "all" }) {
 }
 
 function MyConflictsTabs({ isAdmin }: { isAdmin: boolean }) {
+  const t = useT();
   const [tab, setTab] = useState<Tab>("PENDING");
   const items: { key: Tab; label: string }[] = [
     { key: "PENDING", label: t.conflictsPage.pending },

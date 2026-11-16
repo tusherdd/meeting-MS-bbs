@@ -11,13 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authApi } from "@/lib/endpoints";
 import { safeNextPath } from "@/lib/safe-next";
-import { loginSchema, type LoginForm as LoginValues } from "@/lib/schemas";
-import { t } from "@/messages";
+import { type LoginForm as LoginValues } from "@/lib/schemas";
+import { useSchemas } from "@/lib/hooks/use-schemas";
+import { useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { AuthCard } from "./auth-card";
 import { PasswordInput } from "./password-input";
 
 export function LoginForm() {
+  const { loginSchema } = useSchemas();
+  const t = useT();
   const router = useRouter();
   const params = useSearchParams();
   const nextPath = safeNextPath(params.get("next"));

@@ -2,13 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { ErrorAlert } from "@/components/ui/alert";
-import { formatHours, formatNumber } from "@/lib/format";
+
 import { queryKeys, reportsApi } from "@/lib/endpoints";
 import { dhakaToday } from "@/lib/time";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 
 /** Small numbers for today, from GET /reports/me?period=day. */
 export function SummaryRow() {
+  const t = useT();
+  const { formatHours, formatNumber } = useFormat();
   const date = dhakaToday();
   const report = useQuery({
     queryKey: queryKeys.myReport("day", date),

@@ -35,7 +35,9 @@ const lower: LoadedMeeting = {
   peopleIds: ['E-org', 'rahim', 'karim'],
   organizerId: 'E-org',
   organizerNameBn: 'নিম্ন আয়োজক',
+  organizerNameEn: 'EN_ONLY organizer',
   organizerDesignationBn: 'পরিসংখ্যান কর্মকর্তা',
+  organizerDesignationEn: 'EN_ONLY designation',
 };
 
 function setup() {
@@ -73,6 +75,10 @@ describe('MeetingNotifierService.conflict (v1.5: informational)', () => {
       ['E-org', 'rahim', 'karim', 'rahim'],
     );
     expect(notifications.notify).toHaveBeenCalledTimes(3); // rahim only once
+    // v1.7: bell texts use the Bangla names only, never the English ones.
+    expect(JSON.stringify(notifications.notify.mock.calls)).not.toContain(
+      'EN_ONLY',
+    );
     const byUser = sent();
 
     const toOrganizer = byUser.get('E-org')!;

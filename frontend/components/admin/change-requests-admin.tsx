@@ -22,16 +22,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { changeRequestsApi, queryKeys } from "@/lib/endpoints";
-import { formatDateTime } from "@/lib/format";
-import { rejectNoteSchema } from "@/lib/schemas";
+
+import { useSchemas } from "@/lib/hooks/use-schemas";
 import type { ChangeRequest, ChangeRequestStatus } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 import { useCurrentUser } from "@/providers/auth-provider";
 
 const STATUSES: ChangeRequestStatus[] = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"];
 
 /** /admin/change-requests: tabs by status; approve (confirmation) / reject (note required). */
 export function ChangeRequestsAdmin() {
+  const t = useT();
+  const names = useNames();
+  const { formatDateTime } = useFormat();
   const me = useCurrentUser();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -121,16 +124,16 @@ export function ChangeRequestsAdmin() {
                       <Tr key={r.id}>
                         <Td>
                           <span className="block font-semibold text-slate-900">
-                            {r.requester.nameBn}
+                            {names.of(r.requester)}
                           </span>
                           <span className="block text-xs break-all text-slate-600">
                             {r.requester.loginEmail}
                           </span>
                         </Td>
                         <Td>{t.profile.type[r.type]}</Td>
-                        <Td>{changeValueText(r.type, r.currentValue)}</Td>
+                        <Td>{changeValueText(r.type, r.currentValue, t, names)}</Td>
                         <Td className="font-medium text-slate-900">
-                          {changeValueText(r.type, r.requestedValue)}
+                          {changeValueText(r.type, r.requestedValue, t, names)}
                         </Td>
                         <Td className="whitespace-nowrap">{formatDateTime(r.createdAt)}</Td>
                         <Td>
@@ -143,7 +146,7 @@ export function ChangeRequestsAdmin() {
                               <div className="flex flex-wrap gap-1.5">
                                 <Button
                                   size="sm"
-                                  aria-label={`${t.admin.approve}: ${r.requester.nameBn}`}
+                                  aria-label={`${t.admin.approve}: ${names.of(r.requester)}`}
                                   onClick={() => {
                                     approve.reset();
                                     setApproveNote("");
@@ -156,7 +159,7 @@ export function ChangeRequestsAdmin() {
                                   size="sm"
                                   variant="secondary"
                                   className="text-red-700"
-                                  aria-label={`${t.admin.reject}: ${r.requester.nameBn}`}
+                                  aria-label={`${t.admin.reject}: ${names.of(r.requester)}`}
                                   onClick={() => {
                                     reject.reset();
                                     setRejecting(r);
@@ -172,7 +175,7 @@ export function ChangeRequestsAdmin() {
                               {r.reviewedBy && r.reviewedAt && (
                                 <p className="text-xs text-slate-600">
                                   {t.admin.reviewed(
-                                    r.reviewedBy.nameBn,
+                                    names.of(r.reviewedBy),
                                     formatDateTime(r.reviewedAt),
                                   )}
                                 </p>
@@ -207,12 +210,12 @@ export function ChangeRequestsAdmin() {
       >
         {approving && (
           <>
-            <p>{t.admin.approveBody(approving.requester.nameBn)}</p>
+            <p>{t.admin.approveBody(names.of(approving.requester))}</p>
             <p>
               {t.profile.type[approving.type]}:{" "}
               {t.admin.fromTo(
-                changeValueText(approving.type, approving.currentValue),
-                changeValueText(approving.type, approving.requestedValue),
+                changeValueText(approving.type, approving.currentValue, t, names),
+                changeValueText(approving.type, approving.requestedValue, t, names),
               )}
             </p>
             <p className="text-slate-600">
@@ -258,6 +261,9 @@ function RejectModal({
   busy: boolean;
   error: unknown;
 }) {
+  const { rejectNoteSchema } = useSchemas();
+  const t = useT();
+  const names = useNames();
   const form = useForm<{ note: string }>({
     resolver: zodResolver(rejectNoteSchema),
     defaultValues: { note: "" },
@@ -293,9 +299,9 @@ function RejectModal({
         >
           {error ? <ErrorAlert error={error} /> : null}
           <p>
-            {request.requester.nameBn} — {t.profile.type[request.type]}:{" "}
+            {names.of(request.requester)} — {t.profile.type[request.type]}:{" "}
             <span className="font-semibold">
-              {changeValueText(request.type, request.requestedValue)}
+              {changeValueText(request.type, request.requestedValue, t, names)}
             </span>
           </p>
           <Textarea

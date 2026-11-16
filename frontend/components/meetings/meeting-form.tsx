@@ -16,9 +16,10 @@ import { isApiError } from "@/lib/api";
 import { meetingsApi } from "@/lib/endpoints";
 import { invalidateMeetingData } from "@/lib/invalidate";
 import { fromIso, toIso } from "@/lib/meeting-time";
-import { meetingFormSchema, type MeetingFormValues } from "@/lib/schemas";
+import { type MeetingFormValues } from "@/lib/schemas";
+import { useSchemas } from "@/lib/hooks/use-schemas";
 import type { Clash, MeetingDetail } from "@/lib/types";
-import { t } from "@/messages";
+import { useNames, useT } from "@/providers/locale-provider";
 import { useCurrentUser } from "@/providers/auth-provider";
 import { ConflictPanel } from "./conflict-panel";
 import {
@@ -71,12 +72,15 @@ function initialValues(meeting?: MeetingDetail, slot?: Props["initialSlot"]): Me
 
 /** One form for /meetings/new and /meetings/[id]/edit. */
 export function MeetingForm({ meeting, initialSlot }: Props) {
+  const { meetingFormSchema } = useSchemas();
+  const t = useT();
+  const names = useNames();
   const me = useCurrentUser();
   const router = useRouter();
   const toast = useToast();
   const queryClient = useQueryClient();
   const isEdit = !!meeting;
-  const organizer = meeting?.organizer ?? { id: me.id, nameBn: me.nameBn };
+  const organizer = meeting?.organizer ?? { id: me.id, nameBn: me.nameBn, nameEn: me.nameEn };
 
   const form = useForm<MeetingFormValues>({
     resolver: zodResolver(meetingFormSchema),
@@ -163,8 +167,8 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
 
   // The chair is chosen from the people of the meeting (organizer + selected) or the guests.
   const chairOptions = [
-    { value: organizer.id, label: t.meetingForm.organizerOption(organizer.nameBn) },
-    ...people.map((p) => ({ value: p.id, label: p.nameBn })),
+    { value: organizer.id, label: t.meetingForm.organizerOption(names.of(organizer)) },
+    ...people.map((p) => ({ value: p.id, label: names.of(p) })),
     ...guests.map((g) => ({
       value: guestChairValue(g.email),
       label: t.meetingForm.guestOption(g.name),

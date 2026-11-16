@@ -12,10 +12,10 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
 import { isApiError } from "@/lib/api";
 import { queryKeys, usersApi } from "@/lib/endpoints";
-import { formatDateTime } from "@/lib/format";
+
 import type { UserDetail as User } from "@/lib/types";
 import { userActions } from "@/lib/user-policy";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 import { useCurrentUser } from "@/providers/auth-provider";
 import { ActiveBadge, DefaultPasswordBadge, ProtectedBadge, RoleBadge } from "./user-badges";
 import { UserForm } from "./user-form";
@@ -24,6 +24,8 @@ type Action = "deactivate" | "activate" | "makeAdmin" | "removeAdmin" | "resetPa
 
 /** /admin/users/:id: account status, the dangerous actions (with confirmation) and the edit form. */
 export function UserDetailView({ id }: { id: string }) {
+  const t = useT();
+  const names = useNames();
   const me = useCurrentUser();
   const created = useSearchParams().get("created") === "1";
   const user = useQuery({ queryKey: queryKeys.user(id), queryFn: () => usersApi.get(id) });
@@ -46,7 +48,7 @@ export function UserDetailView({ id }: { id: string }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900">{u.nameBn}</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">{names.of(u)}</h1>
         <LinkButton href="/admin/users" variant="secondary">
           {t.admin.backToUsers}
         </LinkButton>
@@ -68,6 +70,9 @@ function AccountCard({
   isSelf: boolean;
   actions: ReturnType<typeof userActions>;
 }) {
+  const t = useT();
+  const names = useNames();
+  const { formatDateTime } = useFormat();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [action, setAction] = useState<Action | null>(null);
@@ -105,31 +110,31 @@ function AccountCard({
   const confirm: Record<Action, { title: string; body: string; label: string; danger: boolean }> = {
     deactivate: {
       title: t.admin.confirmDeactivateTitle,
-      body: t.admin.confirmDeactivateBody(u.nameBn),
+      body: t.admin.confirmDeactivateBody(names.of(u)),
       label: t.admin.deactivate,
       danger: true,
     },
     activate: {
       title: t.admin.confirmActivateTitle,
-      body: t.admin.confirmActivateBody(u.nameBn),
+      body: t.admin.confirmActivateBody(names.of(u)),
       label: t.admin.activate,
       danger: false,
     },
     makeAdmin: {
       title: t.admin.confirmMakeAdminTitle,
-      body: t.admin.confirmMakeAdminBody(u.nameBn),
+      body: t.admin.confirmMakeAdminBody(names.of(u)),
       label: t.admin.makeAdmin,
       danger: false,
     },
     removeAdmin: {
       title: t.admin.confirmRemoveAdminTitle,
-      body: t.admin.confirmRemoveAdminBody(u.nameBn),
+      body: t.admin.confirmRemoveAdminBody(names.of(u)),
       label: t.admin.removeAdmin,
       danger: true,
     },
     resetPassword: {
       title: t.admin.confirmResetTitle,
-      body: t.admin.confirmResetBody(u.nameBn),
+      body: t.admin.confirmResetBody(names.of(u)),
       label: t.admin.resetPassword,
       danger: true,
     },

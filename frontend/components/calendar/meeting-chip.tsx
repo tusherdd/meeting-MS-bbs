@@ -1,9 +1,11 @@
+"use client";
+
 import clsx from "clsx";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { formatTime, formatTimeRange } from "@/lib/format";
+
 import type { MeetingStatus, MeetingSummary } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 
 export const statusColors: Record<MeetingStatus, string> = {
   SCHEDULED: "bg-brand-50 text-brand-900 border-brand-300 hover:bg-brand-100",
@@ -11,15 +13,19 @@ export const statusColors: Record<MeetingStatus, string> = {
   CANCELLED: "bg-slate-100 text-slate-500 border-slate-300 line-through hover:bg-slate-200",
 };
 
-function label(m: MeetingSummary, conflict: boolean) {
-  return [
-    m.title,
-    formatTimeRange(m.startAt, m.endAt),
-    t.meeting.status[m.status],
-    conflict ? t.meeting.pendingConflictLong : null,
-  ]
-    .filter(Boolean)
-    .join(", ");
+/** Accessible name of a meeting block, in the current UI language. */
+function useMeetingLabel() {
+  const t = useT();
+  const { formatTimeRange } = useFormat();
+  return (m: MeetingSummary, conflict: boolean) =>
+    [
+      m.title,
+      formatTimeRange(m.startAt, m.endAt),
+      t.meeting.status[m.status],
+      conflict ? t.meeting.pendingConflictLong : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
 }
 
 /** A meeting block in the week grid (absolutely positioned by the caller). */
@@ -34,6 +40,8 @@ export function GridMeeting({
   style: CSSProperties;
   compact: boolean;
 }) {
+  const { formatTimeRange } = useFormat();
+  const label = useMeetingLabel();
   return (
     <Link
       href={`/meetings/${meeting.id}`}
@@ -56,6 +64,8 @@ export function GridMeeting({
 
 /** One line meeting (month cells, "other times" row, phone day list). */
 export function LineMeeting({ meeting, conflict }: { meeting: MeetingSummary; conflict: boolean }) {
+  const { formatTime } = useFormat();
+  const label = useMeetingLabel();
   return (
     <Link
       href={`/meetings/${meeting.id}`}

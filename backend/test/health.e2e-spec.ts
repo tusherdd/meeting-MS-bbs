@@ -43,6 +43,7 @@ describe('Health (e2e)', () => {
       .get('/api/v1/nope')
       .expect(404);
     expect(Object.keys(res.body as object).sort()).toEqual([
+      'code', // v1.6: stable message code (HTTP_404 for texts outside the catalog)
       'error',
       'message',
       'requestId', // step 10: matches the X-Request-Id header and the server log

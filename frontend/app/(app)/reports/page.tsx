@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { MyReportView } from "@/components/reports/my-report-view";
 import { LoadingBlock } from "@/components/ui/spinner";
-import { t } from "@/messages";
+import { getMessages } from "@/messages/server";
 
-export const metadata: Metadata = { title: t.reports.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getMessages()).reports.title };
+}
 
 export default function Page() {
   return (

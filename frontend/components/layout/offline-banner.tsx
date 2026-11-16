@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 
 /** A text banner while the browser is offline, and a short note when it is back (aria-live). */
 export function OfflineBanner() {
+  const t = useT();
   const [state, setState] = useState<"online" | "offline" | "back">("online");
 
   useEffect(() => {

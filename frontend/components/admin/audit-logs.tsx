@@ -15,16 +15,17 @@ import { auditChanges } from "@/lib/audit-diff";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { adminApi, queryKeys, usersApi, type AuditLogQuery } from "@/lib/endpoints";
-import { formatDateTime } from "@/lib/format";
+
 import { isPlainDate } from "@/lib/report-period";
 import { dateRangeToIso } from "@/lib/time";
 import type { AuditAction, AuditLogItem } from "@/lib/types";
-import { t } from "@/messages";
-
-const ACTIONS = Object.keys(t.admin.auditActions) as AuditAction[];
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
 /** /admin/audit-logs: action, actor (search a user) and date filters; changed fields per entry. */
 export function AuditLogs() {
+  const t = useT();
+  const names = useNames();
+  const ACTIONS = Object.keys(t.admin.auditActions) as AuditAction[];
   const { get, page, set } = useQueryParams();
   const [actorSearch, setActorSearch] = useState("");
   const debouncedSearch = useDebouncedValue(actorSearch.trim(), 400);
@@ -62,11 +63,11 @@ export function AuditLogs() {
 
   const actorOptions = [
     ...(selectedActor.data
-      ? [{ value: selectedActor.data.id, label: selectedActor.data.nameBn }]
+      ? [{ value: selectedActor.data.id, label: names.of(selectedActor.data) }]
       : []),
     ...(actors.data?.items ?? [])
       .filter((u) => u.id !== selectedActor.data?.id)
-      .map((u) => ({ value: u.id, label: `${u.nameBn} (${u.loginEmail})` })),
+      .map((u) => ({ value: u.id, label: `${names.of(u)} (${u.loginEmail})` })),
   ];
   const filtered = !!(action || query.actorId || from || to);
 
@@ -169,6 +170,9 @@ export function AuditLogs() {
 }
 
 function AuditRow({ log }: { log: AuditLogItem }) {
+  const t = useT();
+  const names = useNames();
+  const { formatDateTime } = useFormat();
   const changes = auditChanges(
     log.before as Record<string, unknown> | null,
     log.after as Record<string, unknown> | null,
@@ -184,7 +188,7 @@ function AuditRow({ log }: { log: AuditLogItem }) {
           </span>
         )}
       </Td>
-      <Td>{log.actor?.nameBn ?? t.admin.auditSystem}</Td>
+      <Td>{names.maybe(log.actor) ?? t.admin.auditSystem}</Td>
       <Td>
         <span className="block font-medium text-slate-900">{t.admin.auditActions[log.action]}</span>
         <span className="block text-xs text-slate-600">

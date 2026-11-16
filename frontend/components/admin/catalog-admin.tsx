@@ -16,10 +16,11 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
 import { designationsApi, queryKeys, wingsApi } from "@/lib/endpoints";
-import { formatNumber } from "@/lib/format";
-import { designationFormSchema, wingFormSchema, type DesignationFormValues } from "@/lib/schemas";
+
+import { type DesignationFormValues } from "@/lib/schemas";
+import { useSchemas } from "@/lib/hooks/use-schemas";
 import { toEnglishDigits } from "@/lib/phone";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
 /** One row of either list (a wing has no priority). */
 interface Item {
@@ -81,6 +82,8 @@ function ItemForm({
   busy: boolean;
   onSubmit: (v: Values) => void;
 }) {
+  const { designationFormSchema, wingFormSchema } = useSchemas();
+  const t = useT();
   const withPriority = kind === "designation";
   const form = useForm<Values>({
     resolver: zodResolver(withPriority ? designationFormSchema : wingFormSchema),
@@ -133,6 +136,9 @@ function ItemForm({
  * activate / deactivate and delete (only when nobody uses it).
  */
 export function CatalogAdmin({ kind }: { kind: Kind }) {
+  const t = useT();
+  const names = useNames();
+  const { formatNumber } = useFormat();
   const queryClient = useQueryClient();
   const toast = useToast();
   const a = api(kind);
@@ -252,7 +258,7 @@ export function CatalogAdmin({ kind }: { kind: Kind }) {
                         <Button
                           size="sm"
                           variant="secondary"
-                          aria-label={t.admin.editItem(item.nameBn)}
+                          aria-label={t.admin.editItem(names.of(item))}
                           onClick={() => {
                             update.reset();
                             setEditing(item);
@@ -316,7 +322,7 @@ export function CatalogAdmin({ kind }: { kind: Kind }) {
       <Modal
         open={editing !== null}
         onClose={() => setEditing(null)}
-        title={editing ? t.admin.editItem(editing.nameBn) : ""}
+        title={editing ? t.admin.editItem(names.of(editing)) : ""}
       >
         {editing && (
           <div className="space-y-3">
@@ -360,7 +366,7 @@ export function CatalogAdmin({ kind }: { kind: Kind }) {
         error={update.error}
         danger
       >
-        <p>{deactivating && t.admin.deactivateItemBody(deactivating.nameBn)}</p>
+        <p>{deactivating && t.admin.deactivateItemBody(names.of(deactivating))}</p>
       </ConfirmModal>
 
       <ConfirmModal
@@ -373,7 +379,7 @@ export function CatalogAdmin({ kind }: { kind: Kind }) {
         error={remove.error}
         danger
       >
-        <p>{deleting && t.admin.deleteBody(deleting.nameBn)}</p>
+        <p>{deleting && t.admin.deleteBody(names.of(deleting))}</p>
       </ConfirmModal>
     </div>
   );

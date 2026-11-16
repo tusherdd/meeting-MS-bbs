@@ -1029,7 +1029,7 @@ export class MeetingsService {
         clash.meeting,
         clash.sharedPeopleIds.map((u) => ({
           id: u,
-          nameBn: names.get(u) ?? '—',
+          nameBn: names.get(u)?.bn ?? '—',
         })),
         [...new Set([clash.meeting.organizerId, ...fresh])],
       );
@@ -1059,22 +1059,25 @@ export class MeetingsService {
       manager,
       clashes.flatMap((c) => c.sharedPeopleIds),
     );
+    const canSee = (c: Clash<LoadedMeeting>) =>
+      isAdmin(actor) || c.meeting.peopleIds.includes(actor.id);
     return clashes.map((c) => ({
       meetingId: c.meeting.id,
-      title:
-        isAdmin(actor) || c.meeting.peopleIds.includes(actor.id)
-          ? c.meeting.title
-          : MSG.hiddenTitle,
+      title: canSee(c) ? c.meeting.title : MSG.hiddenTitle,
+      titleHidden: !canSee(c),
       startAt: c.meeting.startAt,
       endAt: c.meeting.endAt,
       priority: c.meeting.priority,
       organizer: {
         name: c.meeting.organizerNameBn,
+        nameEn: c.meeting.organizerNameEn,
         designation: c.meeting.organizerDesignationBn,
+        designationEn: c.meeting.organizerDesignationEn,
       },
       sharedOfficers: c.sharedPeopleIds.map((id) => ({
         id,
-        nameBn: names.get(id) ?? '—',
+        nameBn: names.get(id)?.bn ?? '—',
+        nameEn: names.get(id)?.en ?? '—',
       })),
     }));
   }
@@ -1082,14 +1085,14 @@ export class MeetingsService {
   private async namesOf(
     manager: EntityManager,
     ids: string[],
-  ): Promise<Map<string, string>> {
+  ): Promise<Map<string, { bn: string; en: string }>> {
     const unique = [...new Set(ids)];
     if (unique.length === 0) return new Map();
     const users = await manager.getRepository(User).find({
-      select: { id: true, nameBn: true },
+      select: { id: true, nameBn: true, nameEn: true },
       where: { id: In(unique) },
     });
-    return new Map(users.map((u) => [u.id, u.nameBn]));
+    return new Map(users.map((u) => [u.id, { bn: u.nameBn, en: u.nameEn }]));
   }
 
   /** Everything the notices need, incl. the chair (officer or guest) and the lead designation. */
@@ -1275,14 +1278,20 @@ export class MeetingsService {
         otherMeeting: {
           id: other.id,
           title: visible.has(other.id) ? other.title : MSG.hiddenTitle,
+          titleHidden: !visible.has(other.id),
           startAt: other.startAt,
           endAt: other.endAt,
           priority: other.priority,
           status: other.status,
           organizerDesignation: other.organizer.designation?.nameBn ?? null,
+          organizerDesignationEn: other.organizer.designation?.nameEn ?? null,
           organizedByMe: other.organizerId === actor.id,
         },
-        officer: { id: r.user.id, nameBn: r.user.nameBn },
+        officer: {
+          id: r.user.id,
+          nameBn: r.user.nameBn,
+          nameEn: r.user.nameEn,
+        },
         resolvedAt: r.resolvedAt,
       };
     });

@@ -23,13 +23,17 @@ function html() {
         status: MeetingStatus.SCHEDULED,
         organizerId: 'o',
         organizerNameBn: 'আয়োজক',
+        organizerNameEn: 'EN_ONLY organizer',
         organizerDesignationId: null,
         organizerDesignationBn: 'সচিব',
+        organizerDesignationEn: 'EN_ONLY designation',
         organizerDesignationPriority: 1,
         organizerWingId: null,
         organizerWingBn: null,
+        organizerWingEn: 'EN_ONLY wing',
         myRole: ParticipantRole.ORGANIZER,
         chairNameBn: evil,
+        chairNameEn: 'EN_ONLY chair',
         guests: [{ name: evil, designation: evil }],
       },
     ],
@@ -44,6 +48,12 @@ describe('report PDF template', () => {
     expect(out).not.toContain(evil);
     expect(out).not.toContain('<script>x</script>');
     expect(out).toContain('&lt;img src=x onerror=alert(1)&gt;');
+  });
+
+  it('v1.7: prints the Bangla names only, never the English ones', () => {
+    const out = html();
+    expect(out).toContain('সচিব'); // organizerDesignationBn
+    expect(out).not.toContain('EN_ONLY');
   });
 
   it('has the BBS header, Bangla digits, the embedded font and Bangla page numbers', () => {
@@ -90,13 +100,17 @@ describe('report PDF template', () => {
           status: MeetingStatus.SCHEDULED,
           organizerId: 'o',
           organizerNameBn: 'Officer 3',
+          organizerNameEn: 'EN_ONLY organizer',
           organizerDesignationId: null,
           organizerDesignationBn: 'পরিচালক (Grade 4)',
+          organizerDesignationEn: 'EN_ONLY designation',
           organizerDesignationPriority: 4,
           organizerWingId: null,
           organizerWingBn: null,
+          organizerWingEn: 'EN_ONLY wing',
           myRole: ParticipantRole.ORGANIZER,
           chairNameBn: 'ড. ফারহানা ইসলাম',
+          chairNameEn: 'EN_ONLY chair',
           guests: [
             { name: 'ড. ফারহানা ইসলাম', designation: 'যুগ্মসচিব (Planning)' },
             { name: 'Mr. John Doe', designation: 'Consultant, UNFPA' },
@@ -149,13 +163,17 @@ describe('report PDF template', () => {
           status: MeetingStatus.SCHEDULED,
           organizerId: 'o',
           organizerNameBn: 'আয়োজক',
+          organizerNameEn: 'EN_ONLY organizer',
           organizerDesignationId: null,
           organizerDesignationBn: null,
+          organizerDesignationEn: 'EN_ONLY designation',
           organizerDesignationPriority: null,
           organizerWingId: null,
           organizerWingBn: null,
+          organizerWingEn: 'EN_ONLY wing',
           myRole: null,
           chairNameBn: null,
+          chairNameEn: 'EN_ONLY chair',
           guests: [],
         },
       ],

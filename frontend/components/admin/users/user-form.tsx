@@ -12,14 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { designationsApi, queryKeys, usersApi, wingsApi } from "@/lib/endpoints";
-import {
-  toUserPayload,
-  userFormSchema,
-  type ProfileFormValues,
-  type UserFormValues,
-} from "@/lib/schemas";
+import { toUserPayload, type ProfileFormValues, type UserFormValues } from "@/lib/schemas";
+import { useSchemas } from "@/lib/hooks/use-schemas";
 import type { UserDetail } from "@/lib/types";
-import { t } from "@/messages";
+import type { Messages } from "@/messages";
+import { useNames, useT } from "@/providers/locale-provider";
 
 const EMPTY_PROFILE: ProfileFormValues = {
   nameBn: "",
@@ -33,7 +30,7 @@ const EMPTY_PROFILE: ProfileFormValues = {
   additionalCharges: [],
 };
 
-function defaults(user?: UserDetail): UserFormValues {
+function defaults(t: Messages, user?: UserDetail): UserFormValues {
   if (!user) {
     return {
       ...EMPTY_PROFILE,
@@ -58,6 +55,9 @@ function defaults(user?: UserDetail): UserFormValues {
  * typed or sent from here (owner decision 2026-11-09, SPEC.md §6.2).
  */
 export function UserForm({ user }: { user?: UserDetail }) {
+  const { userFormSchema } = useSchemas();
+  const t = useT();
+  const names = useNames();
   const router = useRouter();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -71,7 +71,7 @@ export function UserForm({ user }: { user?: UserDetail }) {
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
-    defaultValues: defaults(user),
+    defaultValues: defaults(t, user),
   });
   const { errors, dirtyFields } = useFormState({ control: form.control });
 
@@ -85,7 +85,7 @@ export function UserForm({ user }: { user?: UserDetail }) {
       await queryClient.invalidateQueries({ queryKey: ["admin"] });
       if (user) {
         queryClient.setQueryData(queryKeys.user(saved.id), saved);
-        form.reset(defaults(saved));
+        form.reset(defaults(t, saved));
         toast.show(t.admin.saved);
       } else {
         toast.show(t.admin.created);
@@ -99,7 +99,7 @@ export function UserForm({ user }: { user?: UserDetail }) {
     .filter((d) => d.isActive || d.id === user?.designation?.id)
     .map((d) => ({
       value: d.id,
-      label: d.nameBn,
+      label: names.of(d),
     }));
 
   return (
@@ -140,7 +140,7 @@ export function UserForm({ user }: { user?: UserDetail }) {
             // The user form has every profile field (plus more); the shared fields only use those.
             form={form as unknown as UseFormReturn<ProfileFormValues>}
             idPrefix="user"
-            wingOptions={wingOptions(wings.data, user?.wing)}
+            wingOptions={wingOptions(wings.data, user?.wing, names)}
           />
 
           <div className="grid gap-4 sm:grid-cols-2">

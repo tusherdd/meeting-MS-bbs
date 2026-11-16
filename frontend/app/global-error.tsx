@@ -1,6 +1,8 @@
 "use client";
 
-import { t } from "@/messages";
+import { createFormatter } from "@/lib/format";
+import { currentLocale } from "@/lib/i18n";
+import { messagesFor } from "@/messages";
 import "./globals.css";
 
 /** Last resort when even the root layout fails: its own <html>, no providers. */
@@ -11,11 +13,14 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // No providers here: the language comes straight from the `lang` cookie.
+  const locale = currentLocale();
+  const t = messagesFor(locale);
   return (
-    <html lang="bn">
+    <html lang={locale}>
       <body className="bg-slate-50 font-sans text-slate-900">
         <main className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
-          <p className="text-5xl font-bold text-red-700">৫০০</p>
+          <p className="text-5xl font-bold text-red-700">{createFormatter(locale).digits(500)}</p>
           <h1 className="text-xl font-semibold">{t.errors.serverTitle}</h1>
           <p className="max-w-md text-slate-600">{t.errors.serverBody}</p>
           {error.digest && (

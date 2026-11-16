@@ -5,7 +5,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { ErrorAlert } from "@/components/ui/alert";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { loginUrlFor } from "@/lib/safe-next";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
 
 export const CHANGE_PASSWORD_PATH = "/change-password";
@@ -17,6 +17,7 @@ export const CHANGE_PASSWORD_PATH = "/change-password";
  * Nothing of the page is rendered before the check has passed.
  */
 export function AuthGuard({ children }: { children: ReactNode }) {
+  const t = useT();
   const { user, isLoading, error, reload, isLoggingOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();

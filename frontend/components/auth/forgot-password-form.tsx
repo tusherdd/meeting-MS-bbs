@@ -8,11 +8,14 @@ import { Alert, ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authApi } from "@/lib/endpoints";
-import { forgotPasswordSchema, type ForgotPasswordForm as Values } from "@/lib/schemas";
-import { t } from "@/messages";
+import { type ForgotPasswordForm as Values } from "@/lib/schemas";
+import { useSchemas } from "@/lib/hooks/use-schemas";
+import { useT } from "@/providers/locale-provider";
 import { AuthCard } from "./auth-card";
 
 export function ForgotPasswordForm() {
+  const { forgotPasswordSchema } = useSchemas();
+  const t = useT();
   const form = useForm<Values>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { loginEmail: "" },

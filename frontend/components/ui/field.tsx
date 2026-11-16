@@ -1,6 +1,8 @@
+"use client";
+
 import clsx from "clsx";
 import type { ReactNode } from "react";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 
 /** Label + control + hint/error, with the ids wired for screen readers. */
 export function Field({
@@ -18,6 +20,7 @@ export function Field({
   required?: boolean;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-baseline gap-x-1">

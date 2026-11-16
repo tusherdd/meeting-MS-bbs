@@ -40,6 +40,8 @@ export interface EnvVars {
   SWAGGER_ENABLED: boolean;
   /** Cron jobs (mail worker, cleanups). false in e2e tests. */
   SCHEDULER_ENABLED: boolean;
+  /** Test-only hooks for Playwright (never in production, SPEC.md §13.14). */
+  E2E_TEST_HOOKS: boolean;
   /** Basic auth for Swagger UI (required in production when SWAGGER_ENABLED). */
   SWAGGER_USER: string;
   SWAGGER_PASSWORD: string;
@@ -149,6 +151,8 @@ export const envSchema = Joi.object<EnvVars>({
   // Off unless explicitly enabled (SPEC.md §9.14).
   SWAGGER_ENABLED: Joi.boolean().default(false),
   SCHEDULER_ENABLED: Joi.boolean().default(true),
+  // v1.6: POST /test-hooks/reset-throttle for Playwright; refused in production below.
+  E2E_TEST_HOOKS: Joi.boolean().default(false),
   SWAGGER_USER: Joi.string().allow('').default(''),
   SWAGGER_PASSWORD: Joi.string().allow('').default(''),
   TRUST_PROXY: Joi.alternatives()
@@ -227,6 +231,9 @@ export function productionProblems(
     problems.push(
       'SWAGGER_ENABLED=true needs SWAGGER_USER and a SWAGGER_PASSWORD of at least 12 characters',
     );
+  }
+  if (env.E2E_TEST_HOOKS) {
+    problems.push('E2E_TEST_HOOKS must not be true in production');
   }
   if (raw.MAIL_DRY_RUN === undefined || raw.MAIL_DRY_RUN === '') {
     problems.push('MAIL_DRY_RUN must be set explicitly (true or false)');

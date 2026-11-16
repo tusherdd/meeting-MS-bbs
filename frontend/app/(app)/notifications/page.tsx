@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { NotificationsView } from "@/components/notifications/notifications-view";
-import { t } from "@/messages";
+import { getMessages } from "@/messages/server";
 
-export const metadata: Metadata = { title: t.notificationsPage.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getMessages()).notificationsPage.title };
+}
 
 export default function Page() {
   return <NotificationsView />;

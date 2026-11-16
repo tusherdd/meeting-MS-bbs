@@ -12,6 +12,9 @@ export interface ApiErrorBody {
   statusCode: number;
   message: string | string[];
   error?: string;
+  /** v1.6: stable message code (same in both languages); `codes` for validation lists. */
+  code?: string;
+  codes?: string[];
   requestId?: string;
   [extra: string]: unknown;
 }

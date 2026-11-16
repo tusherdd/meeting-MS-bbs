@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { MeetingsListView } from "@/components/meetings/meetings-list-view";
-import { t } from "@/messages";
+import { getMessages } from "@/messages/server";
 
-export const metadata: Metadata = { title: t.meetingsList.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getMessages()).meetingsList.title };
+}
 
 export default function Page() {
   return <MeetingsListView />;

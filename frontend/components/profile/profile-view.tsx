@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardBody } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { profileApi, queryKeys } from "@/lib/endpoints";
-import { formatDateTime } from "@/lib/format";
-import { t } from "@/messages";
+
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 import { ChangeRequestsSection } from "./change-requests-section";
 import { NotificationEmailSection } from "./notification-email-section";
 import { PhotoSection } from "./photo-section";
@@ -16,6 +16,9 @@ import { ProfileForm } from "./profile-form";
 
 /** /profile: my details, photo, notification email, change requests and password. */
 export function ProfileView() {
+  const t = useT();
+  const names = useNames();
+  const { formatDateTime } = useFormat();
   const profile = useQuery({ queryKey: queryKeys.profile, queryFn: profileApi.get });
 
   if (profile.isPending) return <LoadingBlock />;
@@ -36,6 +39,12 @@ export function ProfileView() {
               <dd className="font-semibold text-slate-900">{p.nameBn}</dd>
             </div>
             <div>
+              <dt className="text-slate-600">{t.profile.nameEn}</dt>
+              <dd className="font-semibold text-slate-900" data-testid="profile-name-en">
+                {p.nameEn}
+              </dd>
+            </div>
+            <div>
               <dt className="text-slate-600">{t.profile.loginEmail}</dt>
               <dd className="font-medium break-all text-slate-900">{p.loginEmail}</dd>
             </div>
@@ -49,13 +58,15 @@ export function ProfileView() {
               <dt className="text-slate-600">{t.profile.designation}</dt>
               <dd className="font-medium text-slate-900" data-testid="profile-designation">
                 {p.designation
-                  ? `${p.designation.nameBn}${p.designationRemark ? ` (${p.designationRemark})` : ""}`
+                  ? `${names.of(p.designation)}${p.designationRemark ? ` (${p.designationRemark})` : ""}`
                   : t.profile.none}
               </dd>
             </div>
             <div>
               <dt className="text-slate-600">{t.profile.wing}</dt>
-              <dd className="font-medium text-slate-900">{p.wing?.nameBn ?? t.profile.noWing}</dd>
+              <dd className="font-medium text-slate-900">
+                {names.maybe(p.wing) ?? t.profile.noWing}
+              </dd>
             </div>
             <div>
               <dt className="text-slate-600">{t.profile.lastLogin}</dt>

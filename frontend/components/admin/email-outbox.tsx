@@ -15,15 +15,17 @@ import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { adminApi, queryKeys } from "@/lib/endpoints";
-import { formatDateTime, formatNumber } from "@/lib/format";
+
 import type { EmailOutboxItem, EmailStatus } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 
 const STATUSES: EmailStatus[] = ["PENDING", "SENT", "FAILED"];
 const tone: Record<EmailStatus, BadgeTone> = { PENDING: "amber", SENT: "green", FAILED: "red" };
 
 /** /admin/email-outbox: mail queue with a status filter; FAILED mail can be retried. */
 export function EmailOutbox() {
+  const t = useT();
+  const { formatDateTime, formatNumber } = useFormat();
   const queryClient = useQueryClient();
   const toast = useToast();
   const { get, page, set } = useQueryParams();

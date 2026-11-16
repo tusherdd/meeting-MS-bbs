@@ -1,12 +1,17 @@
+"use client";
+
 import clsx from "clsx";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
-import { formatDate, formatTimeRange } from "@/lib/format";
+
 import type { Clash } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 import type { ConflictCheckState } from "./use-conflict-check";
 
 function ClashList({ clashes, blocking }: { clashes: Clash[]; blocking: boolean }) {
+  const t = useT();
+  const names = useNames();
+  const { formatDate, formatTimeRange } = useFormat();
   return (
     <ul className="mt-3 space-y-2">
       {clashes.map((c) => (
@@ -20,19 +25,23 @@ function ClashList({ clashes, blocking }: { clashes: Clash[]; blocking: boolean 
           <p className="font-medium">
             {formatDate(c.startAt)}, {formatTimeRange(c.startAt, c.endAt)}
           </p>
-          {blocking && <p className="font-semibold">{c.title}</p>}
+          {blocking && (
+            <p className="font-semibold">{c.titleHidden ? t.meeting.hiddenTitle : c.title}</p>
+          )}
           {blocking ? (
             <p>
-              {t.conflictPanel.organizer} {c.organizer.name}
-              {c.organizer.designation && `, ${c.organizer.designation}`}
+              {t.conflictPanel.organizer} {names.pick(c.organizer.name, c.organizer.nameEn)}
+              {c.organizer.designation &&
+                `, ${names.pick(c.organizer.designation, c.organizer.designationEn)}`}
             </p>
           ) : (
             <p>
-              {t.conflictPanel.organizerDesignation} {c.organizer.designation ?? "—"}
+              {t.conflictPanel.organizerDesignation}{" "}
+              {names.pickOptional(c.organizer.designation, c.organizer.designationEn) ?? "—"}
             </p>
           )}
           <p>
-            {t.conflictPanel.shared} {c.sharedOfficers.map((o) => o.nameBn).join(", ")}
+            {t.conflictPanel.shared} {c.sharedOfficers.map((o) => names.of(o)).join(", ")}
           </p>
         </li>
       ))}
@@ -42,6 +51,7 @@ function ClashList({ clashes, blocking }: { clashes: Clash[]; blocking: boolean 
 
 /** The three states of the live conflict check (plus idle / checking / error). */
 export function ConflictPanel({ state }: { state: ConflictCheckState }) {
+  const t = useT();
   return (
     <section
       aria-labelledby="conflict-panel-title"

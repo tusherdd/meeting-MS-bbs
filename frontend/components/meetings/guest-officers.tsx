@@ -4,7 +4,7 @@ import { useState, type KeyboardEvent } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 
 /** A guest officer (অতিথি কর্মকর্তা, SPEC.md §6.7): no account, invited by name and email. */
 export interface GuestEntry {
@@ -39,6 +39,7 @@ export function GuestOfficers({
   guests: GuestEntry[];
   onChange: (next: GuestEntry[]) => void;
 }) {
+  const t = useT();
   const [name, setName] = useState("");
   const [designation, setDesignation] = useState("");
   const [email, setEmail] = useState("");

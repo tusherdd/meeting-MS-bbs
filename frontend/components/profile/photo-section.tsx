@@ -8,23 +8,29 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useToast } from "@/components/ui/toast";
 import { profileApi, queryKeys } from "@/lib/endpoints";
-import { toBanglaDigits } from "@/lib/format";
+import type { Messages } from "@/messages";
 import type { Profile } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
 /** Same limits as the backend (SPEC.md §8: jpeg/png/webp, MAX_UPLOAD_MB = 2). The server decides. */
 export const PHOTO_MAX_MB = 2;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 /** Client-side check only; the backend re-checks the real type (magic bytes) and the size. */
-export function checkPhotoFile(file: File): string | null {
+export function checkPhotoFile(
+  file: File,
+  t: Messages,
+  digits: (value: number) => string,
+): string | null {
   if (!PHOTO_TYPES.includes(file.type)) return t.profile.photoWrongType;
-  if (file.size > PHOTO_MAX_MB * 1024 * 1024)
-    return t.profile.photoTooLarge(toBanglaDigits(PHOTO_MAX_MB));
+  if (file.size > PHOTO_MAX_MB * 1024 * 1024) return t.profile.photoTooLarge(digits(PHOTO_MAX_MB));
   return null;
 }
 
 export function PhotoSection({ profile }: { profile: Profile }) {
+  const t = useT();
+  const names = useNames();
+  const { digits } = useFormat();
   const queryClient = useQueryClient();
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +81,7 @@ export function PhotoSection({ profile }: { profile: Profile }) {
       setCheckError(null);
       return;
     }
-    const problem = checkPhotoFile(picked);
+    const problem = checkPhotoFile(picked, t, digits);
     setCheckError(problem);
     choose(problem ? null : picked);
     if (problem && inputRef.current) inputRef.current.value = "";
@@ -93,7 +99,7 @@ export function PhotoSection({ profile }: { profile: Profile }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={current}
-                alt={t.profile.photoAlt(profile.nameBn)}
+                alt={t.profile.photoAlt(names.of(profile))}
                 className="size-32 rounded-xl border border-slate-200 object-cover"
                 data-testid="profile-photo"
               />

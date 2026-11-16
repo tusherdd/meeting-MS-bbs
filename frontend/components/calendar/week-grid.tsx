@@ -2,12 +2,11 @@
 
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
-import { formatPlainDate, formatTime, toBanglaDigits } from "@/lib/format";
 import { useNow } from "@/lib/hooks/use-now";
 import { fromIso, toIso } from "@/lib/meeting-time";
 import { addDays, dhakaToday } from "@/lib/time";
 import type { MeetingSummary } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 import {
   GRID_END_MIN,
   GRID_HOURS,
@@ -22,8 +21,8 @@ const HOUR_PX = 56;
 /** Friday and Saturday are the weekly holidays in Bangladesh. */
 export const isWeekend = (weekday: number) => weekday === 5 || weekday === 6;
 
-function hourLabel(hour: number) {
-  return toBanglaDigits(`${String(hour).padStart(2, "0")}:০০`);
+function hourLabel(hour: number, digits: (value: string) => string) {
+  return digits(`${String(hour).padStart(2, "0")}:00`);
 }
 
 interface Props {
@@ -34,6 +33,8 @@ interface Props {
 
 /** Week view (Sun–Sat, 08:00–18:00) for tablets and desktops. */
 export function WeekGrid({ sunday, meetings, conflictIds }: Props) {
+  const t = useT();
+  const { digits, formatPlainDate, formatTime } = useFormat();
   const router = useRouter();
   const now = useNow();
   const today = dhakaToday(now);
@@ -124,7 +125,7 @@ export function WeekGrid({ sunday, meetings, conflictIds }: Props) {
                 className="absolute right-2 -translate-y-1/2 text-[11px] text-slate-500"
                 style={{ top: i * HOUR_PX }}
               >
-                {i === 0 ? "" : hourLabel(h)}
+                {i === 0 ? "" : hourLabel(h, digits)}
               </span>
             ))}
           </div>
@@ -150,7 +151,7 @@ export function WeekGrid({ sunday, meetings, conflictIds }: Props) {
                     key={h}
                     type="button"
                     onClick={() => newMeetingAt(d, h)}
-                    aria-label={`${t.calendar.weekdaysShort[i]} ${formatPlainDate(d)}, ${t.calendar.newAt(hourLabel(h))}`}
+                    aria-label={`${t.calendar.weekdaysShort[i]} ${formatPlainDate(d)}, ${t.calendar.newAt(hourLabel(h, digits))}`}
                     className="group absolute inset-x-0 border-t border-slate-100 text-left hover:bg-brand-50/60 focus-visible:bg-brand-50"
                     style={{ top: slot * HOUR_PX, height: HOUR_PX }}
                   >

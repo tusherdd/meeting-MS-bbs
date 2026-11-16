@@ -25,6 +25,9 @@ export default defineConfig({
     // Not Dhaka on purpose: the UI must show Dhaka time whatever the computer's zone is.
     timezoneId: "UTC",
     locale: "bn-BD",
+    // v1.6: Bangla UI by default (cookie lang=bn, written by global-setup); English is tested in
+    // language.spec.ts with its own contexts.
+    storageState: "./e2e/.state/lang-bn.json",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

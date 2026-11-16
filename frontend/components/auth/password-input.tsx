@@ -2,7 +2,7 @@
 
 import { useState, type ComponentProps, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 
 type PasswordInputProps = Omit<ComponentProps<typeof Input>, "type" | "trailing"> & {
   label: ReactNode;
@@ -10,6 +10,7 @@ type PasswordInputProps = Omit<ComponentProps<typeof Input>, "type" | "trailing"
 
 /** Password field with a "দেখুন" / "লুকান" text toggle. */
 export function PasswordInput(props: PasswordInputProps) {
+  const t = useT();
   const [visible, setVisible] = useState(false);
   return (
     <Input

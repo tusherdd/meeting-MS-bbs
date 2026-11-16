@@ -9,18 +9,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
 import { saveBlob, type DownloadedFile } from "@/lib/api";
-import {
-  formatDateWithWeekday,
-  formatNumber,
-  formatPlainDay,
-  formatPlainDayMonth,
-  formatPlainMonth,
-  formatPlainMonthYear,
-  formatTimeRange,
-} from "@/lib/format";
+
 import { chartBars } from "@/lib/report-period";
 import type { DayCount, PeriodDto, ReportMeeting, StatusCounts } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
 export interface StatItem {
   label: string;
@@ -54,6 +46,8 @@ export function StatCards({ items, label }: { items: StatItem[]; label: string }
 
 /** "নির্ধারিত ৩ · সম্পন্ন ১০ · বাতিল ২" as badges with numbers. */
 export function StatusBreakdown({ byStatus }: { byStatus: StatusCounts }) {
+  const t = useT();
+  const { formatNumber } = useFormat();
   const statuses = ["SCHEDULED", "COMPLETED", "CANCELLED"] as const;
   return (
     <div>
@@ -84,6 +78,14 @@ export function MeetingsBarChart({
   date: string;
   byDay: DayCount[];
 }) {
+  const t = useT();
+  const {
+    formatNumber,
+    formatPlainDay,
+    formatPlainDayMonth,
+    formatPlainMonth,
+    formatPlainMonthYear,
+  } = useFormat();
   const { unit, bars } = chartBars(period, date, byDay);
   const max = Math.max(1, ...bars.map((b) => b.meetings));
   const total = bars.reduce((sum, b) => sum + b.meetings, 0);
@@ -164,6 +166,9 @@ export function ReportMeetingsTable({
   meetings: ReportMeeting[];
   showMyRole: boolean;
 }) {
+  const t = useT();
+  const names = useNames();
+  const { formatDateWithWeekday, formatTimeRange } = useFormat();
   if (meetings.length === 0) return <EmptyState title={t.reports.meetingsEmpty} />;
   return (
     <Table>
@@ -206,12 +211,14 @@ export function ReportMeetingsTable({
             </Td>
             <Td>{m.room ?? <span className="text-slate-500">{t.meeting.noRoom}</span>}</Td>
             <Td>
-              {m.organizerNameBn}
+              {names.pick(m.organizerNameBn, m.organizerNameEn)}
               {m.organizerDesignationBn && (
-                <span className="block text-xs text-slate-600">{m.organizerDesignationBn}</span>
+                <span className="block text-xs text-slate-600">
+                  {names.pick(m.organizerDesignationBn, m.organizerDesignationEn)}
+                </span>
               )}
             </Td>
-            <Td>{m.chairNameBn ?? "—"}</Td>
+            <Td>{names.pickOptional(m.chairNameBn, m.chairNameEn) ?? "—"}</Td>
             {showMyRole && (
               <Td>
                 <RoleBadge role={m.myRole} />
@@ -232,6 +239,7 @@ export function ReportMeetingsTable({
  * meanwhile, and saves it under the name from Content-Disposition. Errors show the backend text.
  */
 export function PdfDownloadButton({ download }: { download: () => Promise<DownloadedFile> }) {
+  const t = useT();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '../enums/user-role.enum';
 
 export class DesignationRefDto {
@@ -175,7 +175,14 @@ export class DirectoryEntryDto {
 export class UserMessageResponseDto {
   @ApiProperty({
     example:
-      'অস্থায়ী Password তৈরি করে কর্মকর্তার Notification Email-এ পাঠানো হয়েছে। প্রথম Login-এ Password পরিবর্তন করতে হবে।',
+      'Password Default Password-এ Reset করা হয়েছে, সব Session বন্ধ করা হয়েছে এবং কর্মকর্তাকে Email-এ জানানো হয়েছে।',
   })
   message!: string;
+
+  @ApiPropertyOptional({
+    example: 'PASSWORD_RESET_DONE',
+    description:
+      'Stable message code (v1.6); `message` follows Accept-Language (en|bn, default bn)',
+  })
+  code?: string;
 }

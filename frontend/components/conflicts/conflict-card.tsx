@@ -7,9 +7,9 @@ import { StatusBadge } from "@/components/dashboard/meeting-badges";
 import { CancelMeetingModal } from "@/components/meetings/cancel-meeting-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
-import { formatDateTime, formatDateWithWeekday, formatTimeRange } from "@/lib/format";
+
 import type { ConflictListItem, ConflictMeetingRef } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
 function MeetingSide({
   label,
@@ -20,6 +20,9 @@ function MeetingSide({
   meeting: ConflictMeetingRef;
   tone: "higher" | "lower";
 }) {
+  const t = useT();
+  const names = useNames();
+  const { formatDateWithWeekday, formatTimeRange } = useFormat();
   return (
     <div
       className={clsx(
@@ -37,7 +40,7 @@ function MeetingSide({
         href={`/meetings/${meeting.id}`}
         className="mt-1 block font-semibold text-slate-900 hover:underline"
       >
-        {meeting.title}
+        {meeting.titleHidden ? t.meeting.hiddenTitle : meeting.title}
       </Link>
       <p className="text-sm text-slate-700">{formatDateWithWeekday(meeting.startAt)}</p>
       <p className="text-sm font-medium text-brand-800">
@@ -45,7 +48,9 @@ function MeetingSide({
       </p>
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
         <StatusBadge status={meeting.status} />
-        {meeting.organizerDesignation && <span>{meeting.organizerDesignation}</span>}
+        {meeting.organizerDesignation && (
+          <span>{names.pick(meeting.organizerDesignation, meeting.organizerDesignationEn)}</span>
+        )}
       </div>
     </div>
   );
@@ -53,6 +58,9 @@ function MeetingSide({
 
 /** One conflict: the higher-priority meeting next to the overridden (lower) one. */
 export function ConflictCard({ conflict }: { conflict: ConflictListItem }) {
+  const t = useT();
+  const names = useNames();
+  const { formatDateTime } = useFormat();
   const [cancelOpen, setCancelOpen] = useState(false);
   const lower = conflict.lowerMeeting;
   const canAct =
@@ -66,7 +74,7 @@ export function ConflictCard({ conflict }: { conflict: ConflictListItem }) {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-slate-700">
           {t.conflictsPage.shared}{" "}
-          <span className="font-medium text-slate-900">{conflict.officer.nameBn}</span>
+          <span className="font-medium text-slate-900">{names.of(conflict.officer)}</span>
         </p>
         <Badge tone={conflict.status === "PENDING" ? "red" : "neutral"}>
           {t.meetingDetail.conflictStatus[conflict.status]}
@@ -95,7 +103,7 @@ export function ConflictCard({ conflict }: { conflict: ConflictListItem }) {
           </LinkButton>
           <CancelMeetingModal
             meetingId={lower.id}
-            meetingTitle={lower.title}
+            meetingTitle={lower.titleHidden ? t.meeting.hiddenTitle : lower.title}
             open={cancelOpen}
             onClose={() => setCancelOpen(false)}
           />

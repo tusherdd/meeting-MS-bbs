@@ -1,9 +1,12 @@
+"use client";
+
 import clsx from "clsx";
 import { checkPasswordRules } from "@/lib/schemas";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 
 /** Live checklist under a new-password field (same rules as the backend). */
 export function PasswordRules({ password, email }: { password: string; email?: string | null }) {
+  const t = useT();
   const rules = checkPasswordRules(password, email);
   return (
     <div className="rounded-lg bg-slate-50 px-3 py-2.5" id="password-rules">

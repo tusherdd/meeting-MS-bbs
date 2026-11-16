@@ -10,10 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { formatNumber } from "@/lib/format";
+
 import { peopleApi, queryKeys } from "@/lib/endpoints";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
-import { t } from "@/messages";
+import { useFormat, useLocale, useNames, useT } from "@/providers/locale-provider";
 import { fromDirectory, groupByWing, type SelectedPerson } from "./people";
 
 const PAGE = 20;
@@ -33,6 +33,10 @@ interface Props {
  * or add a whole wing after a confirmation that shows how many people it has.
  */
 export function ParticipantPicker({ selected, onChange, organizerId, clashingIds }: Props) {
+  const t = useT();
+  const names = useNames();
+  const { locale } = useLocale();
+  const { formatNumber } = useFormat();
   const [search, setSearch] = useState("");
   const [wingId, setWingId] = useState("");
   const [limit, setLimit] = useState(PAGE);
@@ -60,7 +64,7 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
     enabled: wingModal && !!wingId,
   });
 
-  const wingName = wings.data?.find((w) => w.id === wingId)?.nameBn ?? "";
+  const wingName = names.maybe(wings.data?.find((w) => w.id === wingId)) ?? "";
   const full = selected.length >= MAX_PEOPLE;
 
   function add(person: SelectedPerson) {
@@ -106,7 +110,7 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
           <p className="mt-1 text-sm text-slate-500">{t.picker.noneSelected}</p>
         ) : (
           <div className="mt-2 space-y-3" data-testid="selected-people">
-            {groupByWing(selected, t.picker.noWing).map((group) => (
+            {groupByWing(selected, t.picker.noWing, names, locale).map((group) => (
               <div key={group.wing}>
                 <p className="text-xs font-semibold text-slate-500">{group.wing}</p>
                 <ul className="mt-1 flex flex-wrap gap-2">
@@ -124,9 +128,9 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
                         )}
                       >
                         <span>
-                          {p.nameBn}
-                          {p.designationBn && (
-                            <span className="text-slate-500">, {p.designationBn}</span>
+                          {names.of(p)}
+                          {p.designation && (
+                            <span className="text-slate-500">, {names.of(p.designation)}</span>
                           )}
                           {clash && (
                             <span className="ml-1 font-semibold">({t.picker.clashing})</span>
@@ -135,7 +139,7 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
                         <button
                           type="button"
                           onClick={() => remove(p.id)}
-                          aria-label={t.picker.remove(p.nameBn)}
+                          aria-label={t.picker.remove(names.of(p))}
                           className="rounded-full px-2 py-0.5 text-xs font-medium text-slate-600 hover:bg-white hover:text-red-700"
                         >
                           {t.picker.removeShort}
@@ -174,7 +178,7 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
               setLimit(PAGE);
             }}
             placeholder={t.picker.allWings}
-            options={(wings.data ?? []).map((w) => ({ value: w.id, label: w.nameBn }))}
+            options={(wings.data ?? []).map((w) => ({ value: w.id, label: names.of(w) }))}
           />
         </div>
         {wingId && (
@@ -212,9 +216,13 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
                       <li key={e.id} className="flex items-center gap-3 py-2">
                         <Avatar photoPath={e.photoPath} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-slate-900">{e.nameBn}</p>
+                          <p className="truncate text-sm font-medium text-slate-900">
+                            {names.of(e)}
+                          </p>
                           <p className="truncate text-xs text-slate-500">
-                            {[e.designation?.nameBn, e.wing?.nameBn].filter(Boolean).join(" · ")}
+                            {[names.maybe(e.designation), names.maybe(e.wing)]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </p>
                         </div>
                         <Button
@@ -222,7 +230,7 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
                           size="sm"
                           disabled={isAdded || full || !e.designation}
                           onClick={() => add(fromDirectory(e))}
-                          aria-label={`${e.nameBn}: ${isAdded ? t.picker.added : t.picker.add}`}
+                          aria-label={`${names.of(e)}: ${isAdded ? t.picker.added : t.picker.add}`}
                         >
                           {isAdded ? t.picker.added : t.picker.add}
                         </Button>

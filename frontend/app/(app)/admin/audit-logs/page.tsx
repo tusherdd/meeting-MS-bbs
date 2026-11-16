@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuditLogs } from "@/components/admin/audit-logs";
 import { LoadingBlock } from "@/components/ui/spinner";
-import { t } from "@/messages";
+import { getMessages } from "@/messages/server";
 
-export const metadata: Metadata = { title: t.admin.auditTitle };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getMessages()).admin.auditTitle };
+}
 
 export default function Page() {
   return (

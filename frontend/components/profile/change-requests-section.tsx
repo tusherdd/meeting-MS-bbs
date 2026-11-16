@@ -18,18 +18,23 @@ import { Select } from "@/components/ui/select";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
 import { designationsApi, profileApi, queryKeys } from "@/lib/endpoints";
-import { formatDateTime } from "@/lib/format";
-import { loginEmailRequestSchema, type LoginEmailRequestValues } from "@/lib/schemas";
+
+import { type LoginEmailRequestValues } from "@/lib/schemas";
+import { useSchemas } from "@/lib/hooks/use-schemas";
 import type {
   ChangeRequest,
   ChangeRequestType,
   CreateChangeRequestInput,
   Profile,
 } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
 /** Login-email and designation change requests (admin approval) + my request history. */
 export function ChangeRequestsSection({ profile }: { profile: Profile }) {
+  const { loginEmailRequestSchema } = useSchemas();
+  const t = useT();
+  const names = useNames();
+  const { formatDateTime } = useFormat();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [designationId, setDesignationId] = useState("");
@@ -77,7 +82,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
     .filter((d) => d.id !== profile.designation?.id)
     .map((d) => ({
       value: d.id,
-      label: d.nameBn,
+      label: names.of(d),
     }));
 
   return (
@@ -133,7 +138,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
             <p className="text-sm text-slate-700">
               {t.profile.designation}:{" "}
               <span className="font-medium">
-                {profile.designation ? profile.designation.nameBn : t.profile.none}
+                {names.maybe(profile.designation) ?? t.profile.none}
               </span>
             </p>
             <Select
@@ -186,7 +191,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
                       <RequestStatusBadge status={r.status} />
                     </p>
                     <p className="text-slate-700">
-                      {t.profile.requested} {changeValueText(r.type, r.requestedValue)}
+                      {t.profile.requested} {changeValueText(r.type, r.requestedValue, t, names)}
                     </p>
                     <p className="text-xs text-slate-600">
                       {t.profile.requestedAt} {formatDateTime(r.createdAt)}
@@ -197,7 +202,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
                         {r.reviewedBy && r.reviewedAt && (
                           <span className="block text-xs text-slate-600">
                             {t.profile.reviewedBy(
-                              r.reviewedBy.nameBn,
+                              names.of(r.reviewedBy),
                               formatDateTime(r.reviewedAt),
                             )}
                           </span>
@@ -230,7 +235,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
           {cancelling && (
             <p className="font-medium">
               {t.profile.type[cancelling.type]}:{" "}
-              {changeValueText(cancelling.type, cancelling.requestedValue)}
+              {changeValueText(cancelling.type, cancelling.requestedValue, t, names)}
             </p>
           )}
         </ConfirmModal>

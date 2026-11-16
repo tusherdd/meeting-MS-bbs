@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/toast";
 import { meetingsApi } from "@/lib/endpoints";
 import { invalidateMeetingData } from "@/lib/invalidate";
 import type { MeetingDetail } from "@/lib/types";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { CancelMeetingModal } from "./cancel-meeting-modal";
 
@@ -36,6 +36,7 @@ export function meetingPermissions(
 }
 
 export function MeetingActions({ meeting }: { meeting: MeetingDetail }) {
+  const t = useT();
   const { user, isAdmin } = useAuth();
   const router = useRouter();
   const toast = useToast();

@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs } from "@/components/ui/tabs";
-import { formatDate, formatPlainDate } from "@/lib/format";
+
 import { REPORT_PERIODS, containsToday, periodDays, shiftPeriod } from "@/lib/report-period";
 import { dhakaToday } from "@/lib/time";
 import type { PeriodDto } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 
 /**
  * দিন / সপ্তাহ / মাস / বছর / অর্থবছর + a date + "আগের" / "পরের". The range is shown in Bangla:
@@ -27,6 +27,8 @@ export function PeriodPicker({
   loaded?: PeriodDto;
   onChange: (next: { period?: PeriodDto["period"]; date?: string }) => void;
 }) {
+  const t = useT();
+  const { formatDate, formatPlainDate } = useFormat();
   const { first, last } = periodDays(period, date);
   const rangeText = loaded
     ? t.reports.range(

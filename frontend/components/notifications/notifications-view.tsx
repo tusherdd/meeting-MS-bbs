@@ -11,10 +11,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { Tabs } from "@/components/ui/tabs";
-import { formatDateTime } from "@/lib/format";
+
 import { notificationsApi, queryKeys } from "@/lib/endpoints";
 import type { AppNotification } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 
 type Filter = "all" | "unread";
 
@@ -24,6 +24,8 @@ export function isInternalLink(link: string | null): link is string {
 }
 
 export function NotificationsView() {
+  const t = useT();
+  const { formatDateTime } = useFormat();
   const [filter, setFilter] = useState<Filter>("all");
   const [page, setPage] = useState(1);
   const router = useRouter();

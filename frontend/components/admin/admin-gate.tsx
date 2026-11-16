@@ -4,15 +4,16 @@ import clsx from "clsx";
 import Link from "next/link";
 import { notFound, usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
-import { ADMIN_LINKS, isAdminLinkActive } from "./admin-nav";
+import { adminLinks, isAdminLinkActive } from "./admin-nav";
 
 /**
  * Every /admin page: officers get the normal 404 page (the admin area does not "exist" for
  * them); admins get a text sub-menu above the page. The backend checks the role again.
  */
 export function AdminGate({ children }: { children: ReactNode }) {
+  const t = useT();
   const { isAdmin } = useAuth();
   const pathname = usePathname();
   if (!isAdmin) notFound();
@@ -21,7 +22,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
     <div className="space-y-6">
       <nav aria-label={t.admin.menuLabel} className="-mx-1 overflow-x-auto">
         <ul className="flex min-w-max gap-1 border-b border-slate-200 px-1">
-          {ADMIN_LINKS.map((link) => {
+          {adminLinks(t).map((link) => {
             const active = isAdminLinkActive(pathname, link.href);
             return (
               <li key={link.href}>

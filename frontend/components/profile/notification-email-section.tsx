@@ -9,12 +9,15 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { profileApi, queryKeys } from "@/lib/endpoints";
-import { emailFormSchema, type EmailFormValues } from "@/lib/schemas";
+import { type EmailFormValues } from "@/lib/schemas";
+import { useSchemas } from "@/lib/hooks/use-schemas";
 import type { Profile } from "@/lib/types";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 
 /** Notification email: current address, pending address, request a change (verification mail). */
 export function NotificationEmailSection({ profile }: { profile: Profile }) {
+  const { emailFormSchema } = useSchemas();
+  const t = useT();
   const queryClient = useQueryClient();
   const toast = useToast();
   const form = useForm<EmailFormValues>({

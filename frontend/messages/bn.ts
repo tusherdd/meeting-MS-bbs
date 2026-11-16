@@ -1,12 +1,17 @@
 /**
- * All UI text (Bangla). Components never hard-code text: they read `t` from "@/messages".
- * To add English later, write `en.ts` with the same shape (type `Messages`) and pick one in index.ts.
+ * All UI text in Bangla (source of the `Messages` type). Components never hard-code text: they
+ * read the current language through useT() / getMessages() (v1.6); en.ts has the same shape.
  */
 const bnMessages = {
   app: {
     name: "বিবিএস সভা সূচি",
     org: "বাংলাদেশ পরিসংখ্যান ব্যুরো",
     skipToContent: "মূল অংশে যান",
+  },
+  /** v1.6 language switch: this language's own name (shown on the button in the other language). */
+  language: {
+    name: "বাংলা",
+    switchAria: "ভাষা ইংরেজিতে বদলান",
   },
   common: {
     loading: "লোড হচ্ছে…",
@@ -61,6 +66,7 @@ const bnMessages = {
     tooManyCharges: "সর্বোচ্চ ২০টি অতিরিক্ত দায়িত্ব দেওয়া যাবে।",
     nameBnRequired: "বাংলা নাম দিন।",
     nameEnRequired: "ইংরেজি নাম দিন।",
+    nameEnLatin: "ইংরেজি নাম ইংরেজি (Latin) অক্ষরে লিখুন; বাংলা অক্ষর দেওয়া যাবে না।",
     nameTooLong: "নাম সর্বোচ্চ ২০০ অক্ষরের হতে পারে।",
     shortNameTooLong: "নাম সর্বোচ্চ ১৫০ অক্ষরের হতে পারে।",
     remarkTooLong: "পদবির মন্তব্য সর্বোচ্চ ১০০ অক্ষরের হতে পারে।",
@@ -143,6 +149,8 @@ const bnMessages = {
     OFFICER: "কর্মকর্তা",
   },
   meeting: {
+    /** Title of a meeting you may not see (API: titleHidden). */
+    hiddenTitle: "অন্য একটি সভা",
     status: {
       SCHEDULED: "নির্ধারিত",
       CANCELLED: "বাতিল",
@@ -213,8 +221,7 @@ const bnMessages = {
     organizerOption: (name: string) => `${name} (আয়োজক)`,
     guestOption: (name: string) => `${name} (অতিথি কর্মকর্তা)`,
     guestsTitle: "অতিথি কর্মকর্তা",
-    guestsHint:
-      "ঐচ্ছিক। কর্মকর্তাদের নাম, পদবি ও Email দিন। সভার সব তথ্য Email-এ পাবেন । ",
+    guestsHint: "ঐচ্ছিক। কর্মকর্তাদের নাম, পদবি ও Email দিন। সভার সব তথ্য Email-এ পাবেন । ",
     guestName: "নাম",
     guestDesignation: "পদবি",
     guestEmail: "Email",

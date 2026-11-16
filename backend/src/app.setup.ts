@@ -85,7 +85,7 @@ export function configureApp(app: INestApplication): void {
     origin: config.get('CORS_ORIGINS', { infer: true }),
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'X-Lang'],
     exposedHeaders: ['X-Request-Id', 'Content-Disposition'],
   });
 
@@ -120,10 +120,22 @@ export function createSwaggerDocument(app: INestApplication): OpenAPIObject {
       .setTitle('BBS Meeting Schedule API')
       .setDescription(
         'Bangladesh Bureau of Statistics (BBS) and SID — meeting schedule system. ' +
-          'Errors: `{ statusCode, message, error, requestId }` (409 meeting clashes add `blocking`).',
+          'Errors: `{ statusCode, message, error, code, requestId }` (409 meeting clashes add `blocking`; ' +
+          'validation errors add `codes`, one per message). ' +
+          'Language (v1.6): send `Accept-Language: en` or `bn` (or `X-Lang`, which wins; the web app sends both); error and success messages come back in ' +
+          'that language (Bangla when the header is missing). `code` never changes with the language. ' +
+          'PDF reports, emails and notifications are always Bangla.',
       )
       .setVersion('1.0')
       .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
+      .addGlobalParameters({
+        in: 'header',
+        name: 'Accept-Language',
+        required: false,
+        description:
+          'Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).',
+        schema: { type: 'string', enum: ['bn', 'en'], default: 'bn' },
+      })
       .build(),
   );
 }

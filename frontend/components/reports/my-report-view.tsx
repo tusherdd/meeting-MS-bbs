@@ -5,9 +5,9 @@ import { ErrorAlert } from "@/components/ui/alert";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { LoadingBlock } from "@/components/ui/spinner";
-import { formatHours, formatNumber } from "@/lib/format";
+
 import { queryKeys, reportsApi } from "@/lib/endpoints";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 import { PeriodPicker } from "./period-picker";
 import {
   MeetingsBarChart,
@@ -20,6 +20,8 @@ import { useReportParams } from "./use-report-params";
 
 /** /reports: my report for a day / week / month / year / fiscal year (GET /reports/me). */
 export function MyReportView() {
+  const t = useT();
+  const { formatHours, formatNumber } = useFormat();
   const { period, date, page, update } = useReportParams();
 
   const report = useQuery({

@@ -4,9 +4,12 @@
  * - Auth lives only in httpOnly cookies set by the backend: no token is ever read or stored here.
  * - On 401 it calls POST /auth/refresh once (shared by all requests that fail at the same time)
  *   and retries the original request a single time.
- * - Errors become ApiError with the backend's Bangla message and the requestId.
+ * - Errors become ApiError with the backend's message and the requestId.
+ * - Every call sends Accept-Language: en | bn from the `lang` cookie (v1.6), so the backend answers
+ *   errors in the UI language (its PDFs, mails and notifications stay Bangla).
  */
-import { t } from "@/messages";
+import { currentLocale } from "@/lib/i18n";
+import { messagesFor } from "@/messages";
 import type { ApiErrorBody } from "./types";
 import { normalizeBanglaDeep } from "@/lib/bangla";
 
@@ -93,14 +96,19 @@ function toApiError(res: Response, body: unknown): ApiError {
     const errorBody = body as ApiErrorBody;
     const message = Array.isArray(errorBody.message)
       ? errorBody.message.join(" ")
-      : String(errorBody.message || t.errors.unknown);
+      : String(errorBody.message || messagesFor(currentLocale()).errors.unknown);
     return new ApiError(res.status, message, errorBody.requestId ?? requestId, errorBody);
   }
-  return new ApiError(res.status, t.errors.unknown, requestId);
+  return new ApiError(res.status, messagesFor(currentLocale()).errors.unknown, requestId);
 }
 
 async function send(path: string, options: RequestOptions): Promise<Response> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Accept-Language": currentLocale(),
+    // WebKit replaces a script's Accept-Language with the browser language; X-Lang wins on the backend.
+    "X-Lang": currentLocale(),
+  };
   let body: BodyInit | undefined;
   if (options.body instanceof FormData) {
     body = options.body; // the browser sets the multipart boundary
@@ -119,7 +127,7 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
-    throw new ApiError(0, t.errors.network);
+    throw new ApiError(0, messagesFor(currentLocale()).errors.network);
   }
 }
 

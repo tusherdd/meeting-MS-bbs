@@ -8,6 +8,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { toBoolean, trimText } from '../../../common/dto/transforms';
+import { IsEnglishName } from '../../../common/validators/english-name';
 
 export class CreateWingDto {
   @ApiProperty({ example: 'কম্পিউটার উইং' })
@@ -25,6 +26,7 @@ export class CreateWingDto {
   @IsString({ message: 'ইংরেজি নাম দিন।' })
   @IsNotEmpty({ message: 'ইংরেজি নাম দিন।' })
   @MaxLength(200, { message: 'ইংরেজি নাম সর্বোচ্চ ২০০ অক্ষরের হতে পারে।' })
+  @IsEnglishName()
   nameEn!: string;
 
   @ApiPropertyOptional({ example: true, default: true })

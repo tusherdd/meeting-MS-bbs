@@ -1,41 +1,59 @@
 /**
- * Display helpers. Every number, date and time on screen goes through here:
- * Bangla digits, and always the Asia/Dhaka clock (independent of the viewer's computer).
+ * Display helpers (v1.6: per UI language, SPEC.md §13.11/§13.14). Every system-generated number,
+ * date and time on screen goes through here, always on the Asia/Dhaka clock:
+ * - bn: Bangla digits and Bangla month / weekday names;
+ * - en: Latin digits and English month / weekday names.
+ * User-entered text is never passed through these helpers (shown exactly as stored).
+ *
+ * Components use `useFormat()` (providers/locale-provider.tsx); other code calls
+ * `createFormatter(locale)`.
  */
 import { formatInTimeZone } from "date-fns-tz";
-import { t } from "@/messages";
+import type { Locale } from "./i18n";
+import { messagesFor } from "@/messages";
 import { DHAKA_TZ } from "./time";
 
 const BN_DIGITS = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
 
-const BN_MONTHS = [
-  "জানুয়ারি",
-  "ফেব্রুয়ারি",
-  "মার্চ",
-  "এপ্রিল",
-  "মে",
-  "জুন",
-  "জুলাই",
-  "আগস্ট",
-  "সেপ্টেম্বর",
-  "অক্টোবর",
-  "নভেম্বর",
-  "ডিসেম্বর",
-];
+const MONTHS: Record<Locale, string[]> = {
+  bn: [
+    "জানুয়ারি",
+    "ফেব্রুয়ারি",
+    "মার্চ",
+    "এপ্রিল",
+    "মে",
+    "জুন",
+    "জুলাই",
+    "আগস্ট",
+    "সেপ্টেম্বর",
+    "অক্টোবর",
+    "নভেম্বর",
+    "ডিসেম্বর",
+  ],
+  en: [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ],
+};
 
-const BN_WEEKDAYS = ["রবিবার", "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার"];
+const WEEKDAYS: Record<Locale, string[]> = {
+  bn: ["রবিবার", "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার"],
+  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+};
 
 /** "2026-11-09 10:30" → "২০২৬-১১-০৯ ১০:৩০". Non-digits are kept. */
 export function toBanglaDigits(value: string | number): string {
   return String(value).replace(/[0-9]/g, (d) => BN_DIGITS[Number(d)]);
-}
-
-/** 1234.5 → "১,২৩৪.৫" (at most `maxFractionDigits` decimals). */
-export function formatNumber(value: number, maxFractionDigits = 1): string {
-  const text = new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: maxFractionDigits,
-  }).format(value);
-  return toBanglaDigits(text);
 }
 
 type DateInput = string | Date;
@@ -54,76 +72,114 @@ function parts(value: DateInput) {
   };
 }
 
-/** "৯ নভেম্বর ২০২৬" */
-export function formatDate(value: DateInput): string {
-  const p = parts(value);
-  return `${toBanglaDigits(p.day)} ${BN_MONTHS[p.month - 1]} ${toBanglaDigits(p.year)}`;
+/** All display helpers for one UI language. */
+export function createFormatter(locale: Locale) {
+  const months = MONTHS[locale];
+  const weekdays = WEEKDAYS[locale];
+  const m = messagesFor(locale);
+  /** System digits: Bangla in bn, Latin in en. */
+  const digits = (value: string | number) =>
+    locale === "bn" ? toBanglaDigits(value) : String(value);
+
+  /** 1234.5 → "১,২৩৪.৫" / "1,234.5" (at most `maxFractionDigits` decimals). */
+  function formatNumber(value: number, maxFractionDigits = 1): string {
+    return digits(
+      new Intl.NumberFormat("en-US", { maximumFractionDigits: maxFractionDigits }).format(value),
+    );
+  }
+
+  /** "৯ নভেম্বর ২০২৬" / "9 November 2026" */
+  function formatDate(value: DateInput): string {
+    const p = parts(value);
+    return `${digits(p.day)} ${months[p.month - 1]} ${digits(p.year)}`;
+  }
+
+  /** "সোমবার, ৯ নভেম্বর ২০২৬" / "Monday, 9 November 2026" */
+  function formatDateWithWeekday(value: DateInput): string {
+    return `${weekdays[parts(value).weekday]}, ${formatDate(value)}`;
+  }
+
+  /** "১০:৩০ পূর্বাহ্ণ" / "10:30 AM" (12-hour clock, Dhaka time). */
+  function formatTime(value: DateInput): string {
+    const p = parts(value);
+    const hour12 = p.hour % 12 === 0 ? 12 : p.hour % 12;
+    const suffix = p.hour < 12 ? m.format.am : m.format.pm;
+    return `${digits(hour12)}:${digits(p.minute)} ${suffix}`;
+  }
+
+  /** "10:00 AM – 11:30 AM" */
+  function formatTimeRange(start: DateInput, end: DateInput): string {
+    return `${formatTime(start)} – ${formatTime(end)}`;
+  }
+
+  /** "9 November 2026, 10:30 AM" */
+  function formatDateTime(value: DateInput): string {
+    return `${formatDate(value)}, ${formatTime(value)}`;
+  }
+
+  /** Hours as a number with the language's unit text (messages: format.hours). */
+  function formatHours(hours: number): string {
+    return m.format.hours(formatNumber(hours));
+  }
+
+  /** "নভেম্বর ২০২৬" / "November 2026" */
+  function formatMonthYear(value: DateInput): string {
+    const p = parts(value);
+    return `${months[p.month - 1]} ${digits(p.year)}`;
+  }
+
+  /** "৯ নভেম্বর" / "9 November" */
+  function formatDayMonth(value: DateInput): string {
+    const p = parts(value);
+    return `${digits(p.day)} ${months[p.month - 1]}`;
+  }
+
+  /** "2026-11-09" → "9 November" (no time-zone shift). */
+  function formatPlainDayMonth(date: string): string {
+    const [, mo, d] = date.split("-").map(Number);
+    return `${digits(d)} ${months[mo - 1]}`;
+  }
+
+  /** "2026-11" or "2026-11-09" → "November 2026". */
+  function formatPlainMonthYear(date: string): string {
+    const [y, mo] = date.split("-").map(Number);
+    return `${months[mo - 1]} ${digits(y)}`;
+  }
+
+  /** "2026-11" → "November". */
+  function formatPlainMonth(date: string): string {
+    return months[Number(date.split("-")[1]) - 1];
+  }
+
+  /** "2026-11-09" → "9". */
+  function formatPlainDay(date: string): string {
+    return digits(Number(date.split("-")[2]));
+  }
+
+  /** Dhaka calendar date "YYYY-MM-DD" → "9 November 2026" (no time-zone shift). */
+  function formatPlainDate(date: string): string {
+    const [y, mo, d] = date.split("-").map(Number);
+    return `${digits(d)} ${months[mo - 1]} ${digits(y)}`;
+  }
+
+  return {
+    locale,
+    digits,
+    formatNumber,
+    formatDate,
+    formatDateWithWeekday,
+    formatTime,
+    formatTimeRange,
+    formatDateTime,
+    formatHours,
+    formatMonthYear,
+    formatDayMonth,
+    formatPlainDayMonth,
+    formatPlainMonthYear,
+    formatPlainMonth,
+    formatPlainDay,
+    formatPlainDate,
+  };
 }
 
-/** "সোমবার, ৯ নভেম্বর ২০২৬" */
-export function formatDateWithWeekday(value: DateInput): string {
-  return `${BN_WEEKDAYS[parts(value).weekday]}, ${formatDate(value)}`;
-}
-
-/** "১০:৩০ পূর্বাহ্ণ" (12-hour clock, Dhaka time). */
-export function formatTime(value: DateInput): string {
-  const p = parts(value);
-  const hour12 = p.hour % 12 === 0 ? 12 : p.hour % 12;
-  const suffix = p.hour < 12 ? t.format.am : t.format.pm;
-  return `${toBanglaDigits(hour12)}:${toBanglaDigits(p.minute)} ${suffix}`;
-}
-
-/** "১০:০০ পূর্বাহ্ণ – ১১:৩০ পূর্বাহ্ণ" */
-export function formatTimeRange(start: DateInput, end: DateInput): string {
-  return `${formatTime(start)} – ${formatTime(end)}`;
-}
-
-/** "৯ নভেম্বর ২০২৬, ১০:৩০ পূর্বাহ্ণ" */
-export function formatDateTime(value: DateInput): string {
-  return `${formatDate(value)}, ${formatTime(value)}`;
-}
-
-/** "২১.৫ ঘণ্টা" */
-export function formatHours(hours: number): string {
-  return t.format.hours(formatNumber(hours));
-}
-
-/** "নভেম্বর ২০২৬" */
-export function formatMonthYear(value: DateInput): string {
-  const p = parts(value);
-  return `${BN_MONTHS[p.month - 1]} ${toBanglaDigits(p.year)}`;
-}
-
-/** "৯ নভেম্বর" */
-export function formatDayMonth(value: DateInput): string {
-  const p = parts(value);
-  return `${toBanglaDigits(p.day)} ${BN_MONTHS[p.month - 1]}`;
-}
-
-/** "2026-11-09" → "৯ নভেম্বর" (no time-zone shift). */
-export function formatPlainDayMonth(date: string): string {
-  const [, m, d] = date.split("-").map(Number);
-  return `${toBanglaDigits(d)} ${BN_MONTHS[m - 1]}`;
-}
-
-/** "2026-11" or "2026-11-09" → "নভেম্বর ২০২৬". */
-export function formatPlainMonthYear(date: string): string {
-  const [y, m] = date.split("-").map(Number);
-  return `${BN_MONTHS[m - 1]} ${toBanglaDigits(y)}`;
-}
-
-/** "2026-11" → "নভেম্বর". */
-export function formatPlainMonth(date: string): string {
-  return BN_MONTHS[Number(date.split("-")[1]) - 1];
-}
-
-/** "2026-11-09" → "৯". */
-export function formatPlainDay(date: string): string {
-  return toBanglaDigits(Number(date.split("-")[2]));
-}
-
-/** Dhaka calendar date "YYYY-MM-DD" → "৯ নভেম্বর ২০২৬" (no time-zone shift). */
-export function formatPlainDate(date: string): string {
-  const [y, m, d] = date.split("-").map(Number);
-  return `${toBanglaDigits(d)} ${BN_MONTHS[m - 1]} ${toBanglaDigits(y)}`;
-}
+export type Formatter = ReturnType<typeof createFormatter>;

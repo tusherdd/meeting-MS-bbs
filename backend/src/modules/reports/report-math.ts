@@ -19,15 +19,20 @@ export interface ReportMeeting {
   status: MeetingStatus;
   organizerId: string;
   organizerNameBn: string;
+  organizerNameEn: string;
   organizerDesignationId: string | null;
   organizerDesignationBn: string | null;
+  organizerDesignationEn: string | null;
   organizerDesignationPriority: number | null;
   organizerWingId: string | null;
   organizerWingBn: string | null;
+  organizerWingEn: string | null;
   /** Role of the report's officer (personal report only). */
   myRole: ParticipantRole | null;
   /** Chair's name: the internal chair, else the guest chair (v1.5); null = no chair. */
   chairNameBn: string | null;
+  /** English name of the internal chair; a guest chair's name as typed (v1.7). */
+  chairNameEn: string | null;
   /**
    * Guest officers (v1.5): listed under the meeting, never counted in any statistic
    * (the counts only use organizer and participant rows).
@@ -118,6 +123,8 @@ export function personalSummary(
 export interface GroupCount {
   id: string | null;
   nameBn: string;
+  /** v1.7: English name for the English UI (null = no wing / no designation). */
+  nameEn: string | null;
   meetings: number;
   hours: number;
 }
@@ -125,7 +132,9 @@ export interface GroupCount {
 export interface OrganizerCount {
   userId: string;
   nameBn: string;
+  nameEn: string;
   designationBn: string | null;
+  designationEn: string | null;
   meetings: number;
   hours: number;
 }
@@ -170,6 +179,7 @@ export function officeBreakdown(
     (m) => ({
       id: m.organizerWingId,
       nameBn: m.organizerWingBn ?? NO_WING_BN,
+      nameEn: m.organizerWingEn,
       meetings: 0,
       hours: 0,
     }),
@@ -181,6 +191,7 @@ export function officeBreakdown(
     (m) => ({
       id: m.organizerDesignationId,
       nameBn: m.organizerDesignationBn ?? '—',
+      nameEn: m.organizerDesignationEn,
       priority: m.organizerDesignationPriority,
       meetings: 0,
       hours: 0,
@@ -196,7 +207,9 @@ export function officeBreakdown(
     const o = organizers.get(m.organizerId) ?? {
       userId: m.organizerId,
       nameBn: m.organizerNameBn,
+      nameEn: m.organizerNameEn,
       designationBn: m.organizerDesignationBn,
+      designationEn: m.organizerDesignationEn,
       meetings: 0,
       hours: 0,
     };

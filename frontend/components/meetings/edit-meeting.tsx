@@ -6,13 +6,14 @@ import { LinkButton } from "@/components/ui/button";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { isApiError } from "@/lib/api";
 import { meetingsApi, queryKeys } from "@/lib/endpoints";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 import { useCurrentUser, useAuth } from "@/providers/auth-provider";
 import { meetingPermissions } from "./meeting-actions";
 import { MeetingNotFound } from "./meeting-detail-view";
 import { MeetingForm } from "./meeting-form";
 
 export function EditMeeting({ id }: { id: string }) {
+  const t = useT();
   const user = useCurrentUser();
   const { isAdmin } = useAuth();
   const meeting = useQuery({

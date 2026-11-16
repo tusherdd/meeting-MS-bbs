@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Alert, ErrorAlert } from "@/components/ui/alert";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { authApi, queryKeys } from "@/lib/endpoints";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 import { AuthCard } from "./auth-card";
 
 /**
@@ -14,6 +14,7 @@ import { AuthCard } from "./auth-card";
  * result is cached for good and never refetched (no retry, no refetch on focus).
  */
 export function VerifyEmail() {
+  const t = useT();
   const token = useSearchParams().get("token")?.trim() ?? "";
   const verify = useQuery({
     queryKey: queryKeys.verifyEmail(token),

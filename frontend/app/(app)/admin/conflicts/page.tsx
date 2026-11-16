@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { ConflictsView } from "@/components/conflicts/conflicts-view";
-import { t } from "@/messages";
+import { getMessages } from "@/messages/server";
 
-export const metadata: Metadata = { title: t.admin.conflictsTitle };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getMessages()).admin.conflictsTitle };
+}
 
 export default function Page() {
   return <ConflictsView scope="all" />;

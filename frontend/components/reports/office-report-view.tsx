@@ -15,15 +15,18 @@ import {
   wingsApi,
   type OfficeFilter,
 } from "@/lib/endpoints";
-import { formatHours, formatNumber, formatPlainDate } from "@/lib/format";
+
 import type { DesignationCount, DayCount, GroupCount, OrganizerCount } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 import { PeriodPicker } from "./period-picker";
 import { PdfDownloadButton, ReportMeetingsTable, StatCards, StatusBreakdown } from "./report-parts";
 import { useReportParams } from "./use-report-params";
 
 /** /admin/reports: office-wide report, filterable by the organizer's wing and designation. */
 export function OfficeReportView() {
+  const t = useT();
+  const names = useNames();
+  const { formatHours, formatNumber } = useFormat();
   const { period, date, page, wingId, designationId, update } = useReportParams();
   const filter: OfficeFilter = {
     wingId: wingId || undefined,
@@ -66,7 +69,7 @@ export function OfficeReportView() {
               placeholder={t.reports.allWings}
               value={wingId}
               onChange={(e) => update({ wingId: e.target.value })}
-              options={(wings.data ?? []).map((w) => ({ value: w.id, label: w.nameBn }))}
+              options={(wings.data ?? []).map((w) => ({ value: w.id, label: names.of(w) }))}
             />
             <Select
               id="office-report-designation"
@@ -74,7 +77,7 @@ export function OfficeReportView() {
               placeholder={t.reports.allDesignations}
               value={designationId}
               onChange={(e) => update({ designationId: e.target.value })}
-              options={(designations.data ?? []).map((d) => ({ value: d.id, label: d.nameBn }))}
+              options={(designations.data ?? []).map((d) => ({ value: d.id, label: names.of(d) }))}
             />
           </div>
         </CardBody>
@@ -153,6 +156,7 @@ function SmallTable({
   children: ReactNode;
   empty: boolean;
 }) {
+  const t = useT();
   return (
     <Card>
       <CardHeader title={title} />
@@ -179,6 +183,9 @@ function GroupTable({
   rows: GroupCount[];
   nameLabel: string;
 }) {
+  const t = useT();
+  const names = useNames();
+  const { formatNumber } = useFormat();
   return (
     <SmallTable
       title={title}
@@ -193,7 +200,7 @@ function GroupTable({
     >
       {rows.map((r) => (
         <Tr key={r.id ?? "none"}>
-          <Td>{r.nameBn || t.reports.noWingName}</Td>
+          <Td>{r.id ? names.pick(r.nameBn, r.nameEn) : t.reports.noWingName}</Td>
           <Td>{formatNumber(r.meetings)}</Td>
           <Td>{formatNumber(r.hours)}</Td>
         </Tr>
@@ -203,6 +210,9 @@ function GroupTable({
 }
 
 function DesignationTable({ rows }: { rows: DesignationCount[] }) {
+  const t = useT();
+  const names = useNames();
+  const { formatNumber } = useFormat();
   return (
     <SmallTable
       title={t.reports.byDesignationTitle}
@@ -217,7 +227,7 @@ function DesignationTable({ rows }: { rows: DesignationCount[] }) {
     >
       {rows.map((r) => (
         <Tr key={r.id ?? "none"}>
-          <Td>{r.nameBn}</Td>
+          <Td>{names.pick(r.nameBn, r.nameEn)}</Td>
           <Td>{formatNumber(r.meetings)}</Td>
           <Td>{formatNumber(r.hours)}</Td>
         </Tr>
@@ -227,6 +237,9 @@ function DesignationTable({ rows }: { rows: DesignationCount[] }) {
 }
 
 function OrganizerTable({ rows }: { rows: OrganizerCount[] }) {
+  const t = useT();
+  const names = useNames();
+  const { formatNumber } = useFormat();
   return (
     <SmallTable
       title={t.reports.topOrganizersTitle}
@@ -242,9 +255,11 @@ function OrganizerTable({ rows }: { rows: OrganizerCount[] }) {
       {rows.map((r) => (
         <Tr key={r.userId}>
           <Td>
-            {r.nameBn}
+            {names.pick(r.nameBn, r.nameEn)}
             {r.designationBn && (
-              <span className="block text-xs text-slate-600">{r.designationBn}</span>
+              <span className="block text-xs text-slate-600">
+                {names.pick(r.designationBn, r.designationEn)}
+              </span>
             )}
           </Td>
           <Td>{formatNumber(r.meetings)}</Td>
@@ -256,6 +271,8 @@ function OrganizerTable({ rows }: { rows: OrganizerCount[] }) {
 }
 
 function BusiestDays({ rows }: { rows: DayCount[] }) {
+  const t = useT();
+  const { formatNumber, formatPlainDate } = useFormat();
   return (
     <SmallTable
       title={t.reports.busiestDaysTitle}

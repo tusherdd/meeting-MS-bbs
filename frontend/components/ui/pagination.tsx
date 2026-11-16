@@ -1,5 +1,6 @@
-import { formatNumber } from "@/lib/format";
-import { t } from "@/messages";
+"use client";
+
+import { useFormat, useT } from "@/providers/locale-provider";
 import { Button } from "./button";
 
 export function Pagination({
@@ -11,6 +12,8 @@ export function Pagination({
   totalPages: number;
   onChange: (page: number) => void;
 }) {
+  const t = useT();
+  const { formatNumber } = useFormat();
   if (totalPages <= 1) return null;
   return (
     <nav

@@ -1,6 +1,10 @@
+"use client";
+
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import type { ChangeRequest, ChangeRequestStatus } from "@/lib/types";
-import { t } from "@/messages";
+import type { Messages } from "@/messages";
+import { useT } from "@/providers/locale-provider";
+import type { NameHelpers } from "@/lib/display-name";
 
 const statusTone: Record<ChangeRequestStatus, BadgeTone> = {
   PENDING: "amber",
@@ -10,6 +14,7 @@ const statusTone: Record<ChangeRequestStatus, BadgeTone> = {
 };
 
 export function RequestStatusBadge({ status }: { status: ChangeRequestStatus }) {
+  const t = useT();
   return <Badge tone={statusTone[status]}>{t.profile.requestStatus[status]}</Badge>;
 }
 
@@ -17,8 +22,10 @@ export function RequestStatusBadge({ status }: { status: ChangeRequestStatus }) 
 export function changeValueText(
   type: ChangeRequest["type"],
   value: ChangeRequest["requestedValue"],
+  t: Messages,
+  names: NameHelpers,
 ): string {
   if (type === "LOGIN_EMAIL") return value.loginEmail ?? t.profile.none;
   const d = value.designation;
-  return d ? d.nameBn : t.profile.none;
+  return d ? names.of(d) : t.profile.none;
 }

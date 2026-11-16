@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import { meetingsApi } from "@/lib/endpoints";
 import { invalidateMeetingData } from "@/lib/invalidate";
-import { cancelReasonSchema, type CancelReasonForm } from "@/lib/schemas";
-import { t } from "@/messages";
+import { type CancelReasonForm } from "@/lib/schemas";
+import { useSchemas } from "@/lib/hooks/use-schemas";
+import { useT } from "@/providers/locale-provider";
 
 /** "Cancel meeting" with a required reason (used on the detail page and on /conflicts). */
 export function CancelMeetingModal({
@@ -25,6 +26,8 @@ export function CancelMeetingModal({
   open: boolean;
   onClose: () => void;
 }) {
+  const { cancelReasonSchema } = useSchemas();
+  const t = useT();
   const queryClient = useQueryClient();
   const toast = useToast();
   const form = useForm<CancelReasonForm>({

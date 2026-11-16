@@ -8,14 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { peopleApi, profileApi, queryKeys } from "@/lib/endpoints";
-import { profileFormSchema, toProfilePayload, type ProfileFormValues } from "@/lib/schemas";
+import { toProfilePayload, type ProfileFormValues } from "@/lib/schemas";
+import { useSchemas } from "@/lib/hooks/use-schemas";
 import type { Profile } from "@/lib/types";
-import { t } from "@/messages";
+import { useNames, useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { ProfileFields, profileDefaults, wingOptions } from "./profile-fields";
 
 /** Edit my own profile: only the fields PATCH /profile accepts. */
 export function ProfileForm({ profile }: { profile: Profile }) {
+  const { profileFormSchema } = useSchemas();
+  const t = useT();
+  const names = useNames();
   const queryClient = useQueryClient();
   const toast = useToast();
   const { reload } = useAuth();
@@ -46,7 +50,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           <ProfileFields
             form={form}
             idPrefix="profile"
-            wingOptions={wingOptions(wings.data, profile.wing)}
+            wingOptions={wingOptions(wings.data, profile.wing, names)}
           />
           <div className="flex flex-wrap gap-2">
             <Button type="submit" loading={save.isPending} loadingText={t.profile.saving}>

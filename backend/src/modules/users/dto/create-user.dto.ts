@@ -19,6 +19,7 @@ import {
   trimToNull,
 } from '../../../common/dto/transforms';
 import { BD_MOBILE_PATTERN } from '../../../common/utils/phone';
+import { IsEnglishName } from '../../../common/validators/english-name';
 
 /** Digits with optional leading +, spaces and dashes (Bangla digits are converted first). */
 export const PHONE_PATTERN = /^\+?[0-9][0-9 -]{3,}[0-9]$/;
@@ -68,6 +69,7 @@ export class CreateUserDto {
   @IsString({ message: 'ইংরেজি নাম দিন।' })
   @IsNotEmpty({ message: 'ইংরেজি নাম দিন।' })
   @MaxLength(200, { message: 'ইংরেজি নাম সর্বোচ্চ ২০০ অক্ষরের হতে পারে।' })
+  @IsEnglishName()
   nameEn!: string;
 
   @ApiProperty({ format: 'uuid', description: 'Must be an active designation' })

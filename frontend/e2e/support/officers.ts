@@ -70,6 +70,26 @@ export const STATE_DIR = join(__dirname, "..", ".state");
 /** Saved browser session (cookies) of an officer, made by global-setup. */
 export const storageStateOf = (key: OfficerKey) => join(STATE_DIR, `session-${key}.json`);
 
+/**
+ * v1.6: the UI is English by default. The older specs check Bangla texts, so every context
+ * starts with the cookie `lang=bn` (playwright.config.ts `storageState`, and pageAs()).
+ * language.spec.ts and english.spec.ts choose the language themselves.
+ */
+export const LANG_BN_STATE = join(STATE_DIR, "lang-bn.json");
+export type UiLang = "en" | "bn";
+export function langCookie(lang: UiLang) {
+  return {
+    name: "lang",
+    value: lang,
+    domain: "localhost",
+    path: "/",
+    expires: Math.floor(Date.now() / 1000) + 365 * 24 * 3600,
+    httpOnly: false,
+    secure: false,
+    sameSite: "Lax" as const,
+  };
+}
+
 export const BACKEND_URL = (process.env.BACKEND_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 export const FRONTEND_ORIGIN = "http://localhost:3000";
 

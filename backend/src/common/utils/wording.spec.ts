@@ -70,4 +70,16 @@ describe('v1.5 wording in every tracked file (SPEC.md §13.12)', () => {
   it('never says "outside guest": guests are "অতিথি কর্মকর্তা"', () => {
     expect(offending(OUTSIDE_GUEST)).toEqual([]);
   });
+
+  it('v1.6: the English UI texts (frontend/messages/en.ts) contain no Bangla characters', () => {
+    const en = readFileSync(
+      join(ROOT, 'frontend', 'messages', 'en.ts'),
+      'utf8',
+    );
+    const lines = en
+      .split('\n')
+      .map((l, i) => ({ line: i + 1, l }))
+      .filter(({ l }) => /[\u0980-\u09FF]/.test(l));
+    expect(lines).toEqual([]);
+  });
 });

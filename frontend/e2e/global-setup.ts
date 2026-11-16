@@ -11,13 +11,15 @@
  * Passwords are never printed.
  */
 import { request } from "@playwright/test";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { components } from "../lib/api-schema";
 import {
   BACKEND_URL,
   FRONTEND_ORIGIN,
+  LANG_BN_STATE,
   OFFICERS,
+  langCookie,
   STATE_DIR,
   defaultOfficerPassword,
   storageStateOf,
@@ -193,8 +195,30 @@ async function saveSession(key: OfficerKey): Promise<boolean> {
   }
 }
 
+/**
+ * v1.6: empties the backend's in-memory rate-limit counters (e.g. 5 verification mails per
+ * hour) through the test-only hook, so a rerun does not wait an hour. The hook exists only when
+ * the backend runs with E2E_TEST_HOOKS=true (never in production); without it this is skipped.
+ */
+async function resetThrottle() {
+  if (!process.env.E2E_ADMIN_EMAIL || !process.env.E2E_ADMIN_PASSWORD) return;
+  const token = await admin();
+  const res = await fetch(`${API}/test-hooks/reset-throttle`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 404) {
+    console.log("Rate limits not reset: start the backend with E2E_TEST_HOOKS=true to enable it.");
+  } else if (!res.ok) {
+    throw new Error(`POST /test-hooks/reset-throttle → ${res.status}`);
+  }
+}
+
 export default async function globalSetup() {
   loadEnvFile();
+  mkdirSync(STATE_DIR, { recursive: true });
+  // Default browser state for every test: Bangla UI (the older specs check Bangla texts).
+  writeFileSync(LANG_BN_STATE, JSON.stringify({ cookies: [langCookie("bn")], origins: [] }));
   // Public-page tests only (no test officers needed): E2E_SKIP_SETUP=1 npm run test:e2e -- --grep public
   if (process.env.E2E_SKIP_SETUP === "1") return;
   try {
@@ -210,6 +234,7 @@ export default async function globalSetup() {
   // With an admin login: check/create through the admin API first (1 login instead of failures).
   if (process.env.E2E_ADMIN_EMAIL && process.env.E2E_ADMIN_PASSWORD) {
     for (const key of keys) await ensureOfficer(key);
+    await resetThrottle();
   }
   for (const key of keys) {
     if (!(await saveSession(key))) {

@@ -4,12 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { profileApi, queryKeys } from "@/lib/endpoints";
 import { useCallback, useRef, useState } from "react";
-import { t } from "@/messages";
+import { useNames, useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { PersonIcon } from "./header-icons";
 import { useDismiss } from "./use-dismiss";
 
 export function UserMenu({ minimal = false }: { minimal?: boolean }) {
+  const t = useT();
+  const names = useNames();
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -26,7 +28,7 @@ export function UserMenu({ minimal = false }: { minimal?: boolean }) {
   });
 
   if (!user) return null;
-  const subtitle = user.designation?.nameBn ?? t.roles[user.role];
+  const subtitle = names.maybe(user.designation) ?? t.roles[user.role];
   const photoPath = profile.data?.photoPath;
   const photo = photoPath ? `/uploads/${photoPath.replace(/^\/+/, "")}` : null;
 
@@ -44,8 +46,8 @@ export function UserMenu({ minimal = false }: { minimal?: boolean }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={user.nameBn}
-        title={user.nameBn}
+        aria-label={names.of(user)}
+        title={names.of(user)}
         className="flex size-10 items-center justify-center overflow-hidden rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900"
         data-testid="user-menu-button"
       >
@@ -60,7 +62,7 @@ export function UserMenu({ minimal = false }: { minimal?: boolean }) {
       {open && (
         <div className="absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
           <div className="border-b border-slate-100 px-4 py-2.5" data-testid="user-menu-header">
-            <p className="truncate text-sm font-medium">{user.nameBn}</p>
+            <p className="truncate text-sm font-medium">{names.of(user)}</p>
             <p className="truncate text-xs text-slate-600">{subtitle}</p>
           </div>
           <p className="truncate px-4 pt-2 text-xs text-slate-500">{user.loginEmail}</p>

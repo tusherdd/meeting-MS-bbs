@@ -1109,6 +1109,11 @@ export interface components {
         MessageResponseDto: {
             /** @example আপনি Logout করেছেন। */
             message: string;
+            /**
+             * @description Stable message code (v1.6); `message` follows Accept-Language (en|bn, default bn)
+             * @example LOGGED_OUT
+             */
+            code?: string;
         };
         ChangePasswordDto: {
             /**
@@ -1138,6 +1143,11 @@ export interface components {
             expiresIn: number;
             /** @example Password সফলভাবে পরিবর্তন করা হয়েছে। */
             message: string;
+            /**
+             * @description Stable message code (v1.6); `message` follows Accept-Language (en|bn, default bn)
+             * @example PASSWORD_CHANGED
+             */
+            code?: string;
         };
         ForgotPasswordDto: {
             /**
@@ -1418,8 +1428,13 @@ export interface components {
             role: "ADMIN" | "OFFICER";
         };
         UserMessageResponseDto: {
-            /** @example অস্থায়ী Password তৈরি করে কর্মকর্তার Notification Email-এ পাঠানো হয়েছে। প্রথম Login-এ Password পরিবর্তন করতে হবে। */
+            /** @example Password Default Password-এ Reset করা হয়েছে, সব Session বন্ধ করা হয়েছে এবং কর্মকর্তাকে Email-এ জানানো হয়েছে। */
             message: string;
+            /**
+             * @description Stable message code (v1.6); `message` follows Accept-Language (en|bn, default bn)
+             * @example PASSWORD_RESET_DONE
+             */
+            code?: string;
         };
         DesignationResponseDto: {
             /** Format: uuid */
@@ -1789,16 +1804,28 @@ export interface components {
             meetingId?: string;
         };
         ClashOrganizerDto: {
-            /** @example মোঃ করিম উদ্দিন */
+            /**
+             * @description Bangla name
+             * @example মোঃ করিম উদ্দিন
+             */
             name: string;
+            /**
+             * @description English name (v1.7)
+             * @example Md. Karim Uddin
+             */
+            nameEn: string;
             /** @example উপপরিচালক */
             designation: string | null;
+            /** @example Deputy Director */
+            designationEn: string | null;
         };
         OfficerRefDto: {
             /** Format: uuid */
             id: string;
             /** @example মোঃ করিম */
             nameBn: string;
+            /** @example Md. Karim Uddin */
+            nameEn: string;
         };
         ClashDto: {
             /** Format: uuid */
@@ -1808,6 +1835,11 @@ export interface components {
              * @example অন্য একটি সভা
              */
             title: string;
+            /**
+             * @description true = the real title is hidden from you and `title` holds the placeholder (v1.6: clients show their own text)
+             * @example true
+             */
+            titleHidden: boolean;
             /** Format: date-time */
             startAt: string;
             /** Format: date-time */
@@ -1866,6 +1898,11 @@ export interface components {
              * @example অন্য একটি সভা
              */
             title: string;
+            /**
+             * @description true = the real title is hidden from you and `title` holds the placeholder (v1.6: clients show their own text)
+             * @example true
+             */
+            titleHidden: boolean;
             /** Format: date-time */
             startAt: string;
             /** Format: date-time */
@@ -1879,6 +1916,11 @@ export interface components {
              * @example সচিব
              */
             organizerDesignation: string | null;
+            /**
+             * @description Organizer's designation (English, v1.7)
+             * @example Deputy Director
+             */
+            organizerDesignationEn: string | null;
             /**
              * @description True when the current user organizes this meeting (may cancel/reschedule it)
              * @example false
@@ -1986,6 +2028,11 @@ export interface components {
             /** @example Conflict */
             error: string;
             blocking: components["schemas"]["ClashDto"][];
+            /**
+             * @description Stable message code (v1.6)
+             * @example TIME_CONFLICT_BLOCKING
+             */
+            code: string;
         };
         UpdateMeetingDto: {
             /** @example বার্ষিক উন্নয়ন কর্মসূচি পর্যালোচনা সভা */
@@ -2073,8 +2120,12 @@ export interface components {
             id: string;
             /** @example মোঃ ফিরোজ সরকার */
             nameBn: string;
+            /** @example Md. Firoz Sarker */
+            nameEn: string;
             /** @example সচিব */
             designationBn: string | null;
+            /** @example Secretary */
+            designationEn: string | null;
         };
         StatusCountsDto: {
             /** @example 3 */
@@ -2138,8 +2189,12 @@ export interface components {
             status: "SCHEDULED" | "CANCELLED" | "COMPLETED";
             /** @example মোঃ ফিরোজ সরকার */
             organizerNameBn: string;
+            /** @example Md. Firoz Sarker */
+            organizerNameEn: string;
             /** @example সচিব */
             organizerDesignationBn: string | null;
+            /** @example Secretary */
+            organizerDesignationEn: string | null;
             /**
              * @description Personal report only
              * @enum {string|null}
@@ -2150,6 +2205,11 @@ export interface components {
              * @example মোঃ ফিরোজ সরকার
              */
             chairNameBn: string | null;
+            /**
+             * @description Internal chair's English name; a guest chair's name as typed (v1.7)
+             * @example Md. Firoz Sarker
+             */
+            chairNameEn: string | null;
             /** @description Guest officers (listed only, never counted) */
             guests: components["schemas"]["ReportGuestDto"][];
         };
@@ -2173,14 +2233,23 @@ export interface components {
         OfficeFiltersDto: {
             /** @example কম্পিউটার উইং */
             wingBn: string | null;
+            /** @example Computer Wing */
+            wingEn: string | null;
             /** @example উপপরিচালক */
             designationBn: string | null;
+            /** @example Deputy Director */
+            designationEn: string | null;
         };
         GroupCountDto: {
             /** Format: uuid */
             id: string | null;
             /** @example কম্পিউটার উইং */
             nameBn: string;
+            /**
+             * @description null = no wing / no designation (v1.7)
+             * @example Computer Wing
+             */
+            nameEn: string | null;
             /** @example 7 */
             meetings: number;
             /** @example 9.5 */
@@ -2191,6 +2260,11 @@ export interface components {
             id: string | null;
             /** @example কম্পিউটার উইং */
             nameBn: string;
+            /**
+             * @description null = no wing / no designation (v1.7)
+             * @example Computer Wing
+             */
+            nameEn: string | null;
             /** @example 7 */
             meetings: number;
             /** @example 9.5 */
@@ -2203,8 +2277,12 @@ export interface components {
             userId: string;
             /** @example আকলিমা খাতুন */
             nameBn: string;
+            /** @example Aklima Khatun */
+            nameEn: string;
             /** @example উপপরিচালক */
             designationBn: string | null;
+            /** @example Deputy Director */
+            designationEn: string | null;
             /** @example 4 */
             meetings: number;
             /** @example 6 */
@@ -2326,7 +2404,10 @@ export interface operations {
                 from?: string;
                 to?: string;
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2358,7 +2439,10 @@ export interface operations {
                 limit?: number;
                 status?: "PENDING" | "SENT" | "FAILED";
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2386,7 +2470,10 @@ export interface operations {
     MailAdminController_retry: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -2433,7 +2520,10 @@ export interface operations {
                 /** @description true = only unread notifications */
                 unread?: boolean;
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2454,7 +2544,10 @@ export interface operations {
     NotificationsController_unreadCount: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2473,7 +2566,10 @@ export interface operations {
     NotificationsController_readAll: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2492,7 +2588,10 @@ export interface operations {
     NotificationsController_markRead: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -2520,7 +2619,10 @@ export interface operations {
     AuthController_login: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2571,7 +2673,10 @@ export interface operations {
     AuthController_refresh: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2604,7 +2709,10 @@ export interface operations {
     AuthController_logout: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2630,7 +2738,10 @@ export interface operations {
     AuthController_me: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2656,7 +2767,10 @@ export interface operations {
     AuthController_changePassword: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2693,7 +2807,10 @@ export interface operations {
     AuthController_forgotPassword: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2723,7 +2840,10 @@ export interface operations {
     AuthController_resetPassword: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2766,7 +2886,10 @@ export interface operations {
                 q?: components["schemas"]["Object"];
                 wingId?: string;
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2801,7 +2924,10 @@ export interface operations {
                 sortBy?: "priority" | "nameEn" | "nameBn" | "loginEmail" | "createdAt" | "lastLoginAt";
                 sortOrder?: "asc" | "desc";
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2829,7 +2955,10 @@ export interface operations {
     UsersController_create: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -2873,7 +3002,10 @@ export interface operations {
     UsersController_findOne: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -2908,7 +3040,10 @@ export interface operations {
     UsersController_update: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -2961,7 +3096,10 @@ export interface operations {
     UsersController_setStatus: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3000,7 +3138,10 @@ export interface operations {
     UsersController_setRole: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3046,7 +3187,10 @@ export interface operations {
     UsersController_resetPassword: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3091,7 +3235,10 @@ export interface operations {
                 /** @description true = only active designations (for pickers) */
                 activeOnly?: boolean;
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3110,7 +3257,10 @@ export interface operations {
     DesignationsController_create: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3154,7 +3304,10 @@ export interface operations {
     DesignationsController_remove: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3195,7 +3348,10 @@ export interface operations {
     DesignationsController_update: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3244,7 +3400,10 @@ export interface operations {
                 /** @description true = only active wings */
                 activeOnly?: boolean;
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3263,7 +3422,10 @@ export interface operations {
     WingsController_create: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3307,7 +3469,10 @@ export interface operations {
     WingsController_remove: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3348,7 +3513,10 @@ export interface operations {
     WingsController_update: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3394,7 +3562,10 @@ export interface operations {
     ProfileController_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3413,7 +3584,10 @@ export interface operations {
     ProfileController_update: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3443,7 +3617,10 @@ export interface operations {
     ProfileController_uploadPhoto: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3487,7 +3664,10 @@ export interface operations {
     ProfileController_deletePhoto: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3506,7 +3686,10 @@ export interface operations {
     ProfileController_requestNotificationEmail: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3546,7 +3729,10 @@ export interface operations {
                 /** @description Token from the verification link (?token=...) */
                 token: string;
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3572,7 +3758,10 @@ export interface operations {
     ProfileController_myChangeRequests: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3591,7 +3780,10 @@ export interface operations {
     ProfileController_createChangeRequest: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3628,7 +3820,10 @@ export interface operations {
     ProfileController_cancelChangeRequest: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3668,7 +3863,10 @@ export interface operations {
                 status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
                 type?: "LOGIN_EMAIL" | "DESIGNATION";
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3696,7 +3894,10 @@ export interface operations {
     ChangeRequestsController_approve: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3742,7 +3943,10 @@ export interface operations {
     ChangeRequestsController_reject: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3795,7 +3999,10 @@ export interface operations {
     MeetingsController_today: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3826,7 +4033,10 @@ export interface operations {
                 /** @description all = every meeting (ADMIN only) */
                 scope?: "mine" | "all";
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3854,7 +4064,10 @@ export interface operations {
     MeetingsController_create: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3900,7 +4113,10 @@ export interface operations {
     MeetingsController_checkConflicts: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -3930,7 +4146,10 @@ export interface operations {
     MeetingsController_findOne: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3958,7 +4177,10 @@ export interface operations {
     MeetingsController_remove: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -3992,7 +4214,10 @@ export interface operations {
     MeetingsController_update: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -4040,7 +4265,10 @@ export interface operations {
     MeetingsController_cancel: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -4086,7 +4314,10 @@ export interface operations {
     MeetingsController_complete: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path: {
                 id: string;
             };
@@ -4128,7 +4359,10 @@ export interface operations {
                 /** @description RESOLVED = history (newest first, at most 100) */
                 status?: "PENDING" | "RESOLVED";
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -4151,7 +4385,10 @@ export interface operations {
                 limit?: number;
                 status?: "PENDING" | "RESOLVED";
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -4184,7 +4421,10 @@ export interface operations {
                 period?: "day" | "week" | "month" | "year" | "fiscal-year";
                 date?: string;
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -4208,7 +4448,10 @@ export interface operations {
                 /** @description Any day inside the period (default: today in Dhaka) */
                 date?: string;
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -4242,7 +4485,10 @@ export interface operations {
                 wingId?: string;
                 designationId?: string;
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -4277,7 +4523,10 @@ export interface operations {
                 /** @description Organizer's designation */
                 designationId?: string;
             };
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -4311,7 +4560,10 @@ export interface operations {
     AdminController_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };
@@ -4337,7 +4589,10 @@ export interface operations {
     HealthController_check: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
             path?: never;
             cookie?: never;
         };

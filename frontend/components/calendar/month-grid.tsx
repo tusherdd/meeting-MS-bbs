@@ -1,8 +1,9 @@
+"use client";
+
 import clsx from "clsx";
-import { formatNumber, formatPlainDate, toBanglaDigits } from "@/lib/format";
 import { addDays, dhakaToday } from "@/lib/time";
 import type { MeetingSummary } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 import { groupByDate } from "./calendar-layout";
 import { LineMeeting } from "./meeting-chip";
 import { isWeekend } from "./week-grid";
@@ -23,6 +24,8 @@ interface Props {
 
 /** Month view: up to 3 meetings per day and "+N আরও". */
 export function MonthGrid({ gridStart, month, weeks, meetings, conflictIds, onOpenDay }: Props) {
+  const t = useT();
+  const { digits, formatNumber, formatPlainDate } = useFormat();
   const today = dhakaToday();
   const byDate = groupByDate(meetings);
   const days = Array.from({ length: weeks * 7 }, (_, i) => addDays(gridStart, i));
@@ -67,7 +70,7 @@ export function MonthGrid({ gridStart, month, weeks, meetings, conflictIds, onOp
                 )}
                 aria-label={formatPlainDate(d)}
               >
-                {toBanglaDigits(Number(d.slice(8, 10)))}
+                {digits(Number(d.slice(8, 10)))}
               </button>
               {list.slice(0, SHOW_PER_DAY).map((p) => (
                 <LineMeeting

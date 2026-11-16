@@ -1,13 +1,18 @@
+"use client";
+
 import Link from "next/link";
 import { buttonClass } from "@/components/ui/button";
-import { formatDateTime, formatNumber } from "@/lib/format";
+
 import type { ConflictListItem } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
 const SHOW_AT_MOST = 3;
 
 /** Warning box: my meetings that a higher-priority meeting overrides (pending conflicts). */
 export function ConflictWarning({ conflicts }: { conflicts: ConflictListItem[] }) {
+  const t = useT();
+  const names = useNames();
+  const { formatDateTime, formatNumber } = useFormat();
   const pending = conflicts.filter((c) => c.status === "PENDING");
   if (pending.length === 0) return null;
 
@@ -34,7 +39,7 @@ export function ConflictWarning({ conflicts }: { conflicts: ConflictListItem[] }
           <ul className="mt-3 space-y-2 text-sm">
             {groups.slice(0, SHOW_AT_MOST).map((items) => {
               const lower = items[0].lowerMeeting;
-              const officers = [...new Set(items.map((c) => c.officer.nameBn))].join(", ");
+              const officers = [...new Set(items.map((c) => names.of(c.officer)))].join(", ");
               return (
                 <li key={lower.id} className="rounded-lg bg-white/70 px-3 py-2">
                   <p className="font-medium">

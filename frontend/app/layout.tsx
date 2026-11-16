@@ -4,7 +4,8 @@ import { connection } from "next/server";
 import localFont from "next/font/local";
 import { engineFromUserAgent } from "@/lib/engine";
 import { AppProviders } from "@/providers/app-providers";
-import { t } from "@/messages";
+import { getLocale, getMessages } from "@/messages/server";
+import { LocaleProvider } from "@/providers/locale-provider";
 import "./globals.css";
 
 /**
@@ -54,11 +55,14 @@ const notoBengali = localFont({
   declarations: [{ prop: "unicode-range", value: "U+0980-09FF, U+0964-0965, U+200C-200D" }],
 });
 
-export const metadata: Metadata = {
-  title: { default: t.app.name, template: `%s — ${t.app.name}` },
-  description: t.app.org,
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getMessages();
+  return {
+    title: { default: t.app.name, template: `%s — ${t.app.name}` },
+    description: t.app.org,
+    robots: { index: false, follow: false },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#006a4e",
@@ -69,14 +73,18 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   await connection();
   // Server-side engine detection: the right font is in the first HTML, no flash, no script.
   const engine = engineFromUserAgent((await headers()).get("user-agent"));
+  // UI language from the `lang` cookie (v1.6): rendered on the server, so no flash on load.
+  const locale = await getLocale();
   return (
     <html
-      lang="bn"
+      lang={locale}
       data-engine={engine}
       className={`${nikosh.variable} ${notoBengali.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-slate-50 font-sans text-slate-900">
-        <AppProviders>{children}</AppProviders>
+        <LocaleProvider initialLocale={locale}>
+          <AppProviders>{children}</AppProviders>
+        </LocaleProvider>
       </body>
     </html>
   );

@@ -1,5 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 
 /** App name as text (no logo icon in the UI, SPEC.md §13.5). */
 export function Brand({
@@ -9,6 +11,7 @@ export function Brand({
   href?: string;
   compact?: boolean;
 }) {
+  const t = useT();
   return (
     <Link href={href} className="block rounded-md leading-tight">
       <span className="block text-lg font-bold text-brand-800">{t.app.name}</span>

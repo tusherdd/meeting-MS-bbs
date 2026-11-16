@@ -1,9 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/table";
-import { formatDateWithWeekday, formatTimeRange } from "@/lib/format";
+
 import type { MeetingSummary } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 import { ConflictBadge, RoleBadge, StatusBadge } from "./meeting-badges";
+import type { NameHelpers } from "@/lib/display-name";
 
 interface Props {
   meetings: MeetingSummary[];
@@ -13,13 +16,16 @@ interface Props {
   showDate?: boolean;
 }
 
-function organizerText(m: MeetingSummary) {
-  const designation = m.organizer.designation?.nameBn;
-  return designation ? `${m.organizer.nameBn}, ${designation}` : m.organizer.nameBn;
+function organizerText(m: MeetingSummary, names: NameHelpers) {
+  const designation = names.maybe(m.organizer.designation);
+  return designation ? `${names.of(m.organizer)}, ${designation}` : names.of(m.organizer);
 }
 
 /** Time-ordered meeting list: a table on wide screens, cards on phones. */
 export function MeetingList({ meetings, conflictIds, showDate = false }: Props) {
+  const t = useT();
+  const names = useNames();
+  const { formatDateWithWeekday, formatTimeRange } = useFormat();
   const sorted = [...meetings].sort((a, b) => a.startAt.localeCompare(b.startAt));
 
   return (
@@ -41,7 +47,7 @@ export function MeetingList({ meetings, conflictIds, showDate = false }: Props) 
               {m.title}
             </Link>
             <p className="mt-0.5 text-sm text-slate-600">
-              {m.room ?? t.meeting.noRoom} · {organizerText(m)}
+              {m.room ?? t.meeting.noRoom} · {organizerText(m, names)}
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <StatusBadge status={m.status} />
@@ -92,7 +98,7 @@ export function MeetingList({ meetings, conflictIds, showDate = false }: Props) 
                   )}
                 </Td>
                 <Td>{m.room ?? <span className="text-slate-500">{t.meeting.noRoom}</span>}</Td>
-                <Td>{organizerText(m)}</Td>
+                <Td>{organizerText(m, names)}</Td>
                 <Td>
                   <RoleBadge role={m.myRole} />
                 </Td>

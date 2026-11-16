@@ -7,10 +7,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
-import { formatDateTime, formatNumber } from "@/lib/format";
+
 import { notificationsApi, queryKeys } from "@/lib/endpoints";
 import type { AppNotification } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 import { BellIcon } from "./header-icons";
 import { useDismiss } from "./use-dismiss";
 
@@ -22,6 +22,8 @@ const UNREAD_POLL_MS = 60_000;
  * loads the latest 10 only when it is opened.
  */
 export function NotificationBell() {
+  const t = useT();
+  const { formatDateTime, formatNumber } = useFormat();
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);

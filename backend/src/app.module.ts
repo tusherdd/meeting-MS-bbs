@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConditionalModule, ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule, seconds } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { MessageLanguageInterceptor } from './common/interceptors/message-language.interceptor';
 import { ShutdownLogger } from './common/shutdown-logger';
 import { ThrottleIdentity } from './common/throttling/throttle-identity';
 import type { AppRequest } from './common/types/auth-user';
@@ -26,6 +27,8 @@ import { ProfileModule } from './modules/profile/profile.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { UsersModule } from './modules/users/users.module';
 import { WingsModule } from './modules/wings/wings.module';
+import { TestHooksModule } from './modules/test-hooks/test-hooks.module';
+import { testHooksEnabled } from './modules/test-hooks/test-hooks.guard';
 
 @Module({
   imports: [
@@ -84,6 +87,10 @@ import { WingsModule } from './modules/wings/wings.module';
     ScheduleModule.forRoot(),
 
     AuditModule,
+    // Test-only routes (v1.6): never loaded in production (test-hooks.guard.ts).
+    ConditionalModule.registerWhen(TestHooksModule, (env) =>
+      testHooksEnabled(env),
+    ),
     MailModule,
     NotificationsModule,
     AuthModule,
@@ -104,6 +111,7 @@ import { WingsModule } from './modules/wings/wings.module';
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_INTERCEPTOR, useClass: MessageLanguageInterceptor },
     ShutdownLogger,
   ],
 })

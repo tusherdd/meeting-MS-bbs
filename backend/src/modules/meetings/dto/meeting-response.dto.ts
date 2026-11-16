@@ -95,6 +95,13 @@ export class ConflictMeetingRefDto {
   })
   title!: string;
 
+  @ApiProperty({
+    example: true,
+    description:
+      'true = the real title is hidden from you and `title` holds the placeholder (v1.6: clients show their own text)',
+  })
+  titleHidden!: boolean;
+
   @ApiProperty({ type: String, format: 'date-time' })
   startAt!: Date;
 
@@ -116,6 +123,14 @@ export class ConflictMeetingRefDto {
   organizerDesignation!: string | null;
 
   @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Deputy Director',
+    description: "Organizer's designation (English, v1.7)",
+  })
+  organizerDesignationEn!: string | null;
+
+  @ApiProperty({
     example: false,
     description:
       'True when the current user organizes this meeting (may cancel/reschedule it)',
@@ -129,6 +144,9 @@ export class OfficerRefDto {
 
   @ApiProperty({ example: 'মোঃ করিম' })
   nameBn!: string;
+
+  @ApiProperty({ example: 'Md. Karim Uddin' })
+  nameEn!: string;
 }
 
 export class MeetingConflictDto {
@@ -219,11 +237,20 @@ export class MeetingDetailDto extends MeetingSummaryDto {
 }
 
 export class ClashOrganizerDto {
-  @ApiProperty({ example: 'মোঃ করিম উদ্দিন' })
+  @ApiProperty({ example: 'মোঃ করিম উদ্দিন', description: 'Bangla name' })
   name!: string;
+
+  @ApiProperty({
+    example: 'Md. Karim Uddin',
+    description: 'English name (v1.7)',
+  })
+  nameEn!: string;
 
   @ApiProperty({ type: String, nullable: true, example: 'উপপরিচালক' })
   designation!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, example: 'Deputy Director' })
+  designationEn!: string | null;
 }
 
 export class ClashDto {
@@ -235,6 +262,13 @@ export class ClashDto {
     description: 'Real title only if you are one of its people or an admin',
   })
   title!: string;
+
+  @ApiProperty({
+    example: true,
+    description:
+      'true = the real title is hidden from you and `title` holds the placeholder (v1.6: clients show their own text)',
+  })
+  titleHidden!: boolean;
 
   @ApiProperty({ type: String, format: 'date-time' })
   startAt!: Date;
@@ -271,6 +305,12 @@ export class MeetingConflictErrorDto {
 
   @ApiProperty({ type: [ClashDto] })
   blocking!: ClashDto[];
+
+  @ApiProperty({
+    example: 'TIME_CONFLICT_BLOCKING',
+    description: 'Stable message code (v1.6)',
+  })
+  code!: string;
 }
 
 export class CheckConflictsResponseDto {

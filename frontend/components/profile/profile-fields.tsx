@@ -4,10 +4,11 @@ import { useFieldArray, useFormState, type UseFormReturn } from "react-hook-form
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { formatNumber } from "@/lib/format";
+
 import { MAX_ADDITIONAL_CHARGES, type ProfileFormValues } from "@/lib/schemas";
 import type { Profile, Wing } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
+import type { NameHelpers } from "@/lib/display-name";
 
 /** Form defaults from a profile / user record ("" for empty values). */
 export function profileDefaults(p: Profile): ProfileFormValues {
@@ -27,20 +28,21 @@ export function profileDefaults(p: Profile): ProfileFormValues {
 /** Wing options: active wings, plus the current one even if it has been deactivated. */
 export function wingOptions(
   wings: Wing[] | undefined,
-  current?: { id: string; nameBn: string } | null,
+  current: { id: string; nameBn: string; nameEn?: string } | null | undefined,
+  names: NameHelpers,
 ) {
   const list = (wings ?? []).filter((w) => w.isActive || w.id === current?.id);
   if (current && !list.some((w) => w.id === current.id)) {
     list.push({
       ...current,
-      nameEn: "",
+      nameEn: current.nameEn ?? "",
       isActive: false,
       userCount: 0,
       createdAt: "",
       updatedAt: "",
     });
   }
-  return list.map((w) => ({ value: w.id, label: w.nameBn }));
+  return list.map((w) => ({ value: w.id, label: names.of(w) }));
 }
 
 /**
@@ -56,6 +58,8 @@ export function ProfileFields({
   idPrefix: string;
   wingOptions: { value: string; label: string }[];
 }) {
+  const t = useT();
+  const { formatNumber } = useFormat();
   const { register, control } = form;
   // Subscribe explicitly: this is a child of the form owner, so reading form.formState here
   // would not re-render it when errors change (the React Compiler memoizes on `form`).

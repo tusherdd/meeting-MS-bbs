@@ -1,7 +1,9 @@
+"use client";
+
 import clsx from "clsx";
 import type { ReactNode } from "react";
 import { isApiError } from "@/lib/api";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 import { Button } from "./button";
 
 type Tone = "error" | "success" | "warning" | "info";
@@ -45,6 +47,7 @@ export function ErrorAlert({
   onRetry?: () => void;
   className?: string;
 }) {
+  const t = useT();
   const message = error instanceof Error ? error.message : t.errors.unknown;
   const requestId = isApiError(error) ? error.requestId : undefined;
   return (

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { Brand } from "./brand";
+import { LanguageSwitch } from "./language-switch";
 import { NotificationBell } from "./notification-bell";
 import { SidebarNav } from "./sidebar";
 import { UserMenu } from "./user-menu";
@@ -14,6 +15,7 @@ import { UserMenu } from "./user-menu";
  * While a password change is required only the header with logout is shown.
  */
 export function AppShell({ children }: { children: ReactNode }) {
+  const t = useT();
   const { user } = useAuth();
   const restricted = !!user?.mustChangePassword;
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -49,6 +51,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
           <Brand compact />
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
+            <LanguageSwitch />
             {!restricted && <NotificationBell />}
             <UserMenu minimal={restricted} />
           </div>

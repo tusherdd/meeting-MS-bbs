@@ -46,7 +46,9 @@ function loaded(
     title: `meeting ${id}`,
     organizerId: `${id}-organizer`,
     organizerNameBn: 'আয়োজক',
+    organizerNameEn: 'Organizer',
     organizerDesignationBn: 'উপপরিচালক',
+    organizerDesignationEn: 'Deputy Director',
   };
 }
 
@@ -78,6 +80,7 @@ function setup(classification: {
           role: UserRole.OFFICER,
           designationId: 'd',
           nameBn: `নাম ${id}`,
+          nameEn: `Name ${id}`,
         })),
       ),
     ),
@@ -274,7 +277,9 @@ describe('MeetingsService.create', () => {
         expect.objectContaining({
           meetingId: 'EQUAL',
           title: MEETING_MESSAGES.hiddenTitle, // secretary is not one of EQUAL's people
-          sharedOfficers: [{ id: 'shared', nameBn: 'নাম shared' }],
+          sharedOfficers: [
+            { id: 'shared', nameBn: 'নাম shared', nameEn: 'Name shared' },
+          ],
         }),
       ],
     });

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { CalendarView } from "@/components/calendar/calendar-view";
-import { t } from "@/messages";
+import { getMessages } from "@/messages/server";
 
-export const metadata: Metadata = { title: t.calendar.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getMessages()).calendar.title };
+}
 
 export default function Page() {
   return <CalendarView />;

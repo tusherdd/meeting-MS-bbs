@@ -39,7 +39,7 @@ docs, logs, mails or test files; no forced change and no reminder for officers (
 - `npm run lint` / `npm run typecheck` / `npm run build`
 - `npm run gen:api` — regenerate `lib/api-schema.ts` from `docs/openapi.json` (after backend API changes)
 - `npm run test:e2e` — Playwright (backend running with `MAIL_DRY_RUN=true`; admin login in `frontend/.env.e2e`)
-- UI text only in `messages/bn.ts`; numbers/dates only through `lib/format.ts`; backend calls only through `lib/api.ts`.
+- UI text only in `messages/en.ts` + `messages/bn.ts` (same keys, v1.6, SPEC.md §13.14); numbers/dates only through `lib/format.ts`; backend calls only through `lib/api.ts`.
 - No icons in the UI, except two in the top header: the notification bell and the profile icon (owner decisions 2026-11-09 and 2026-11-14). Everything else stays text-only: short Bangla text labels, no other SVG/icon components/emoji icons, no other icon-only buttons. The two icons are inline SVGs in `components/layout/header-icons.tsx` (no icon library).
 - Fonts (owner decisions 2026-11-14/15, SPEC.md §13.10): Bangla in NikoshBAN (self-hosted, `unicode-range` limited to Bangla), English in Times New Roman from the user's computer (never bundled); PDF reports embed NikoshBAN + Tinos from `backend/assets/fonts/`.
 - Bangla nukta letters (SPEC.md §13.13): RRA/RHA precomposed (U+09DC/U+09DD), YYA as U+09AF U+09BC — use `normalizeBangla()`, never NFC-normalise Bangla text; helpers and tests build these letters from code points. `bangla-source.spec.ts` fails on any other form in the sources.

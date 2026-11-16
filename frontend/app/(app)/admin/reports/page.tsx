@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { OfficeReportView } from "@/components/reports/office-report-view";
 import { LoadingBlock } from "@/components/ui/spinner";
-import { t } from "@/messages";
+import { getMessages } from "@/messages/server";
 
-export const metadata: Metadata = { title: t.reports.officeTitle };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getMessages()).reports.officeTitle };
+}
 
 export default function Page() {
   return (

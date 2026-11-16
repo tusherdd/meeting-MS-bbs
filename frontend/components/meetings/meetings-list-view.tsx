@@ -11,11 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
 import { LoadingBlock } from "@/components/ui/spinner";
-import { formatNumber } from "@/lib/format";
+
 import { meetingsApi, queryKeys, type MeetingListQuery } from "@/lib/endpoints";
 import { addDays, dateRangeToIso, dhakaToday, monthBounds, sundayOf } from "@/lib/time";
 import type { MeetingStatus } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
 
 const PAGE_SIZE = 20;
@@ -38,6 +38,8 @@ function quickRange(kind: Quick): { from: string; to: string } {
  * always every meeting of the office, GET /meetings?scope=all).
  */
 export function MeetingsListView({ scope = "mine" }: { scope?: "mine" | "all" }) {
+  const t = useT();
+  const { formatNumber } = useFormat();
   const { isAdmin } = useAuth();
   const forceAll = scope === "all";
   const [range, setRange] = useState(() => quickRange("month"));

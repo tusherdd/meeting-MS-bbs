@@ -6,8 +6,8 @@ import Link from "next/link";
 import { ErrorAlert } from "@/components/ui/alert";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { adminApi, queryKeys } from "@/lib/endpoints";
-import { formatDateTime, formatNumber } from "@/lib/format";
-import { t } from "@/messages";
+
+import { useFormat, useT } from "@/providers/locale-provider";
 
 interface StatCard {
   label: string;
@@ -19,6 +19,8 @@ interface StatCard {
 
 /** /admin: counters from GET /admin/stats; the ones that need action link to their page. */
 export function AdminOverview() {
+  const t = useT();
+  const { formatDateTime } = useFormat();
   const stats = useQuery({
     queryKey: queryKeys.adminStats,
     queryFn: adminApi.stats,
@@ -77,6 +79,8 @@ export function AdminOverview() {
 }
 
 function StatGrid({ items, testId }: { items: StatCard[]; testId: string }) {
+  const t = useT();
+  const { formatNumber } = useFormat();
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid={testId}>
       {items.map((item) => {

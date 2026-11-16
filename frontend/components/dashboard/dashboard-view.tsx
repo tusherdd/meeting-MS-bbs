@@ -8,11 +8,11 @@ import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
-import { formatDateWithWeekday } from "@/lib/format";
+
 import { meetingsApi, queryKeys } from "@/lib/endpoints";
 import { monthRange, weekRange, type DateRange } from "@/lib/time";
 import type { MeetingSummary } from "@/lib/types";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 import { useCurrentUser } from "@/providers/auth-provider";
 import { ConflictWarning } from "./conflict-warning";
 import { MeetingList } from "./meeting-list";
@@ -22,12 +22,6 @@ type Tab = "today" | "week" | "month";
 const TABS: Tab[] = ["today", "week", "month"];
 /** Week / month lists: one page of up to 100 meetings (backend maximum). */
 const RANGE_LIMIT = 100;
-
-const emptyText: Record<Tab, string> = {
-  today: t.dashboard.emptyToday,
-  week: t.dashboard.emptyWeek,
-  month: t.dashboard.emptyMonth,
-};
 
 function useTabMeetings(tab: Tab, range: DateRange | null) {
   const today = useQuery({
@@ -45,6 +39,9 @@ function useTabMeetings(tab: Tab, range: DateRange | null) {
 }
 
 export function DashboardView() {
+  const t = useT();
+  const names = useNames();
+  const { formatDateWithWeekday } = useFormat();
   const user = useCurrentUser();
   const [tab, setTab] = useState<Tab>("today");
   const range = useMemo(
@@ -89,7 +86,7 @@ export function DashboardView() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">{t.dashboard.title}</h1>
           <p className="mt-1 text-slate-600">
-            {t.dashboard.greeting(user.nameBn)} · {formatDateWithWeekday(new Date())}
+            {t.dashboard.greeting(names.of(user))} · {formatDateWithWeekday(new Date())}
           </p>
         </div>
         <LinkButton href="/meetings/new">{t.dashboard.newMeeting}</LinkButton>
@@ -139,7 +136,13 @@ export function DashboardView() {
             </div>
           ) : meetings.data.length === 0 ? (
             <EmptyState
-              title={emptyText[tab]}
+              title={
+                {
+                  today: t.dashboard.emptyToday,
+                  week: t.dashboard.emptyWeek,
+                  month: t.dashboard.emptyMonth,
+                }[tab]
+              }
               action={
                 <LinkButton href="/meetings/new" variant="secondary" size="sm">
                   {t.dashboard.newMeeting}

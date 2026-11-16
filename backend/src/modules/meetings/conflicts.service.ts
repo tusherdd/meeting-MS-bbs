@@ -97,17 +97,19 @@ export class ConflictsService {
     const ref = (m: Meeting): ConflictMeetingRefDto => ({
       id: m.id,
       title: visible.has(m.id) ? m.title : MSG.hiddenTitle,
+      titleHidden: !visible.has(m.id),
       startAt: m.startAt,
       endAt: m.endAt,
       priority: m.priority,
       status: m.status,
       organizerDesignation: m.organizer.designation?.nameBn ?? null,
+      organizerDesignationEn: m.organizer.designation?.nameEn ?? null,
       organizedByMe: m.organizerId === actor.id,
     });
     return rows.map((r) => ({
       id: r.id,
       status: r.status,
-      officer: { id: r.user.id, nameBn: r.user.nameBn },
+      officer: { id: r.user.id, nameBn: r.user.nameBn, nameEn: r.user.nameEn },
       higherMeeting: ref(r.higherMeeting),
       lowerMeeting: ref(r.lowerMeeting),
       createdAt: r.createdAt,

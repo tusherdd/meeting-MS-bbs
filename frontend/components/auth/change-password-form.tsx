@@ -11,8 +11,9 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { authApi } from "@/lib/endpoints";
 import { DEFAULT_AFTER_LOGIN } from "@/lib/safe-next";
-import { changePasswordSchema, type ChangePasswordForm as Values } from "@/lib/schemas";
-import { t } from "@/messages";
+import { type ChangePasswordForm as Values } from "@/lib/schemas";
+import { useSchemas } from "@/lib/hooks/use-schemas";
+import { useT } from "@/providers/locale-provider";
 import { useAuth, useCurrentUser } from "@/providers/auth-provider";
 import { PasswordInput } from "./password-input";
 import { PasswordRules } from "./password-rules";
@@ -22,11 +23,16 @@ import { PasswordRules } from "./password-rules";
  * `embedded`: the same form as a card on /profile (no page heading, no redirect afterwards).
  */
 export function ChangePasswordForm({ embedded = false }: { embedded?: boolean }) {
+  const { changePasswordSchema } = useSchemas();
+  const t = useT();
   const user = useCurrentUser();
   const { reload } = useAuth();
   const router = useRouter();
   const toast = useToast();
-  const schema = useMemo(() => changePasswordSchema(user.loginEmail), [user.loginEmail]);
+  const schema = useMemo(
+    () => changePasswordSchema(user.loginEmail),
+    [changePasswordSchema, user.loginEmail],
+  );
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),

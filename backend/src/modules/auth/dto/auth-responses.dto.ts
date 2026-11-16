@@ -1,9 +1,16 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '../../users/enums/user-role.enum';
 
 export class MessageResponseDto {
   @ApiProperty({ example: 'আপনি Logout করেছেন।' })
   message!: string;
+
+  @ApiPropertyOptional({
+    example: 'LOGGED_OUT',
+    description:
+      'Stable message code (v1.6); `message` follows Accept-Language (en|bn, default bn)',
+  })
+  code?: string;
 }
 
 export class AccessTokenResponseDto {
@@ -114,4 +121,11 @@ export class LoginResponseDto extends AccessTokenResponseDto {
 export class ChangePasswordResponseDto extends AccessTokenResponseDto {
   @ApiProperty({ example: 'Password সফলভাবে পরিবর্তন করা হয়েছে।' })
   message!: string;
+
+  @ApiPropertyOptional({
+    example: 'PASSWORD_CHANGED',
+    description:
+      'Stable message code (v1.6); `message` follows Accept-Language (en|bn, default bn)',
+  })
+  code?: string;
 }

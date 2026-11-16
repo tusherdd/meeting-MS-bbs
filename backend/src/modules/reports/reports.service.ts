@@ -79,7 +79,9 @@ export class ReportsService {
       officer: {
         id: officer.id,
         nameBn: officer.nameBn,
+        nameEn: officer.nameEn,
         designationBn: officer.designation?.nameBn ?? null,
+        designationEn: officer.designation?.nameEn ?? null,
       },
       summary: personalSummary(meetings, actor.id, conflicts),
       meetings: paginated(
@@ -287,14 +289,19 @@ export class ReportsService {
       status: m.status,
       organizerId: m.organizerId,
       organizerNameBn: m.organizer.nameBn,
+      organizerNameEn: m.organizer.nameEn,
       organizerDesignationId: m.organizer.designationId,
       organizerDesignationBn: m.organizer.designation?.nameBn ?? null,
+      organizerDesignationEn: m.organizer.designation?.nameEn ?? null,
       organizerDesignationPriority: m.organizer.designation?.priority ?? null,
       organizerWingId: m.organizer.wingId,
       organizerWingBn: m.organizer.wing?.nameBn ?? null,
+      organizerWingEn: m.organizer.wing?.nameEn ?? null,
       myRole: roles.get(m.id) ?? null,
       chairNameBn:
         m.chair?.nameBn ?? m.guests.find((g) => g.isChair)?.name ?? null,
+      chairNameEn:
+        m.chair?.nameEn ?? m.guests.find((g) => g.isChair)?.name ?? null,
       guests: m.guests.map((g) => ({
         name: g.name,
         designation: g.designation,
@@ -361,7 +368,9 @@ export class ReportsService {
     ]);
     return {
       wingBn: wing?.nameBn ?? null,
+      wingEn: wing?.nameEn ?? null,
       designationBn: designation?.nameBn ?? null,
+      designationEn: designation?.nameEn ?? null,
     };
   }
 
@@ -400,9 +409,12 @@ function toItem(m: ReportMeeting): ReportMeetingDto {
     room: m.room,
     status: m.status,
     organizerNameBn: m.organizerNameBn,
+    organizerNameEn: m.organizerNameEn,
     organizerDesignationBn: m.organizerDesignationBn,
+    organizerDesignationEn: m.organizerDesignationEn,
     myRole: m.myRole,
     chairNameBn: m.chairNameBn,
+    chairNameEn: m.chairNameEn,
     guests: m.guests,
   };
 }

@@ -3,19 +3,20 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { isActivePath, navFor } from "./nav-items";
 
 /** Menu links by role. Used in the desktop sidebar and in the mobile drawer. */
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+  const t = useT();
   const pathname = usePathname();
   const { isAdmin } = useAuth();
 
   return (
     <nav aria-label={t.nav.mainMenu}>
       <ul className="space-y-1">
-        {navFor(isAdmin).map((item) => {
+        {navFor(isAdmin, t).map((item) => {
           const active = isActivePath(pathname, item.href);
           return (
             <li key={item.href}>

@@ -1,5 +1,5 @@
-import { ADMIN_LINKS } from "@/components/admin/admin-nav";
-import { t } from "@/messages";
+import { adminLinks } from "@/components/admin/admin-nav";
+import type { Messages } from "@/messages";
 
 export interface NavItem {
   href: string;
@@ -7,24 +7,25 @@ export interface NavItem {
   children?: { href: string; label: string }[];
 }
 
-export const OFFICER_NAV: NavItem[] = [
-  { href: "/dashboard", label: t.nav.dashboard },
-  { href: "/meetings", label: t.nav.meetings },
-  { href: "/calendar", label: t.nav.calendar },
-  { href: "/conflicts", label: t.nav.conflicts },
-  { href: "/reports", label: t.nav.reports },
-  { href: "/profile", label: t.nav.profile },
-];
-
-/** Admin sub-menu (same pages as the tabs on top of every admin page). */
-export const ADMIN_NAV: NavItem = {
-  href: "/admin",
-  label: t.nav.admin,
-  children: ADMIN_LINKS.filter((l) => l.href !== "/admin").map((l) => ({ ...l })),
-};
-
-export function navFor(admin: boolean): NavItem[] {
-  return admin ? [...OFFICER_NAV, ADMIN_NAV] : OFFICER_NAV;
+/** Main menu in the UI language; admins also get the admin sub-menu. */
+export function navFor(admin: boolean, t: Messages): NavItem[] {
+  const officer: NavItem[] = [
+    { href: "/dashboard", label: t.nav.dashboard },
+    { href: "/meetings", label: t.nav.meetings },
+    { href: "/calendar", label: t.nav.calendar },
+    { href: "/conflicts", label: t.nav.conflicts },
+    { href: "/reports", label: t.nav.reports },
+    { href: "/profile", label: t.nav.profile },
+  ];
+  if (!admin) return officer;
+  return [
+    ...officer,
+    {
+      href: "/admin",
+      label: t.nav.admin,
+      children: adminLinks(t).filter((l) => l.href !== "/admin"),
+    },
+  ];
 }
 
 export function isActivePath(pathname: string, href: string): boolean {

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 import { ErrorAlert } from "./alert";
 import { Button } from "./button";
 import { Modal } from "./modal";
@@ -33,6 +33,7 @@ export function ConfirmModal({
   danger?: boolean;
   confirmDisabled?: boolean;
 }) {
+  const t = useT();
   return (
     <Modal
       open={open}

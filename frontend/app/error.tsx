@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Button, LinkButton } from "@/components/ui/button";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 
 /** 500 page: an unexpected error while rendering (the rest of the app keeps working). */
 export default function ErrorPage({
@@ -12,6 +12,8 @@ export default function ErrorPage({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useT();
+  const { digits } = useFormat();
   useEffect(() => {
     // Only the message: never data from the page.
     console.error("Page error", error.digest ?? error.message);
@@ -19,7 +21,7 @@ export default function ErrorPage({
 
   return (
     <main className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-4 text-center">
-      <p className="text-5xl font-bold text-red-700">৫০০</p>
+      <p className="text-5xl font-bold text-red-700">{digits(500)}</p>
       <h1 className="text-xl font-semibold">{t.errors.serverTitle}</h1>
       <p className="max-w-md text-slate-600">{t.errors.serverBody}</p>
       {error.digest && (

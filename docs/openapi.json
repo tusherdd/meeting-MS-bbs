@@ -122,6 +122,20 @@
               "example": "2026-12-31T23:59:59+06:00",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -209,6 +223,20 @@
                 "FAILED"
               ]
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -266,6 +294,20 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -338,6 +380,20 @@
               "example": true,
               "type": "boolean"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -383,7 +439,22 @@
     "/api/v1/notifications/unread-count": {
       "get": {
         "operationId": "NotificationsController_unreadCount",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -410,7 +481,22 @@
     "/api/v1/notifications/read-all": {
       "patch": {
         "operationId": "NotificationsController_readAll",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -445,6 +531,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -477,7 +577,22 @@
       "post": {
         "description": "Sets httpOnly cookies and returns the access token. In Swagger: copy `accessToken` → \"Authorize\".\n\n**No account lock.** After 5 consecutive failures for an email, every further attempt is answered\nonly after a delay: 2 s, 4 s, 8 s, 16 s, then 30 s (max). The delay applies before the password is\nchecked (also to a correct one) and equally to emails without an account. A successful login\nresets the counter.",
         "operationId": "AuthController_login",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -523,7 +638,22 @@
       "post": {
         "description": "The old refresh token becomes invalid. Re-using an old one logs the user out everywhere.",
         "operationId": "AuthController_refresh",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -552,7 +682,22 @@
     "/api/v1/auth/logout": {
       "post": {
         "operationId": "AuthController_logout",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -582,7 +727,22 @@
     "/api/v1/auth/me": {
       "get": {
         "operationId": "AuthController_me",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -613,7 +773,22 @@
       "post": {
         "description": "Ends all other sessions and returns a NEW access token — use it in \"Authorize\" from now on.",
         "operationId": "AuthController_changePassword",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -657,7 +832,22 @@
       "post": {
         "description": "Always returns 200 with the same message (does not reveal if the email exists).",
         "operationId": "AuthController_forgotPassword",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -694,7 +884,22 @@
       "post": {
         "description": "Accepts the token of /reset-password links (\"forgot password\") and of older /set-password links. Single use. Clears passwordIsDefault.",
         "operationId": "AuthController_resetPassword",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -779,6 +984,20 @@
             "schema": {
               "format": "uuid",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -944,6 +1163,20 @@
                 "desc"
               ]
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -992,7 +1225,22 @@
       "post": {
         "description": "Sets the default officer password (DEFAULT_OFFICER_PASSWORD, never returned), passwordIsDefault = true, no forced change; the welcome mail names \"the default password the office announced\" and never contains it.",
         "operationId": "UsersController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1047,6 +1295,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -1088,6 +1350,20 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -1149,6 +1425,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "requestBody": {
@@ -1201,6 +1491,20 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -1259,6 +1563,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -1307,6 +1625,20 @@
               "example": true,
               "type": "boolean"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -1336,7 +1668,22 @@
       },
       "post": {
         "operationId": "DesignationsController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1392,6 +1739,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "requestBody": {
@@ -1446,6 +1807,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -1487,6 +1862,20 @@
               "example": true,
               "type": "boolean"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -1516,7 +1905,22 @@
       },
       "post": {
         "operationId": "WingsController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1570,6 +1974,20 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -1625,6 +2043,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -1656,7 +2088,22 @@
     "/api/v1/profile": {
       "get": {
         "operationId": "ProfileController_get",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1682,7 +2129,22 @@
       "patch": {
         "description": "Only these fields are accepted; loginEmail, designationId, role, isActive or anything else → 400. Mobile numbers may be typed with Bangla or English digits and +880; they are stored as 01XXXXXXXXX.",
         "operationId": "ProfileController_update",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1723,7 +2185,22 @@
       "post": {
         "description": "Real type checked by magic bytes; re-encoded to a 512×512 WebP (EXIF/GPS removed). Served at /uploads/<photoPath>. The previous photo is deleted.",
         "operationId": "ProfileController_uploadPhoto",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1767,7 +2244,22 @@
       },
       "delete": {
         "operationId": "ProfileController_deletePhoto",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1795,7 +2287,22 @@
       "post": {
         "description": "Sends a verification link (valid 24 h) to the NEW address and a notice to the current one. Until verified, mail keeps going to the current address. Login email is never changed.",
         "operationId": "ProfileController_requestNotificationEmail",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1848,6 +2355,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -1877,7 +2398,22 @@
       "post": {
         "description": "LOGIN_EMAIL: send `loginEmail` (valid, not used by anyone). DESIGNATION: send `designationId` (active, different from yours). Only one PENDING request per type.",
         "operationId": "ProfileController_createChangeRequest",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1918,7 +2454,22 @@
       },
       "get": {
         "operationId": "ProfileController_myChangeRequests",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1955,6 +2506,20 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -2041,6 +2606,20 @@
                 "DESIGNATION"
               ]
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -2099,6 +2678,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "requestBody": {
@@ -2155,6 +2748,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "requestBody": {
@@ -2206,7 +2813,22 @@
     "/api/v1/meetings/today": {
       "get": {
         "operationId": "MeetingsController_today",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -2320,6 +2942,20 @@
                 "all"
               ]
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -2367,7 +3003,22 @@
       "post": {
         "description": "Conflict rule: for every overlapping SCHEDULED meeting that shares a person (organizer, chair or participant): if this meeting has a SMALLER priority number (higher rank) it is saved and the other meeting's people are asked to cancel/reschedule; equal or larger number → 409 and nothing is saved. Touching times (11:00–12:00 after 10:00–11:00) do not clash.",
         "operationId": "MeetingsController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2421,7 +3072,22 @@
       "post": {
         "description": "Conflict rule: for every overlapping SCHEDULED meeting that shares a person (organizer, chair or participant): if this meeting has a SMALLER priority number (higher rank) it is saved and the other meeting's people are asked to cancel/reschedule; equal or larger number → 409 and nothing is saved. Touching times (11:00–12:00 after 10:00–11:00) do not clash. When editing, send `meetingId`.",
         "operationId": "MeetingsController_checkConflicts",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2469,6 +3135,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -2506,6 +3186,20 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -2567,6 +3261,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -2602,6 +3310,20 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -2657,6 +3379,20 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -2715,6 +3451,20 @@
                 "PENDING",
                 "RESOLVED"
               ]
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -2781,6 +3531,20 @@
                 "PENDING",
                 "RESOLVED"
               ]
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -2880,6 +3644,20 @@
               "example": "2026-12-01",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -2934,6 +3712,20 @@
             "schema": {
               "example": "2026-12-01",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
             }
           }
         ],
@@ -3033,6 +3825,20 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -3112,6 +3918,20 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
           }
         ],
         "responses": {
@@ -3149,7 +3969,22 @@
       "get": {
         "description": "Users, meetings today / this week (Asia/Dhaka), pending conflicts and change requests, failed mails.",
         "operationId": "AdminController_get",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -3180,7 +4015,22 @@
     "/api/v1/health": {
       "get": {
         "operationId": "HealthController_check",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "API is up and the database answers",
@@ -3216,7 +4066,7 @@
   },
   "info": {
     "title": "BBS Meeting Schedule API",
-    "description": "Bangladesh Bureau of Statistics (BBS) and SID — meeting schedule system. Errors: `{ statusCode, message, error, requestId }` (409 meeting clashes add `blocking`).",
+    "description": "Bangladesh Bureau of Statistics (BBS) and SID — meeting schedule system. Errors: `{ statusCode, message, error, code, requestId }` (409 meeting clashes add `blocking`; validation errors add `codes`, one per message). Language (v1.6): send `Accept-Language: en` or `bn` (or `X-Lang`, which wins; the web app sends both); error and success messages come back in that language (Bangla when the header is missing). `code` never changes with the language. PDF reports, emails and notifications are always Bangla.",
     "version": "1.0",
     "contact": {}
   },
@@ -3734,6 +4584,11 @@
           "message": {
             "type": "string",
             "example": "আপনি Logout করেছেন।"
+          },
+          "code": {
+            "type": "string",
+            "example": "LOGGED_OUT",
+            "description": "Stable message code (v1.6); `message` follows Accept-Language (en|bn, default bn)"
           }
         },
         "required": [
@@ -3780,6 +4635,11 @@
           "message": {
             "type": "string",
             "example": "Password সফলভাবে পরিবর্তন করা হয়েছে।"
+          },
+          "code": {
+            "type": "string",
+            "example": "PASSWORD_CHANGED",
+            "description": "Stable message code (v1.6); `message` follows Accept-Language (en|bn, default bn)"
           }
         },
         "required": [
@@ -4439,7 +5299,12 @@
         "properties": {
           "message": {
             "type": "string",
-            "example": "অস্থায়ী Password তৈরি করে কর্মকর্তার Notification Email-এ পাঠানো হয়েছে। প্রথম Login-এ Password পরিবর্তন করতে হবে।"
+            "example": "Password Default Password-এ Reset করা হয়েছে, সব Session বন্ধ করা হয়েছে এবং কর্মকর্তাকে Email-এ জানানো হয়েছে।"
+          },
+          "code": {
+            "type": "string",
+            "example": "PASSWORD_RESET_DONE",
+            "description": "Stable message code (v1.6); `message` follows Accept-Language (en|bn, default bn)"
           }
         },
         "required": [
@@ -5289,17 +6154,30 @@
         "properties": {
           "name": {
             "type": "string",
-            "example": "মোঃ করিম উদ্দিন"
+            "example": "মোঃ করিম উদ্দিন",
+            "description": "Bangla name"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Karim Uddin",
+            "description": "English name (v1.7)"
           },
           "designation": {
             "type": "string",
             "nullable": true,
             "example": "উপপরিচালক"
+          },
+          "designationEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Deputy Director"
           }
         },
         "required": [
           "name",
-          "designation"
+          "nameEn",
+          "designation",
+          "designationEn"
         ]
       },
       "OfficerRefDto": {
@@ -5312,11 +6190,16 @@
           "nameBn": {
             "type": "string",
             "example": "মোঃ করিম"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Karim Uddin"
           }
         },
         "required": [
           "id",
-          "nameBn"
+          "nameBn",
+          "nameEn"
         ]
       },
       "ClashDto": {
@@ -5330,6 +6213,11 @@
             "type": "string",
             "example": "অন্য একটি সভা",
             "description": "Real title only if you are one of its people or an admin"
+          },
+          "titleHidden": {
+            "type": "boolean",
+            "example": true,
+            "description": "true = the real title is hidden from you and `title` holds the placeholder (v1.6: clients show their own text)"
           },
           "startAt": {
             "type": "string",
@@ -5357,6 +6245,7 @@
         "required": [
           "meetingId",
           "title",
+          "titleHidden",
           "startAt",
           "endAt",
           "priority",
@@ -5489,6 +6378,11 @@
             "example": "অন্য একটি সভা",
             "description": "Real title only for its people and admins"
           },
+          "titleHidden": {
+            "type": "boolean",
+            "example": true,
+            "description": "true = the real title is hidden from you and `title` holds the placeholder (v1.6: clients show their own text)"
+          },
           "startAt": {
             "type": "string",
             "format": "date-time"
@@ -5515,6 +6409,12 @@
             "example": "সচিব",
             "description": "Organizer's designation (Bangla)"
           },
+          "organizerDesignationEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Deputy Director",
+            "description": "Organizer's designation (English, v1.7)"
+          },
           "organizedByMe": {
             "type": "boolean",
             "example": false,
@@ -5524,11 +6424,13 @@
         "required": [
           "id",
           "title",
+          "titleHidden",
           "startAt",
           "endAt",
           "priority",
           "status",
           "organizerDesignation",
+          "organizerDesignationEn",
           "organizedByMe"
         ]
       },
@@ -5800,13 +6702,19 @@
             "items": {
               "$ref": "#/components/schemas/ClashDto"
             }
+          },
+          "code": {
+            "type": "string",
+            "example": "TIME_CONFLICT_BLOCKING",
+            "description": "Stable message code (v1.6)"
           }
         },
         "required": [
           "statusCode",
           "message",
           "error",
-          "blocking"
+          "blocking",
+          "code"
         ]
       },
       "UpdateMeetingDto": {
@@ -6003,16 +6911,27 @@
             "type": "string",
             "example": "মোঃ ফিরোজ সরকার"
           },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Firoz Sarker"
+          },
           "designationBn": {
             "type": "string",
             "nullable": true,
             "example": "সচিব"
+          },
+          "designationEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Secretary"
           }
         },
         "required": [
           "id",
           "nameBn",
-          "designationBn"
+          "nameEn",
+          "designationBn",
+          "designationEn"
         ]
       },
       "StatusCountsDto": {
@@ -6163,10 +7082,19 @@
             "type": "string",
             "example": "মোঃ ফিরোজ সরকার"
           },
+          "organizerNameEn": {
+            "type": "string",
+            "example": "Md. Firoz Sarker"
+          },
           "organizerDesignationBn": {
             "type": "string",
             "nullable": true,
             "example": "সচিব"
+          },
+          "organizerDesignationEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Secretary"
           },
           "myRole": {
             "type": "string",
@@ -6184,6 +7112,12 @@
             "example": "মোঃ ফিরোজ সরকার",
             "description": "Chair: the internal chair, else the guest chair"
           },
+          "chairNameEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Md. Firoz Sarker",
+            "description": "Internal chair's English name; a guest chair's name as typed (v1.7)"
+          },
           "guests": {
             "description": "Guest officers (listed only, never counted)",
             "type": "array",
@@ -6200,9 +7134,12 @@
           "room",
           "status",
           "organizerNameBn",
+          "organizerNameEn",
           "organizerDesignationBn",
+          "organizerDesignationEn",
           "myRole",
           "chairNameBn",
+          "chairNameEn",
           "guests"
         ]
       },
@@ -6271,15 +7208,27 @@
             "nullable": true,
             "example": "কম্পিউটার উইং"
           },
+          "wingEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Computer Wing"
+          },
           "designationBn": {
             "type": "string",
             "nullable": true,
             "example": "উপপরিচালক"
+          },
+          "designationEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Deputy Director"
           }
         },
         "required": [
           "wingBn",
-          "designationBn"
+          "wingEn",
+          "designationBn",
+          "designationEn"
         ]
       },
       "GroupCountDto": {
@@ -6294,6 +7243,12 @@
             "type": "string",
             "example": "কম্পিউটার উইং"
           },
+          "nameEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Computer Wing",
+            "description": "null = no wing / no designation (v1.7)"
+          },
           "meetings": {
             "type": "number",
             "example": 7
@@ -6306,6 +7261,7 @@
         "required": [
           "id",
           "nameBn",
+          "nameEn",
           "meetings",
           "hours"
         ]
@@ -6321,6 +7277,12 @@
           "nameBn": {
             "type": "string",
             "example": "কম্পিউটার উইং"
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Computer Wing",
+            "description": "null = no wing / no designation (v1.7)"
           },
           "meetings": {
             "type": "number",
@@ -6339,6 +7301,7 @@
         "required": [
           "id",
           "nameBn",
+          "nameEn",
           "meetings",
           "hours",
           "priority"
@@ -6355,10 +7318,19 @@
             "type": "string",
             "example": "আকলিমা খাতুন"
           },
+          "nameEn": {
+            "type": "string",
+            "example": "Aklima Khatun"
+          },
           "designationBn": {
             "type": "string",
             "nullable": true,
             "example": "উপপরিচালক"
+          },
+          "designationEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Deputy Director"
           },
           "meetings": {
             "type": "number",
@@ -6372,7 +7344,9 @@
         "required": [
           "userId",
           "nameBn",
+          "nameEn",
           "designationBn",
+          "designationEn",
           "meetings",
           "hours"
         ]

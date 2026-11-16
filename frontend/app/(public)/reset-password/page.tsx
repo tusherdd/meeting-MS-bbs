@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { NewPasswordForm } from "@/components/auth/new-password-form";
-import { t } from "@/messages";
+import { getMessages } from "@/messages/server";
 
-export const metadata: Metadata = { title: t.auth.resetTitle };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getMessages()).auth.resetTitle };
+}
 
 export default function Page() {
   return (

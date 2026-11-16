@@ -6,8 +6,18 @@ All paths are under `/api/v1`. 59 endpoints. Interactive docs: `/api/docs` (when
 
 Access: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN. Request fields: `*` = required.
 
-Errors always have the shape `{ statusCode, message, error, requestId }` (Bangla `message`); a meeting clash
-(409) adds `blocking`. Auth: Bearer access token (header) or the httpOnly `access_token` cookie.
+Errors always have the shape `{ statusCode, message, error, code, requestId }`; a meeting clash (409) adds
+`blocking`, validation errors (400) add `codes` (one per message). Auth: Bearer access token (header) or the
+httpOnly `access_token` cookie.
+
+**Language (v1.6).** Every route accepts the header `Accept-Language: en` or `bn` (`X-Lang: en|bn` wins if both are sent; the web app sends both because Safari overwrites Accept-Language). Error and success
+`message` texts come back in that language; without the header they are Bangla. `code` is the same in both
+languages (texts outside the catalog get `HTTP_<status>`). PDF reports ignore the header and are always
+Bangla, as are emails and bell notifications. Hidden meeting titles come with `titleHidden: true`.
+
+**Names (v1.7).** Officer, designation and wing names always come in both languages (`nameBn` + `nameEn`, or
+`…Bn` + `…En` pairs); the header never changes data. Clients show the English value in English mode (Bangla
+when it is empty) and the Bangla value in Bangla mode. English values must be Latin text (`NAME_EN_LATIN`).
 
 ## Health
 
@@ -137,4 +147,202 @@ Errors always have the shape `{ statusCode, message, error, requestId }` (Bangla
 | Method | Path | Access | Purpose | Main request fields | Responses |
 |---|---|---|---|---|---|
 | GET | `/audit-logs` | 🛡 | Audit trail, newest first (ADMIN) | `page` (query), `limit` (query), `actorId` (query), `action` (query), `entityType` (query), `entityId` (query), `from` (query), `to` (query) | 200, 403 |
+
+## Message codes
+
+191 codes from `backend/src/common/i18n/message-catalog.ts`. `{name}` = a value filled in at run time.
+
+| Code | English | Bangla |
+|---|---|---|
+| `TOO_MANY_REQUESTS` | Too many requests. Please wait a little and try again. | অনেক বেশি অনুরোধ পাঠানো হয়েছে। কিছুক্ষণ অপেক্ষা করে আবার চেষ্টা করুন। |
+| `PAGE_NOT_INTEGER` | page must be a whole number. | page একটি পূর্ণসংখ্যা হতে হবে। |
+| `PAGE_MIN` | page must be at least 1. | page কমপক্ষে ১ হতে হবে। |
+| `LIMIT_NOT_INTEGER` | limit must be a whole number. | limit একটি পূর্ণসংখ্যা হতে হবে। |
+| `LIMIT_MIN` | limit must be at least 1. | limit কমপক্ষে ১ হতে হবে। |
+| `LIMIT_MAX` | limit can be at most {MAX_PAGE_SIZE}. | limit সর্বোচ্চ {MAX_PAGE_SIZE} হতে পারে। |
+| `SERVER_ERROR` | An unexpected server error occurred. Please try again after a while. | সার্ভারে একটি অপ্রত্যাশিত ত্রুটি হয়েছে। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন। |
+| `INVALID_ID` | Invalid ID. | অবৈধ আইডি। |
+| `FIELD_NOT_ALLOWED` | The field "{path}" cannot be sent or changed here. | "{path}" ফিল্ডটি এখানে পাঠানো বা পরিবর্তন করা যাবে না। |
+| `PASSWORD_TOO_SHORT` | The password must have at least {PASSWORD_MIN_LENGTH} characters. | Password কমপক্ষে {PASSWORD_MIN_LENGTH} অক্ষরের হতে হবে। |
+| `PASSWORD_NEEDS_LETTER` | The password must contain at least one English letter. | Password-এ অন্তত একটি ইংরেজি অক্ষর থাকতে হবে। |
+| `PASSWORD_NEEDS_DIGIT` | The password must contain at least one digit. | Password-এ অন্তত একটি সংখ্যা থাকতে হবে। |
+| `PASSWORD_SAME_AS_EMAIL` | The password cannot be the same as the email address. | Password ও Email একই হতে পারবে না। |
+| `INVALID_CREDENTIALS` | Email or password is incorrect. If you do not remember your password, use "Forgot your password?" to get a reset link by email. | Email অথবা Password সঠিক নয়। Password মনে না থাকলে "Password ভুলে গেছেন?" ব্যবহার করে Email-এ Reset Link নিন। |
+| `ACCOUNT_INACTIVE` | Your account has been deactivated. Please contact an administrator. | আপনার অ্যাকাউন্টটি Inactive করা হয়েছে। প্রশাসকের সাথে যোগাযোগ করুন। |
+| `LOGIN_REQUIRED` | Please log in. | অনুগ্রহ করে Login করুন। |
+| `SESSION_EXPIRED` | Your session has expired. Please log in again. | Session-এর মেয়াদ শেষ হয়েছে। অনুগ্রহ করে আবার Login করুন। |
+| `MUST_CHANGE_PASSWORD` | For security, change your password first. Nothing else can be done before that. | নিরাপত্তার জন্য প্রথমে আপনার Password পরিবর্তন করুন। এর আগে অন্য কোনো কাজ করা যাবে না। |
+| `FORBIDDEN` | You do not have permission to do this. | এই কাজটি করার অনুমতি আপনার নেই। |
+| `BAD_ORIGIN` | The request did not come from an allowed origin. | অনুরোধটি অনুমোদিত উৎস থেকে আসেনি। |
+| `WRONG_CURRENT_PASSWORD` | The current password is incorrect. | বর্তমান Password সঠিক নয়। |
+| `SAME_PASSWORD` | The new password must be different from the current password. | নতুন Password বর্তমান Password থেকে আলাদা হতে হবে। |
+| `PASSWORD_CHANGED` | The password has been changed. | Password সফলভাবে পরিবর্তন করা হয়েছে। |
+| `FORGOT_PASSWORD_SENT` | If the email is registered, a password reset link has been sent. Please check your email. | Email-টি নিবন্ধিত থাকলে Password Reset-এর Link পাঠানো হয়েছে। অনুগ্রহ করে Email দেখুন। |
+| `INVALID_RESET_TOKEN` | The reset link is invalid or has expired. Please request a new link. | Reset Link-টি অবৈধ অথবা মেয়াদোত্তীর্ণ। নতুন Link-এর জন্য আবার অনুরোধ করুন। |
+| `PASSWORD_RESET_DONE_SELF` | The password has been reset. Log in with the new password. | Password Reset হয়েছে। নতুন Password দিয়ে Login করুন। |
+| `PASSWORD_SET` | The password has been set. Now log in with your login email and this password. | Password সেট হয়েছে। এখন Login Email ও এই Password দিয়ে Login করুন। |
+| `LOGGED_OUT` | You have logged out. | আপনি Logout করেছেন। |
+| `CURRENT_PASSWORD_REQUIRED` | Enter your current password. | বর্তমান Password দিন। |
+| `PASSWORD_TOO_LONG` | The password can have at most 128 characters. | Password সর্বোচ্চ ১২৮ অক্ষরের হতে পারে। |
+| `NEW_PASSWORD_REQUIRED` | Enter the new password. | নতুন Password দিন। |
+| `EMAIL_INVALID` | Enter a valid email address. | সঠিক Email ঠিকানা দিন। |
+| `EMAIL_TOO_LONG` | The email address is too long. | Email খুব দীর্ঘ। |
+| `PASSWORD_REQUIRED` | Enter the password. | Password দিন। |
+| `RESET_TOKEN_REQUIRED` | Enter the reset token. | Reset টোকেন দিন। |
+| `RESET_LINK_INVALID` | The reset link is invalid. | Reset Link-টি অবৈধ। |
+| `CHANGE_REQUEST_NOT_FOUND` | Change request not found. | Change Request-টি পাওয়া যায়নি। |
+| `CHANGE_REQUEST_ONE_PENDING` | You already have a pending request of this type. Wait for the decision or cancel it first. | এই বিষয়ে আপনার একটি অনুরোধ ইতিমধ্যে Pending আছে। আগে সেটির সিদ্ধান্ত হোক অথবা বাতিল করুন। |
+| `CHANGE_REQUEST_NOT_PENDING` | This request has already been decided. | এই অনুরোধের ইতিমধ্যে নিষ্পত্তি হয়েছে। |
+| `CHANGE_REQUEST_SUPER_ADMIN` | The Super Admin can edit the account directly; no request is needed. | Super Admin নিজের অ্যাকাউন্ট সরাসরি সম্পাদনা করতে পারেন; অনুরোধের প্রয়োজন নেই। |
+| `CHANGE_REQUEST_SAME_LOGIN_EMAIL` | This is already your login email. | এটিই আপনার বর্তমান Login Email। |
+| `LOGIN_EMAIL_TAKEN` | This email is already used by another account. | এই Email ইতিমধ্যে অন্য একটি অ্যাকাউন্টে ব্যবহৃত হচ্ছে। |
+| `CHANGE_REQUEST_DESIGNATION_INVALID` | The selected designation was not found or is inactive. | নির্বাচিত পদবিটি পাওয়া যায়নি অথবা Inactive। |
+| `CHANGE_REQUEST_SAME_DESIGNATION` | This is already your designation. | এটিই আপনার বর্তমান পদবি। |
+| `CHANGE_REQUEST_DESIGNATION_GONE` | The requested designation is now inactive or deleted; the request cannot be approved. | অনুরোধকৃত পদবিটি এখন Inactive অথবা মুছে ফেলা হয়েছে; অনুমোদন দেওয়া যাবে না। |
+| `CHANGE_REQUEST_OWN` | You cannot approve your own request. Another administrator must approve it. | নিজের অনুরোধ নিজে অনুমোদন করা যাবে না। অন্য একজন প্রশাসককে অনুমোদন করতে হবে। |
+| `CHANGE_REQUEST_LOGIN_EMAIL_REQUIRED` | Enter the new login email. | নতুন Login Email দিন। |
+| `CHANGE_REQUEST_DESIGNATION_REQUIRED` | Select the new designation. | নতুন পদবি নির্বাচন করুন। |
+| `CHANGE_REQUEST_TYPE_INVALID` | type must be LOGIN_EMAIL or DESIGNATION. | type LOGIN_EMAIL অথবা DESIGNATION হতে হবে। |
+| `NOTE_NOT_STRING` | The note must be text. | মন্তব্য লেখা হতে হবে। |
+| `NOTE_TOO_LONG` | The note can have at most 1000 characters. | মন্তব্য সর্বোচ্চ ১০০০ অক্ষরের হতে পারে। |
+| `REJECT_REASON_REQUIRED` | Write the reason for rejection. | প্রত্যাখ্যানের কারণ লিখুন। |
+| `REJECT_REASON_TOO_SHORT` | The reason for rejection must have at least 3 characters. | প্রত্যাখ্যানের কারণ কমপক্ষে ৩ অক্ষরের হতে হবে। |
+| `STATUS_INVALID` | Invalid status. | অবৈধ status। |
+| `TYPE_INVALID` | Invalid type. | অবৈধ type। |
+| `DESIGNATION_NOT_FOUND` | Designation not found. | পদবিটি পাওয়া যায়নি। |
+| `DESIGNATION_DUPLICATE_NAME` | A designation with this English name already exists. | এই ইংরেজি নামে একটি পদবি আগে থেকেই আছে। |
+| `DESIGNATION_IN_USE` | This designation is assigned to {count} officers, so it cannot be deleted. Deactivate it if needed. | এই পদবিটি {count} জন কর্মকর্তার সাথে যুক্ত, তাই মুছে ফেলা যাবে না। প্রয়োজনে পদবিটি Inactive করুন। |
+| `DESIGNATION_IN_USE_GENERIC` | This designation is assigned to officers, so it cannot be deleted. Deactivate it if needed. | এই পদবিটি কর্মকর্তাদের সাথে যুক্ত, তাই মুছে ফেলা যাবে না। প্রয়োজনে পদবিটি Inactive করুন। |
+| `NAME_BN_REQUIRED` | Enter the name in Bangla. | বাংলা নাম দিন। |
+| `NAME_BN_TOO_LONG_150` | The Bangla name can have at most 150 characters. | বাংলা নাম সর্বোচ্চ ১৫০ অক্ষরের হতে পারে। |
+| `NAME_EN_REQUIRED` | Enter the name in English. | ইংরেজি নাম দিন। |
+| `NAME_EN_TOO_LONG_150` | The English name can have at most 150 characters. | ইংরেজি নাম সর্বোচ্চ ১৫০ অক্ষরের হতে পারে। |
+| `PRIORITY_NOT_INTEGER` | Priority must be a whole number. | অগ্রাধিকার একটি পূর্ণসংখ্যা হতে হবে। |
+| `PRIORITY_MIN` | Priority must be at least 1. | অগ্রাধিকার কমপক্ষে ১ হতে হবে। |
+| `PRIORITY_MAX` | Priority can be at most 999. | অগ্রাধিকার সর্বোচ্চ ৯৯৯ হতে পারে। |
+| `IS_ACTIVE_BOOLEAN` | isActive must be true or false. | isActive true অথবা false হতে হবে। |
+| `ACTIVE_ONLY_BOOLEAN` | activeOnly must be true or false. | activeOnly true অথবা false হতে হবে। |
+| `MAIL_NOT_FOUND` | Email not found. | মেইলটি পাওয়া যায়নি। |
+| `MAIL_RETRY_ONLY_FAILED` | Only failed emails can be sent again. | শুধু Failed Email আবার পাঠানো যায়। |
+| `TIME_FORMAT` | Give the time in ISO 8601 format with an offset (for example 2026-12-01T10:30:00+06:00). | সময় ISO 8601 আকারে, অফসেটসহ দিন (যেমন 2026-12-01T10:30:00+06:00)। |
+| `GUEST_NAME_REQUIRED` | Enter the guest officer's name. | অতিথি কর্মকর্তার নাম দিন। |
+| `GUEST_NAME_LENGTH` | The guest officer's name must be 1 to 200 characters long. | অতিথি কর্মকর্তার নাম ১ থেকে ২০০ অক্ষরের হতে হবে। |
+| `GUEST_DESIGNATION_REQUIRED` | Enter the guest officer's designation. | অতিথি কর্মকর্তার পদবি দিন। |
+| `GUEST_DESIGNATION_LENGTH` | The guest officer's designation must be 1 to 200 characters long. | অতিথি কর্মকর্তার পদবি ১ থেকে ২০০ অক্ষরের হতে হবে। |
+| `GUEST_EMAIL_REQUIRED` | Enter the guest officer's email. | অতিথি কর্মকর্তার Email দিন। |
+| `GUEST_EMAIL_TOO_LONG` | The guest officer's email is too long. | অতিথি কর্মকর্তার Email খুব দীর্ঘ। |
+| `GUEST_EMAIL_INVALID` | Enter a valid email address for the guest officer. | অতিথি কর্মকর্তার সঠিক Email ঠিকানা দিন। |
+| `IS_CHAIR_BOOLEAN` | isChair must be true or false. | isChair true অথবা false হতে হবে। |
+| `MEETING_TITLE_REQUIRED` | Enter the meeting title. | সভার শিরোনাম দিন। |
+| `MEETING_TITLE_LENGTH` | The title must be 3 to 200 characters long. | শিরোনাম ৩ থেকে ২০০ অক্ষরের হতে হবে। |
+| `AGENDA_NOT_STRING` | The agenda must be text. | আলোচ্যসূচি লেখা হতে হবে। |
+| `AGENDA_TOO_LONG` | The agenda can have at most 5000 characters. | আলোচ্যসূচি সর্বোচ্চ ৫০০০ অক্ষরের হতে পারে। |
+| `ROOM_NOT_STRING` | The room name must be text. | কক্ষের নাম লেখা হতে হবে। |
+| `ROOM_TOO_LONG` | The room name can have at most 100 characters. | কক্ষের নাম সর্বোচ্চ ১০০ অক্ষরের হতে পারে। |
+| `ONLINE_LINK_INVALID` | The online link must be a valid address starting with https://. | Online Link https:// দিয়ে শুরু হওয়া সঠিক ঠিকানা হতে হবে। |
+| `LINK_TOO_LONG` | The link is too long. | Link খুব দীর্ঘ। |
+| `CHAIR_INVALID` | Select a valid chair. | সঠিক সভাপতি নির্বাচন করুন। |
+| `PARTICIPANTS_NOT_ARRAY` | Give the list of participants. | অংশগ্রহণকারীদের তালিকা দিন। |
+| `PARTICIPANTS_DUPLICATE` | The same participant cannot be given more than once. | একই অংশগ্রহণকারী একাধিকবার দেওয়া যাবে না। |
+| `PARTICIPANTS_MAX` | At most 200 participants are allowed. | সর্বোচ্চ ২০০ জন অংশগ্রহণকারী দেওয়া যাবে। |
+| `PARTICIPANT_ID_INVALID` | The participant ID is invalid. | অংশগ্রহণকারীর আইডি সঠিক নয়। |
+| `GUESTS_NOT_ARRAY` | Give the list of guest officers. | অতিথি কর্মকর্তাদের তালিকা দিন। |
+| `GUESTS_MAX` | At most 50 guest officers are allowed. | সর্বোচ্চ ৫০ জন অতিথি কর্মকর্তা দেওয়া যাবে। |
+| `MEETING_ID_INVALID` | The meeting ID is invalid. | সভার আইডি সঠিক নয়। |
+| `CANCEL_REASON_REQUIRED` | Write the reason for cancellation. | বাতিলের কারণ লিখুন। |
+| `CANCEL_REASON_LENGTH` | The reason for cancellation must be 3 to 1000 characters long. | বাতিলের কারণ ৩ থেকে ১০০০ অক্ষরের হতে হবে। |
+| `NOTES_NOT_STRING` | The notes must be text. | নোট লেখা হতে হবে। |
+| `NOTES_TOO_LONG` | The notes can have at most 20000 characters. | নোট সর্বোচ্চ ২০০০০ অক্ষরের হতে পারে। |
+| `ROLE_FILTER_INVALID` | role must be organizer or participant. | role organizer অথবা participant হতে হবে। |
+| `SCOPE_INVALID` | scope must be mine or all. | scope mine অথবা all হতে হবে। |
+| `MEETING_NOT_FOUND` | Meeting not found. | সভাটি পাওয়া যায়নি। |
+| `MEETING_END_BEFORE_START` | The end time must be after the start time. | শেষের সময় অবশ্যই শুরুর সময়ের পরে হতে হবে। |
+| `MEETING_TOO_LONG` | A meeting can last at most 12 hours. | একটি সভা সর্বোচ্চ ১২ ঘণ্টার হতে পারে। |
+| `MEETING_IN_PAST` | A meeting cannot be created or moved into the past. | অতীতের সময়ে সভা তৈরি বা সরানো যাবে না। |
+| `SUPER_ADMIN_CANNOT_ORGANIZE` | The Super Admin is a system account; it cannot organize meetings. | Super Admin একটি সিস্টেম অ্যাকাউন্ট; এটি সভা আয়োজন করতে পারে না। |
+| `SUPER_ADMIN_CANNOT_BE_INVITED` | The Super Admin is a system account; it cannot be invited to meetings. | Super Admin একটি সিস্টেম অ্যাকাউন্ট; একে সভায় আমন্ত্রণ জানানো যাবে না। |
+| `PEOPLE_INVALID` | Someone among the selected people is inactive or was not found. | নির্বাচিত ব্যক্তিদের মধ্যে কেউ Inactive অথবা পাওয়া যায়নি। |
+| `ORGANIZER_NO_DESIGNATION` | You have no designation, so you cannot organize a meeting. | আপনার কোনো পদবি নেই, তাই সভা আয়োজন করা যাবে না। |
+| `NOT_ORGANIZER` | Only the organizer of the meeting or an administrator can do this. | শুধু সভার আয়োজক অথবা প্রশাসক এই কাজটি করতে পারেন। |
+| `MEETING_NOT_SCHEDULED` | Cancelled or completed meetings cannot be changed. | বাতিল বা সম্পন্ন সভা পরিবর্তন করা যাবে না। |
+| `MEETING_ALREADY_ENDED` | The meeting has already ended; it can only be marked as completed with notes. | সভাটি ইতিমধ্যে শেষ হয়েছে; শুধু সম্পন্ন হিসেবে চিহ্নিত করে নোট যোগ করা যাবে। |
+| `MEETING_NOT_STARTED` | A meeting cannot be marked as completed before it starts. | সভা শুরু হওয়ার আগে সম্পন্ন হিসেবে চিহ্নিত করা যাবে না। |
+| `MEETING_CANCELLED_CANNOT_COMPLETE` | A cancelled meeting cannot be marked as completed. | বাতিল সভা সম্পন্ন হিসেবে চিহ্নিত করা যাবে না। |
+| `TIME_CONFLICT_BLOCKING` | At the selected time, one or more officers have a meeting with the same or a higher priority. Change the time or the participants. | নির্বাচিত সময়ে এক বা একাধিক কর্মকর্তার সমান বা উচ্চতর অগ্রাধিকারের সভা আছে। সময় বা অংশগ্রহণকারী পরিবর্তন করুন। |
+| `SCOPE_ALL_ADMIN_ONLY` | Only administrators may view all meetings. | সব সভা দেখার অনুমতি শুধু প্রশাসকের আছে। |
+| `ONE_CHAIR` | A meeting can have only one chair: one officer or one guest officer. | সভাপতি একজনই হতে পারেন: একজন কর্মকর্তা অথবা একজন অতিথি কর্মকর্তা। |
+| `GUEST_DUPLICATE_EMAIL` | The same email ({email}) cannot be used for more than one guest officer. | একই Email ({email}) একাধিক অতিথি কর্মকর্তার জন্য দেওয়া যাবে না। |
+| `GUEST_IS_OFFICER` | The address {email} belongs to the officer {nameBn}. Select them from the participant list instead of adding them as a guest officer. | {email} ঠিকানাটি কর্মকর্তা {nameBn}-এর। তাঁকে অতিথি কর্মকর্তা হিসেবে না দিয়ে অংশগ্রহণকারী তালিকা থেকে নির্বাচন করুন। |
+| `NOTIFICATION_NOT_FOUND` | Notification not found. | Notification-টি পাওয়া যায়নি। |
+| `VERIFY_TOKEN_REQUIRED` | Enter the verification token. | যাচাই টোকেন দিন। |
+| `VERIFY_LINK_INVALID` | The verification link is invalid. | যাচাই Link-টি অবৈধ। |
+| `PHOTO_MISSING` | Select a photo file (field name: file). | একটি ছবি ফাইল নির্বাচন করুন (ফিল্ডের নাম: file)। |
+| `PHOTO_BAD_TYPE` | Only JPEG, PNG or WebP photos can be uploaded. | শুধু JPEG, PNG অথবা WebP ছবি Upload করা যাবে। |
+| `PHOTO_UNREADABLE` | The photo could not be read. The file is damaged or not a real image. | ছবিটি পড়া যায়নি। ফাইলটি নষ্ট অথবা আসল ছবি নয়। |
+| `PHOTO_TOO_LARGE` | The photo can be at most {mb} MB. | ছবির আকার সর্বোচ্চ {mb} MB হতে পারে। |
+| `PHOTO_TOO_MANY_FILES` | Only one photo can be uploaded at a time. | একবারে শুধু একটি ছবি Upload করা যাবে। |
+| `PHOTO_REMOVED` | The profile photo has been removed. | Profile ছবি মুছে ফেলা হয়েছে। |
+| `PROFILE_WING_INACTIVE` | The selected wing is inactive or was not found. | নির্বাচিত উইংটি Inactive অথবা পাওয়া যায়নি। |
+| `SUPER_ADMIN_NO_WING` | The Super Admin is a system account; it cannot have a wing. | Super Admin একটি সিস্টেম অ্যাকাউন্ট; এতে উইং দেওয়া যাবে না। |
+| `FIELD_REQUIRED` | {field} cannot be empty. | {field} খালি রাখা যাবে না। |
+| `SAME_NOTIFICATION_EMAIL` | This is already your notification email. | এটিই আপনার বর্তমান Notification Email। |
+| `NOTIFICATION_EMAIL_REQUESTED` | A verification link has been sent to the new address. Until you click it, email keeps going to the old address. | নতুন ঠিকানায় একটি যাচাই Link পাঠানো হয়েছে। Link-এ ক্লিক না করা পর্যন্ত আগের ঠিকানাতেই Email যাবে। |
+| `NOTIFICATION_EMAIL_VERIFIED` | The notification email has been changed. | Notification Email সফলভাবে পরিবর্তন করা হয়েছে। |
+| `INVALID_VERIFY_TOKEN` | The verification link is invalid, already used or expired. | যাচাই Link-টি অবৈধ, ইতিমধ্যে ব্যবহৃত অথবা মেয়াদোত্তীর্ণ। |
+| `PHONE_INVALID` | Enter a valid phone number (digits, +, spaces or - only). | সঠিক Phone নম্বর দিন (শুধু সংখ্যা, +, স্পেস বা -)। |
+| `MOBILE_INVALID` | Enter a valid mobile number (for example 01712345678). | সঠিক Mobile নম্বর দিন (যেমন 01712345678)। |
+| `LOGIN_EMAIL_INVALID` | Enter a valid login email. | সঠিক Login Email দিন। |
+| `NOTIFICATION_EMAIL_INVALID` | Enter a valid notification email. | সঠিক Notification Email দিন। |
+| `NAME_BN_TOO_LONG` | The Bangla name can have at most 200 characters. | বাংলা নাম সর্বোচ্চ ২০০ অক্ষরের হতে পারে। |
+| `NAME_EN_TOO_LONG` | The English name can have at most 200 characters. | ইংরেজি নাম সর্বোচ্চ ২০০ অক্ষরের হতে পারে। |
+| `DESIGNATION_INVALID` | Select a valid designation. | সঠিক পদবি নির্বাচন করুন। |
+| `REMARK_NOT_STRING` | The designation remark must be text. | পদবির মন্তব্য লেখা হতে হবে। |
+| `REMARK_TOO_LONG` | The designation remark can have at most 100 characters. | পদবির মন্তব্য সর্বোচ্চ ১০০ অক্ষরের হতে পারে। |
+| `WING_INVALID` | Select a valid wing. | সঠিক উইং নির্বাচন করুন। |
+| `PHONE_TOO_LONG` | The phone number is too long. | Phone নম্বর খুব দীর্ঘ। |
+| `FAX_TOO_LONG` | The fax number is too long. | Fax নম্বর খুব দীর্ঘ। |
+| `ORGANIZATION_NOT_STRING` | The organization name must be text. | প্রতিষ্ঠানের নাম লেখা হতে হবে। |
+| `ORGANIZATION_TOO_LONG` | The organization name is too long. | প্রতিষ্ঠানের নাম খুব দীর্ঘ। |
+| `BCS_BATCH_NOT_STRING` | The BCS batch must be text. | বিসিএস ব্যাচ লেখা হতে হবে। |
+| `BCS_BATCH_TOO_LONG` | The BCS batch is too long. | বিসিএস ব্যাচ খুব দীর্ঘ। |
+| `CHARGES_NOT_ARRAY` | Additional charges must be a list. | অতিরিক্ত দায়িত্ব একটি তালিকা হতে হবে। |
+| `CHARGES_MAX` | At most 20 additional charges are allowed. | সর্বোচ্চ ২০টি অতিরিক্ত দায়িত্ব দেওয়া যাবে। |
+| `CHARGE_NOT_STRING` | Each additional charge must be text. | প্রতিটি অতিরিক্ত দায়িত্ব লেখা হতে হবে। |
+| `CHARGE_TOO_LONG` | Each additional charge can have at most 300 characters. | প্রতিটি অতিরিক্ত দায়িত্ব সর্বোচ্চ ৩০০ অক্ষরের হতে পারে। |
+| `ROLE_INVALID` | role must be ADMIN or OFFICER. | ভূমিকা ADMIN অথবা OFFICER হতে হবে। |
+| `SEARCH_TOO_LONG` | The search text is too long. | খোঁজার শব্দ খুব দীর্ঘ। |
+| `WING_ID_INVALID` | Invalid wing ID. | অবৈধ উইং আইডি। |
+| `DESIGNATION_ID_INVALID` | Invalid designation ID. | অবৈধ পদবি আইডি। |
+| `ROLE_FILTER_VALUE_INVALID` | Invalid role. | অবৈধ ভূমিকা। |
+| `PASSWORD_IS_DEFAULT_BOOLEAN` | passwordIsDefault must be true or false. | passwordIsDefault true অথবা false হতে হবে। |
+| `SORT_BY_INVALID` | Invalid sortBy value. | অবৈধ sortBy মান। |
+| `SORT_ORDER_INVALID` | sortOrder must be asc or desc. | sortOrder asc অথবা desc হতে হবে। |
+| `USER_NOT_FOUND` | Officer not found. | কর্মকর্তা পাওয়া যায়নি। |
+| `DUPLICATE_LOGIN_EMAIL` | An account with this login email already exists. | এই Login Email দিয়ে আগে থেকেই একটি অ্যাকাউন্ট আছে। |
+| `SUPER_ADMIN_PROTECTED` | Only the Super Admin can change the Super Admin account. | Super Admin অ্যাকাউন্ট শুধু Super Admin নিজেই পরিবর্তন করতে পারেন। |
+| `SUPER_ADMIN_STATUS_ROLE` | The Super Admin cannot be deactivated and its role cannot be changed. | Super Admin-কে Inactive করা বা তার ভূমিকা পরিবর্তন করা যাবে না। |
+| `SUPER_ADMIN_NO_DESIGNATION` | The Super Admin is a system account; it cannot have a designation or a wing. | Super Admin একটি সিস্টেম অ্যাকাউন্ট; এতে পদবি বা উইং দেওয়া যাবে না। |
+| `SELF_DEACTIVATE` | You cannot deactivate your own account. | আপনি নিজের অ্যাকাউন্ট Inactive করতে পারবেন না। |
+| `SELF_ROLE_CHANGE` | You cannot change your own role. | আপনি নিজের ভূমিকা (role) পরিবর্তন করতে পারবেন না। |
+| `USER_DESIGNATION_NOT_FOUND` | The selected designation was not found. | নির্বাচিত পদবিটি পাওয়া যায়নি। |
+| `USER_DESIGNATION_INACTIVE` | The selected designation is inactive. | নির্বাচিত পদবিটি Inactive। |
+| `USER_WING_NOT_FOUND` | The selected wing was not found. | নির্বাচিত উইংটি পাওয়া যায়নি। |
+| `USER_WING_INACTIVE` | The selected wing is inactive. | নির্বাচিত উইংটি Inactive। |
+| `RESET_INACTIVE` | The password of an inactive account cannot be reset. Activate the account first. | Inactive অ্যাকাউন্টের Password Reset করা যাবে না। আগে অ্যাকাউন্টটি Active করুন। |
+| `PASSWORD_RESET_DONE` | The password has been reset to the default password, all sessions have ended and the officer has been informed by email. | Password Default Password-এ Reset করা হয়েছে, সব Session বন্ধ করা হয়েছে এবং কর্মকর্তাকে Email-এ জানানো হয়েছে। |
+| `WING_NOT_FOUND` | Wing not found. | উইংটি পাওয়া যায়নি। |
+| `WING_DUPLICATE_NAME` | A wing with this English name already exists. | এই ইংরেজি নামে একটি উইং আগে থেকেই আছে। |
+| `WING_IN_USE` | This wing is assigned to {count} officers, so it cannot be deleted. Deactivate it if needed. | এই উইংটি {count} জন কর্মকর্তার সাথে যুক্ত, তাই মুছে ফেলা যাবে না। প্রয়োজনে উইংটি Inactive করুন। |
+| `WING_IN_USE_GENERIC` | This wing is assigned to officers, so it cannot be deleted. Deactivate it if needed. | এই উইংটি কর্মকর্তাদের সাথে যুক্ত, তাই মুছে ফেলা যাবে না। প্রয়োজনে উইংটি Inactive করুন। |
+| `FROM_INVALID` | from must be a valid ISO 8601 time. | from সঠিক ISO 8601 সময় হতে হবে। |
+| `PERIOD_INVALID` | period must be day, week, month, year or fiscal-year. | period day, week, month, year অথবা fiscal-year হতে হবে। |
+| `MAIL_STATUS_INVALID` | status must be PENDING, SENT or FAILED. | status PENDING, SENT অথবা FAILED হতে হবে। |
+| `TO_INVALID` | to must be a valid ISO 8601 time. | to সঠিক ISO 8601 সময় হতে হবে। |
+| `UNREAD_INVALID` | unread must be true or false. | unread true অথবা false হতে হবে। |
+| `AUDIT_ACTION_INVALID` | Invalid action. | অবৈধ action। |
+| `AUDIT_ACTOR_INVALID` | Invalid actorId. | অবৈধ actorId। |
+| `DATE_FORMAT_EXAMPLE` | Enter the date as YYYY-MM-DD (e.g. 2026-12-01). | তারিখ YYYY-MM-DD আকারে দিন (যেমন 2026-12-01)। |
+| `PDF_TIMEOUT` | Creating the PDF is taking too long. Please try again after a while. | পিডিএফ তৈরি করতে বেশি সময় লাগছে। কিছুক্ষণ পর আবার চেষ্টা করুন। |
+| `DATE_INVALID` | Enter a valid date (YYYY-MM-DD). | সঠিক তারিখ দিন (YYYY-MM-DD)। |
+| `NAME_EN_LATIN` | Write the English name in Latin letters; Bangla letters are not allowed. | ইংরেজি নাম ইংরেজি (Latin) অক্ষরে লিখুন; বাংলা অক্ষর দেওয়া যাবে না। |
 

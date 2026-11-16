@@ -4,8 +4,9 @@
  * The backend still checks everything again.
  */
 import { z } from "zod";
-import { t } from "@/messages";
+import type { Messages } from "@/messages";
 import { BD_MOBILE_PATTERN, PHONE_PATTERN, normalizeMobile, normalizePhone } from "./phone";
+import { ENGLISH_NAME_PATTERN } from "@/lib/display-name";
 
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
@@ -32,153 +33,226 @@ export function checkPasswordRules(password: string, email?: string | null): Pas
   return rules;
 }
 
-const email = z
-  .string()
-  .trim()
-  .min(1, t.validation.emailRequired)
-  .max(EMAIL_MAX_LENGTH, t.validation.emailTooLong)
-  .pipe(z.email(t.validation.emailInvalid));
+export const MAX_ADDITIONAL_CHARGES = 20;
+const MAX_MEETING_MS = 12 * 3_600_000;
 
-const newPassword = z
-  .string()
-  .max(PASSWORD_MAX_LENGTH, t.validation.passwordTooLong)
-  .refine((v) => checkPasswordRules(v).every((r) => r.ok), t.validation.passwordWeak);
-
-export const loginSchema = z.object({
-  loginEmail: email,
-  password: z
+/**
+ * All form schemas with their messages in one UI language (v1.6). Components use useSchemas()
+ * (lib/hooks/use-schemas.ts), so the error texts follow the language switch.
+ */
+export function createSchemas(t: Messages) {
+  const email = z
     .string()
-    .min(1, t.validation.passwordRequired)
-    .max(PASSWORD_MAX_LENGTH, t.validation.passwordTooLong),
-});
-export type LoginForm = z.infer<typeof loginSchema>;
+    .trim()
+    .min(1, t.validation.emailRequired)
+    .max(EMAIL_MAX_LENGTH, t.validation.emailTooLong)
+    .pipe(z.email(t.validation.emailInvalid));
 
-export const forgotPasswordSchema = z.object({ loginEmail: email });
-export type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
+  const newPassword = z
+    .string()
+    .max(PASSWORD_MAX_LENGTH, t.validation.passwordTooLong)
+    .refine((v) => checkPasswordRules(v).every((r) => r.ok), t.validation.passwordWeak);
 
-export const newPasswordSchema = z
-  .object({ newPassword, confirmPassword: z.string() })
-  .refine((v) => v.newPassword === v.confirmPassword, {
-    path: ["confirmPassword"],
-    message: t.validation.passwordMismatch,
+  const loginSchema = z.object({
+    loginEmail: email,
+    password: z
+      .string()
+      .min(1, t.validation.passwordRequired)
+      .max(PASSWORD_MAX_LENGTH, t.validation.passwordTooLong),
   });
-export type NewPasswordForm = z.infer<typeof newPasswordSchema>;
 
-/** Change password: also "not equal to my login email" and "different from the current one". */
-export function changePasswordSchema(loginEmail: string) {
-  return z
-    .object({
-      currentPassword: z
-        .string()
-        .min(1, t.validation.currentPasswordRequired)
-        .max(PASSWORD_MAX_LENGTH, t.validation.passwordTooLong),
-      newPassword,
-      confirmPassword: z.string(),
-    })
-    .refine((v) => v.newPassword.trim().toLowerCase() !== loginEmail.trim().toLowerCase(), {
-      path: ["newPassword"],
-      message: t.validation.passwordSameAsEmail,
-    })
-    .refine((v) => v.newPassword !== v.currentPassword, {
-      path: ["newPassword"],
-      message: t.validation.passwordSameAsCurrent,
-    })
+  const forgotPasswordSchema = z.object({ loginEmail: email });
+
+  const newPasswordSchema = z
+    .object({ newPassword, confirmPassword: z.string() })
     .refine((v) => v.newPassword === v.confirmPassword, {
       path: ["confirmPassword"],
       message: t.validation.passwordMismatch,
     });
-}
-export type ChangePasswordForm = z.infer<ReturnType<typeof changePasswordSchema>>;
 
-// Meetings ---------------------------------------------------------------------------------------
-const MAX_MEETING_MS = 12 * 3_600_000;
+  /** Change password: also "not equal to my login email" and "different from the current one". */
+  function changePasswordSchema(loginEmail: string) {
+    return z
+      .object({
+        currentPassword: z
+          .string()
+          .min(1, t.validation.currentPasswordRequired)
+          .max(PASSWORD_MAX_LENGTH, t.validation.passwordTooLong),
+        newPassword,
+        confirmPassword: z.string(),
+      })
+      .refine((v) => v.newPassword.trim().toLowerCase() !== loginEmail.trim().toLowerCase(), {
+        path: ["newPassword"],
+        message: t.validation.passwordSameAsEmail,
+      })
+      .refine((v) => v.newPassword !== v.currentPassword, {
+        path: ["newPassword"],
+        message: t.validation.passwordSameAsCurrent,
+      })
+      .refine((v) => v.newPassword === v.confirmPassword, {
+        path: ["confirmPassword"],
+        message: t.validation.passwordMismatch,
+      });
+  }
 
-/** Same limits as backend CreateMeetingDto + meeting-rules (end after start, at most 12 h). */
-export const meetingFormSchema = z
-  .object({
-    title: z.string().trim().min(3, t.meetingForm.titleLength).max(200, t.meetingForm.titleLength),
-    agenda: z.string().max(5000, t.meetingForm.agendaTooLong),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t.meetingForm.dateRequired),
-    startTime: z.string().regex(/^\d{2}:\d{2}$/, t.meetingForm.timeRequired),
-    endTime: z.string().regex(/^\d{2}:\d{2}$/, t.meetingForm.timeRequired),
-    room: z.string().trim().max(100, t.meetingForm.roomTooLong),
-    onlineLink: z
+  // Meetings ---------------------------------------------------------------------------------------
+  /** Same limits as backend CreateMeetingDto + meeting-rules (end after start, at most 12 h). */
+  const meetingFormSchema = z
+    .object({
+      title: z
+        .string()
+        .trim()
+        .min(3, t.meetingForm.titleLength)
+        .max(200, t.meetingForm.titleLength),
+      agenda: z.string().max(5000, t.meetingForm.agendaTooLong),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t.meetingForm.dateRequired),
+      startTime: z.string().regex(/^\d{2}:\d{2}$/, t.meetingForm.timeRequired),
+      endTime: z.string().regex(/^\d{2}:\d{2}$/, t.meetingForm.timeRequired),
+      room: z.string().trim().max(100, t.meetingForm.roomTooLong),
+      onlineLink: z
+        .string()
+        .trim()
+        .max(1000, t.meetingForm.linkInvalid)
+        .refine(
+          (v) => v === "" || /^https:\/\/[^\s/$.?#].[^\s]*$/i.test(v),
+          t.meetingForm.linkInvalid,
+        ),
+      chairId: z.string(),
+    })
+    .superRefine((v, ctx) => {
+      if (!/^\d{2}:\d{2}$/.test(v.startTime) || !/^\d{2}:\d{2}$/.test(v.endTime)) return;
+      const minutes = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5));
+      const duration = (minutes(v.endTime) - minutes(v.startTime)) * 60_000;
+      if (duration <= 0) {
+        ctx.addIssue({ code: "custom", path: ["endTime"], message: t.meetingForm.endBeforeStart });
+      } else if (duration > MAX_MEETING_MS) {
+        ctx.addIssue({ code: "custom", path: ["endTime"], message: t.meetingForm.tooLong });
+      }
+    });
+
+  const cancelReasonSchema = z.object({
+    reason: z
       .string()
       .trim()
-      .max(1000, t.meetingForm.linkInvalid)
-      .refine(
-        (v) => v === "" || /^https:\/\/[^\s/$.?#].[^\s]*$/i.test(v),
-        t.meetingForm.linkInvalid,
-      ),
-    chairId: z.string(),
-  })
-  .superRefine((v, ctx) => {
-    if (!/^\d{2}:\d{2}$/.test(v.startTime) || !/^\d{2}:\d{2}$/.test(v.endTime)) return;
-    const minutes = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5));
-    const duration = (minutes(v.endTime) - minutes(v.startTime)) * 60_000;
-    if (duration <= 0) {
-      ctx.addIssue({ code: "custom", path: ["endTime"], message: t.meetingForm.endBeforeStart });
-    } else if (duration > MAX_MEETING_MS) {
-      ctx.addIssue({ code: "custom", path: ["endTime"], message: t.meetingForm.tooLong });
-    }
+      .min(3, t.meetingDetail.cancelReasonLength)
+      .max(1000, t.meetingDetail.cancelReasonLength),
   });
-export type MeetingFormValues = z.infer<typeof meetingFormSchema>;
 
-export const cancelReasonSchema = z.object({
-  reason: z
+  // Profile and users (backend CreateUserDto / UpdateProfileDto) --------------------------------------
+  const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
+
+  const optionalMobile = z
     .string()
     .trim()
-    .min(3, t.meetingDetail.cancelReasonLength)
-    .max(1000, t.meetingDetail.cancelReasonLength),
-});
-export type CancelReasonForm = z.infer<typeof cancelReasonSchema>;
+    .refine(
+      (v) => v === "" || BD_MOBILE_PATTERN.test(normalizeMobile(v)),
+      t.validation.mobileInvalid,
+    );
 
-// Profile and users (backend CreateUserDto / UpdateProfileDto) --------------------------------------
-const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
+  const optionalPhone = (tooLong: string) =>
+    z
+      .string()
+      .trim()
+      .max(50, tooLong)
+      .refine((v) => v === "" || PHONE_PATTERN.test(normalizePhone(v)), t.validation.phoneInvalid);
 
-const optionalMobile = z
-  .string()
-  .trim()
-  .refine(
-    (v) => v === "" || BD_MOBILE_PATTERN.test(normalizeMobile(v)),
-    t.validation.mobileInvalid,
-  );
+  const additionalCharges = z
+    .array(z.object({ value: z.string().trim().max(300, t.validation.chargeTooLong) }))
+    .max(MAX_ADDITIONAL_CHARGES, t.validation.tooManyCharges);
 
-const optionalPhone = (tooLong: string) =>
-  z
+  /** Fields an officer may edit on their own profile (PATCH /profile). */
+  const profileFormSchema = z.object({
+    nameBn: z
+      .string()
+      .trim()
+      .min(1, t.validation.nameBnRequired)
+      .max(200, t.validation.nameTooLong),
+    nameEn: z
+      .string()
+      .trim()
+      .min(1, t.validation.nameEnRequired)
+      .max(200, t.validation.nameTooLong)
+      .regex(ENGLISH_NAME_PATTERN, t.validation.nameEnLatin),
+    designationRemark: optionalText(100, t.validation.remarkTooLong),
+    wingId: z.string(),
+    mobile: optionalMobile,
+    mobileAlt: optionalMobile,
+    officePhone: optionalPhone(t.validation.phoneTooLong),
+    fax: optionalPhone(t.validation.faxTooLong),
+    additionalCharges,
+  });
+
+  /** Admin: create / edit an officer (POST /users, PATCH /users/:id). */
+  const userFormSchema = profileFormSchema.extend({
+    loginEmail: email,
+    designationId: z.string().min(1, t.validation.designationRequired),
+    organizationBn: optionalText(300, t.validation.organizationTooLong),
+    organizationEn: optionalText(300, t.validation.organizationTooLong),
+  });
+
+  const emailFormSchema = z.object({ email });
+
+  const loginEmailRequestSchema = z.object({ loginEmail: email });
+
+  // Designations and wings (CreateDesignationDto / CreateWingDto) -----------------------------------
+  const nameBn = z
     .string()
     .trim()
-    .max(50, tooLong)
-    .refine((v) => v === "" || PHONE_PATTERN.test(normalizePhone(v)), t.validation.phoneInvalid);
+    .min(1, t.validation.nameBnRequired)
+    .max(150, t.validation.shortNameTooLong);
+  const nameEn = z
+    .string()
+    .trim()
+    .min(1, t.validation.nameEnRequired)
+    .max(150, t.validation.shortNameTooLong)
+    .regex(ENGLISH_NAME_PATTERN, t.validation.nameEnLatin);
 
-export const MAX_ADDITIONAL_CHARGES = 20;
+  const designationFormSchema = z.object({
+    nameBn,
+    nameEn,
+    priority: z
+      .string()
+      .trim()
+      .regex(/^\d+$/, t.validation.priorityInvalid)
+      .refine((v) => Number(v) >= 1 && Number(v) <= 999, t.validation.priorityInvalid),
+  });
 
-const additionalCharges = z
-  .array(z.object({ value: z.string().trim().max(300, t.validation.chargeTooLong) }))
-  .max(MAX_ADDITIONAL_CHARGES, t.validation.tooManyCharges);
+  /** Wings have no priority: same form shape, the (hidden) priority field is not checked. */
+  const wingFormSchema = designationFormSchema.extend({ priority: z.string() });
 
-/** Fields an officer may edit on their own profile (PATCH /profile). */
-export const profileFormSchema = z.object({
-  nameBn: z.string().trim().min(1, t.validation.nameBnRequired).max(200, t.validation.nameTooLong),
-  nameEn: z.string().trim().min(1, t.validation.nameEnRequired).max(200, t.validation.nameTooLong),
-  designationRemark: optionalText(100, t.validation.remarkTooLong),
-  wingId: z.string(),
-  mobile: optionalMobile,
-  mobileAlt: optionalMobile,
-  officePhone: optionalPhone(t.validation.phoneTooLong),
-  fax: optionalPhone(t.validation.faxTooLong),
-  additionalCharges,
-});
-export type ProfileFormValues = z.infer<typeof profileFormSchema>;
+  const rejectNoteSchema = z.object({
+    note: z.string().trim().min(3, t.validation.noteRequired).max(1000, t.validation.noteTooLong),
+  });
 
-/** Admin: create / edit an officer (POST /users, PATCH /users/:id). */
-export const userFormSchema = profileFormSchema.extend({
-  loginEmail: email,
-  designationId: z.string().min(1, t.validation.designationRequired),
-  organizationBn: optionalText(300, t.validation.organizationTooLong),
-  organizationEn: optionalText(300, t.validation.organizationTooLong),
-});
-export type UserFormValues = z.infer<typeof userFormSchema>;
+  return {
+    loginSchema,
+    forgotPasswordSchema,
+    newPasswordSchema,
+    changePasswordSchema,
+    meetingFormSchema,
+    cancelReasonSchema,
+    profileFormSchema,
+    userFormSchema,
+    emailFormSchema,
+    loginEmailRequestSchema,
+    designationFormSchema,
+    wingFormSchema,
+    rejectNoteSchema,
+  };
+}
+
+type Schemas = ReturnType<typeof createSchemas>;
+export type LoginForm = z.infer<Schemas["loginSchema"]>;
+export type ForgotPasswordForm = z.infer<Schemas["forgotPasswordSchema"]>;
+export type NewPasswordForm = z.infer<Schemas["newPasswordSchema"]>;
+export type ChangePasswordForm = z.infer<ReturnType<Schemas["changePasswordSchema"]>>;
+export type MeetingFormValues = z.infer<Schemas["meetingFormSchema"]>;
+export type CancelReasonForm = z.infer<Schemas["cancelReasonSchema"]>;
+export type ProfileFormValues = z.infer<Schemas["profileFormSchema"]>;
+export type UserFormValues = z.infer<Schemas["userFormSchema"]>;
+export type EmailFormValues = z.infer<Schemas["emailFormSchema"]>;
+export type LoginEmailRequestValues = z.infer<Schemas["loginEmailRequestSchema"]>;
+export type DesignationFormValues = z.infer<Schemas["designationFormSchema"]>;
 
 /** "" → null, Bangla digits → English, mobiles → 01XXXXXXXXX (what the backend stores). */
 export function toProfilePayload(v: ProfileFormValues) {
@@ -207,39 +281,3 @@ export function toUserPayload(v: UserFormValues) {
     organizationEn: orNull(v.organizationEn),
   };
 }
-
-export const emailFormSchema = z.object({ email });
-export type EmailFormValues = z.infer<typeof emailFormSchema>;
-
-export const loginEmailRequestSchema = z.object({ loginEmail: email });
-export type LoginEmailRequestValues = z.infer<typeof loginEmailRequestSchema>;
-
-// Designations and wings (CreateDesignationDto / CreateWingDto) -----------------------------------
-const nameBn = z
-  .string()
-  .trim()
-  .min(1, t.validation.nameBnRequired)
-  .max(150, t.validation.shortNameTooLong);
-const nameEn = z
-  .string()
-  .trim()
-  .min(1, t.validation.nameEnRequired)
-  .max(150, t.validation.shortNameTooLong);
-
-export const designationFormSchema = z.object({
-  nameBn,
-  nameEn,
-  priority: z
-    .string()
-    .trim()
-    .regex(/^\d+$/, t.validation.priorityInvalid)
-    .refine((v) => Number(v) >= 1 && Number(v) <= 999, t.validation.priorityInvalid),
-});
-export type DesignationFormValues = z.infer<typeof designationFormSchema>;
-
-/** Wings have no priority: same form shape, the (hidden) priority field is not checked. */
-export const wingFormSchema = designationFormSchema.extend({ priority: z.string() });
-
-export const rejectNoteSchema = z.object({
-  note: z.string().trim().min(3, t.validation.noteRequired).max(1000, t.validation.noteTooLong),
-});

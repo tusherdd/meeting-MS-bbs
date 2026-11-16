@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 
 /**
  * Native <dialog> as a modal: the browser traps focus, Escape closes it and focus returns to
@@ -20,6 +20,7 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const t = useT();
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 

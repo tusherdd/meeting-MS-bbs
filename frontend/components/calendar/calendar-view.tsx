@@ -7,10 +7,10 @@ import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { Tabs } from "@/components/ui/tabs";
-import { formatMonthYear, formatPlainDate } from "@/lib/format";
+
 import { meetingsApi, queryKeys } from "@/lib/endpoints";
 import { addDays, dhakaMidnight, dhakaToday, monthBounds, sundayOf } from "@/lib/time";
-import { t } from "@/messages";
+import { useFormat, useT } from "@/providers/locale-provider";
 import { DayList } from "./day-list";
 import { MonthGrid } from "./month-grid";
 import { WeekGrid } from "./week-grid";
@@ -34,6 +34,8 @@ function visibleRange(view: View, anchor: string) {
 }
 
 export function CalendarView() {
+  const t = useT();
+  const { formatMonthYear, formatPlainDate } = useFormat();
   const [view, setView] = useState<View>("week");
   const [anchor, setAnchor] = useState(() => dhakaToday());
   const range = visibleRange(view, anchor);

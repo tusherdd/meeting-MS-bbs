@@ -6,6 +6,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { MESSAGE_CATALOG } from '../src/common/i18n/message-catalog';
 
 interface Schema {
   $ref?: string;
@@ -80,8 +81,9 @@ function access(op: Operation): string {
 function requestFields(op: Operation): string {
   const fields: string[] = [];
   for (const p of op.parameters ?? []) {
-    if (p.in === 'path') continue;
-    fields.push(`\`${p.name}\`${p.required ? '*' : ''} (query)`);
+    // Path parameters are in the path; Accept-Language (every route) is explained once above.
+    if (p.in === 'path' || p.name === 'Accept-Language') continue;
+    fields.push(`\`${p.name}\`${p.required ? '*' : ''} (${p.in})`);
   }
   const content = op.requestBody?.content;
   if (content) {
@@ -120,12 +122,35 @@ const lines = [
   '',
   'Access: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN. Request fields: `*` = required.',
   '',
-  'Errors always have the shape `{ statusCode, message, error, requestId }` (Bangla `message`); a meeting clash',
-  '(409) adds `blocking`. Auth: Bearer access token (header) or the httpOnly `access_token` cookie.',
+  'Errors always have the shape `{ statusCode, message, error, code, requestId }`; a meeting clash (409) adds',
+  '`blocking`, validation errors (400) add `codes` (one per message). Auth: Bearer access token (header) or the',
+  'httpOnly `access_token` cookie.',
+  '',
+  '**Language (v1.6).** Every route accepts the header `Accept-Language: en` or `bn` (`X-Lang: en|bn` wins if both are sent; the web app sends both because Safari overwrites Accept-Language). Error and success',
+  '`message` texts come back in that language; without the header they are Bangla. `code` is the same in both',
+  'languages (texts outside the catalog get `HTTP_<status>`). PDF reports ignore the header and are always',
+  'Bangla, as are emails and bell notifications. Hidden meeting titles come with `titleHidden: true`.',
+  '',
+  '**Names (v1.7).** Officer, designation and wing names always come in both languages (`nameBn` + `nameEn`, or',
+  '`…Bn` + `…En` pairs); the header never changes data. Clients show the English value in English mode (Bangla',
+  'when it is empty) and the Bangla value in Bangla mode. English values must be Latin text (`NAME_EN_LATIN`).',
+  '',
+]
+const tail = [
+  '## Message codes',
+  '',
+  `${Object.keys(MESSAGE_CATALOG).length} codes from \`backend/src/common/i18n/message-catalog.ts\`. \`{name}\` = a value filled in at run time.`,
+  '',
+  '| Code | English | Bangla |',
+  '|---|---|---|',
+  ...Object.entries(MESSAGE_CATALOG).map(
+    ([code, e]) => `| \`${code}\` | ${e.en.replace(/\|/g, '\\|')} | ${e.bn.replace(/\|/g, '\\|')} |`,
+  ),
   '',
 ];
 for (const tag of tags) {
   lines.push(`## ${tag}`, '', '| Method | Path | Access | Purpose | Main request fields | Responses |', '|---|---|---|---|---|---|', ...groups.get(tag)!, '');
 }
+lines.push(...tail);
 writeFileSync(join(root, 'API.md'), `${lines.join('\n')}\n`);
 console.log(`Wrote docs/API.md (${count} endpoints in ${tags.length} groups)`);

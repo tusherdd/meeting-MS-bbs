@@ -883,3 +883,59 @@ Checked with fonttools, HarfBuzz and screenshots in Chromium and Firefox (the PD
   column in place (idempotent; only rows with a broken form are updated).
 - **Source files:** `bangla-source.spec.ts` (backend unit tests) fails if any source, test or doc file contains
   U+09DF, U+09A1 U+09BC or U+09A2 U+09BC.
+
+### 13.14 UI language: English and Bangla (v1.6)
+- **Two UI languages.** English is the default; a text-only button in the header (and on the public pages)
+  switches to Bangla and back. It shows the other language in its own script ("বাংলা" / "English"), no icon.
+  The choice is kept per browser in the `lang` cookie (`en` | `bn`, one year, `SameSite=Lax`, `Secure` on https);
+  unknown values fall back to `en`. The root layout reads the cookie on the server, so the first HTML is
+  already in the right language (`<html lang>` follows it). Switching keeps the session and unsaved form input.
+- **UI texts** live in `frontend/messages/en.ts` and `frontend/messages/bn.ts` with exactly the same keys
+  (unit test). `en.ts` contains no Bangla characters (unit test + `wording.spec.ts`).
+- **Numbers and dates** still come only from `lib/format.ts`: Bangla digits and month names in Bangla (§13.11),
+  Latin digits and English names in English; always on the Asia/Dhaka clock. User text is shown as typed.
+- **API messages.** `lib/api.ts` sends `Accept-Language: en | bn` and `X-Lang: en | bn` from the cookie on every
+  call (`X-Lang` wins: WebKit/Safari replaces a script's Accept-Language with the browser language). The backend
+  answers error and success `message` texts in that language; without the header (old clients, Swagger) they
+  are Bangla. Every message has a stable `code` from `backend/src/common/i18n/message-catalog.ts` (same in both
+  languages); validation lists also carry `codes`, one per message; text outside the catalog keeps its wording
+  and gets `HTTP_<status>`. Translation happens in one place: `AllExceptionsFilter` (errors) and
+  `MessageLanguageInterceptor` (a success body's top-level `message`). Data typed by users is never translated.
+  `message-catalog.spec.ts` fails if any Bangla message in the message files, DTO validators or thrown
+  exceptions is missing from the catalog.
+- **Hidden meeting titles.** Where a title is hidden from the viewer (§6.4), the API also sends
+  `titleHidden: true`; the frontend shows its own text ("Another meeting" / "অন্য একটি সভা").
+- **Always Bangla:** PDF reports, emails and bell notifications, whatever the request language is
+  (`test/language.e2e-spec.ts`).
+- **Test-only rate-limit reset.** `POST /api/v1/test-hooks/reset-throttle` (ADMIN, not in Swagger) empties the
+  in-memory rate-limit counters so repeated Playwright runs do not wait. The module is loaded only with
+  `NODE_ENV=test`, or `E2E_TEST_HOOKS=true` outside production; with `NODE_ENV=production` it is never loaded,
+  the app refuses to start with `E2E_TEST_HOOKS=true`, and the controller checks again (`test-hooks.guard.spec.ts`).
+- **Tests:** backend `message-catalog.spec.ts`, `localize.spec.ts`, `test/language.e2e-spec.ts`; frontend
+  `npm test` (Vitest: `tests/unit/format.test.ts`, `tests/unit/messages.test.ts`) and
+  `e2e/language.spec.ts`. The older Playwright specs run with `lang=bn` (set by `global-setup.ts`).
+
+### 13.15 Officer, designation and wing names in the UI language (v1.7)
+- **Data:** the existing columns are used; nothing new was added. `users.nameBn` / `users.nameEn`,
+  `designations.nameBn` / `designations.nameEn` and `wings.nameBn` / `wings.nameEn` are all `NOT NULL` (users also
+  have `organizationBn` / `organizationEn`). On 2026-11-16 every English value in the development database was filled
+  (0 empty), so no migration and no "English name missing" admin filter were needed.
+- **One approach — the API sends both, the frontend picks.** Every response that names an officer, designation or
+  wing carries the Bangla and the English value (`nameBn` + `nameEn`, or `…Bn` + `…En` pairs such as
+  `organizerNameBn` / `organizerNameEn`, `designationBn` / `designationEn`, `organizerDesignation` /
+  `organizerDesignationEn`). `X-Lang` / `Accept-Language` never change data, only messages (§13.14).
+- **Display rule** (`frontend/lib/display-name.ts`, hook `useNames()`): English UI → the English value if it has
+  text, else the Bangla one; Bangla UI → the Bangla value. Used for the header (Welcome, user menu), dashboard,
+  Admin officers list / detail / form and its filters, designations and wings pages, participant and chair pickers,
+  meeting list and detail, duplicate meetings pages, profile, change requests, audit log and the report pages.
+  Pages that edit names (designations and wings admin, officer form, profile) still show both values.
+- **Search** matches both names: `GET /users` and `GET /users/directory` search `nameBn` and `nameEn` (ILIKE).
+- **Always Bangla:** PDF reports, emails, bell notification texts and audit texts use the Bangla values
+  (`report-template.spec.ts`, `meeting-notifier.service.spec.ts`, `test/language.e2e-spec.ts`). Guest officers'
+  names and designations and meeting titles stay exactly as typed (a guest chair's name is the same in both fields).
+- **Editing:** both values are required on create (officer, designation, wing). An English value must be Latin
+  text — at least one Latin letter and no Bangla character (`IsEnglishName()` in
+  `backend/src/common/validators/english-name.ts`, message code `NAME_EN_LATIN`; the same pattern in
+  `frontend/lib/schemas.ts`). Bangla values go through `normalizeBangla()` (§13.13) on both sides.
+- **Tests:** frontend `tests/unit/display-name.test.ts` (English present, English fallback, Bangla) and
+  `e2e/names.spec.ts` (Chromium + WebKit); backend `english-name.spec.ts` and the e2e checks above.

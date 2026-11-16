@@ -21,10 +21,10 @@ import {
   wingsApi,
   type UserListQuery,
 } from "@/lib/endpoints";
-import { formatNumber } from "@/lib/format";
+
 import type { Role } from "@/lib/types";
 import { userActions } from "@/lib/user-policy";
-import { t } from "@/messages";
+import { useFormat, useNames, useT } from "@/providers/locale-provider";
 import { useCurrentUser } from "@/providers/auth-provider";
 import { ActiveBadge, DefaultPasswordBadge, ProtectedBadge, RoleBadge } from "./user-badges";
 
@@ -32,6 +32,9 @@ const ROLES: Role[] = ["SUPER_ADMIN", "ADMIN", "OFFICER"];
 
 /** /admin/users: search, filters (in the address), paginated table. */
 export function UsersList() {
+  const t = useT();
+  const names = useNames();
+  const { formatNumber } = useFormat();
   const me = useCurrentUser();
   const { get, page, set } = useQueryParams();
   const [search, setSearch] = useState(get("q"));
@@ -98,7 +101,7 @@ export function UsersList() {
             placeholder={t.admin.all}
             value={get("wingId")}
             onChange={(e) => set({ wingId: e.target.value })}
-            options={(wings.data ?? []).map((w) => ({ value: w.id, label: w.nameBn }))}
+            options={(wings.data ?? []).map((w) => ({ value: w.id, label: names.of(w) }))}
           />
           <Select
             id="users-designation"
@@ -106,7 +109,7 @@ export function UsersList() {
             placeholder={t.admin.all}
             value={get("designationId")}
             onChange={(e) => set({ designationId: e.target.value })}
-            options={(designations.data ?? []).map((d) => ({ value: d.id, label: d.nameBn }))}
+            options={(designations.data ?? []).map((d) => ({ value: d.id, label: names.of(d) }))}
           />
           <Select
             id="users-role"
@@ -190,7 +193,7 @@ export function UsersList() {
                     >
                       <Td>
                         <span className="block font-semibold text-slate-900">
-                          {u.nameBn}
+                          {names.of(u)}
                           {u.id === me.id && (
                             <span className="ml-2 text-xs font-normal text-slate-600">
                               ({t.admin.you})
@@ -202,14 +205,14 @@ export function UsersList() {
                         </span>
                       </Td>
                       <Td>
-                        {u.designation?.nameBn ?? t.profile.none}
+                        {names.maybe(u.designation) ?? t.profile.none}
                         {u.designationRemark && (
                           <span className="block text-xs text-slate-600">
                             {u.designationRemark}
                           </span>
                         )}
                       </Td>
-                      <Td>{u.wing?.nameBn ?? t.profile.none}</Td>
+                      <Td>{names.maybe(u.wing) ?? t.profile.none}</Td>
                       <Td>
                         <RoleBadge role={u.role} />
                       </Td>
@@ -230,7 +233,7 @@ export function UsersList() {
                           <Link
                             href={`/admin/users/${u.id}`}
                             className="font-medium text-brand-700 hover:underline"
-                            aria-label={`${t.admin.open}: ${u.nameBn}`}
+                            aria-label={`${t.admin.open}: ${names.of(u)}`}
                           >
                             {t.admin.open}
                           </Link>

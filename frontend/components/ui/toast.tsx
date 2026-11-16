@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import { t } from "@/messages";
+import { useT } from "@/providers/locale-provider";
 
 type ToastTone = "success" | "error" | "info";
 
@@ -27,6 +27,7 @@ const tones: Record<ToastTone, string> = {
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const t = useT();
   const [items, setItems] = useState<ToastItem[]>([]);
 
   const dismiss = useCallback((id: number) => {

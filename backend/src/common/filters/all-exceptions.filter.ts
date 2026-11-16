@@ -11,6 +11,11 @@ import { ConfigService } from '@nestjs/config';
 import { STATUS_CODES } from 'node:http';
 import type { Request, Response } from 'express';
 import { EnvVars } from '../../config/env.validation';
+import {
+  requestLanguage,
+  translateMessage,
+  type ApiLanguage,
+} from '../i18n/translate';
 
 /** Every error response from the API has exactly this shape. */
 export interface ErrorResponseBody {
@@ -22,6 +27,31 @@ export interface ErrorResponseBody {
    * 409 (step 8). Never added for 5xx.
    */
   [detail: string]: unknown;
+}
+
+/**
+ * v1.6 (SPEC.md §13.14): the message in the request's language (Accept-Language, Bangla by
+ * default) plus a stable `code` from the message catalog. A list of validation messages gets
+ * `codes` (same order) and `code` = the first one. Text outside the catalog keeps its wording
+ * and gets the generic code `HTTP_<status>`.
+ */
+export function localizeErrorBody(
+  body: ErrorResponseBody,
+  lang: ApiLanguage,
+): ErrorResponseBody & { code: string; codes?: string[] } {
+  const fallback = `HTTP_${body.statusCode}`;
+  if (Array.isArray(body.message)) {
+    const items = body.message.map((m) => translateMessage(String(m), lang));
+    const codes = items.map((i) => i.code ?? fallback);
+    return {
+      ...body,
+      message: items.map((i) => i.message),
+      code: codes[0] ?? fallback,
+      codes,
+    };
+  }
+  const one = translateMessage(body.message, lang);
+  return { ...body, message: one.message, code: one.code ?? fallback };
 }
 
 export const GENERIC_SERVER_ERROR_MESSAGE =
@@ -140,7 +170,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const requestId = (request as Request & { requestId?: string }).requestId;
     const body = {
-      ...toErrorBody(exception, this.isProduction),
+      ...localizeErrorBody(
+        toErrorBody(exception, this.isProduction),
+        requestLanguage(request.headers),
+      ),
       ...(requestId ? { requestId } : {}),
     };
 

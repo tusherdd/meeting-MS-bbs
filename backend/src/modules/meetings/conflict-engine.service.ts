@@ -19,7 +19,9 @@ export interface LoadedMeeting extends ExistingMeeting {
   title: string;
   organizerId: string;
   organizerNameBn: string;
+  organizerNameEn: string;
   organizerDesignationBn: string | null;
+  organizerDesignationEn: string | null;
 }
 
 export interface ResolvedConflict {
@@ -109,7 +111,9 @@ export class ConflictEngineService {
       title: m.title,
       organizerId: m.organizerId,
       organizerNameBn: m.organizer.nameBn,
+      organizerNameEn: m.organizer.nameEn,
       organizerDesignationBn: m.organizer.designation?.nameBn ?? null,
+      organizerDesignationEn: m.organizer.designation?.nameEn ?? null,
     }));
   }
 
