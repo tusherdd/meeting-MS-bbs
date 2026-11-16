@@ -23,7 +23,7 @@ export function PasswordRules({ password, email }: { password: string; email?: s
             <span>{t.passwordRules[rule.key]}</span>
             <span
               className={clsx(
-                "rounded px-1.5 text-[11px] font-semibold",
+                "rounded px-1.5 text-xs font-semibold",
                 rule.ok ? "bg-brand-100 text-brand-800" : "bg-slate-200 text-slate-600",
               )}
             >

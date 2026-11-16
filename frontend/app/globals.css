@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* BBS green (Bangladesh flag green #006a4e) as the accent; neutral slate for everything else. */
 @theme {
   /*
    * Bangla in NikoshBAN (app/layout.tsx: only Bangla characters, enlarged with size-adjust);
@@ -15,23 +14,78 @@
    * conjuncts below the baseline), and NikoshBAN is drawn larger here. Tailwind's defaults for the
    * small sizes are too tight for wrapped Bangla text.
    */
+  /*
+   * v1.8 readability (SPEC.md §13.16): 16 px base and nothing below 14 px. Tailwind's xs (12 px)
+   * and sm (14 px) are raised to 14 / 15 px, so badges, table text and helper text stay readable.
+   * Body text 1.6, headings about 1.3: page title (2xl) > section title (lg) > card title (base).
+   */
+  --text-xs: 0.875rem;
   --text-xs--line-height: 1.6;
+  --text-sm: 0.9375rem;
   --text-sm--line-height: 1.6;
-  --text-base--line-height: 1.65;
-  --text-lg--line-height: 1.6;
-  --text-xl--line-height: 1.5;
-  --text-2xl--line-height: 1.45;
+  --text-base: 1rem;
+  --text-base--line-height: 1.6;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.3;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 1.3;
 
-  --color-brand-50: #e9f7f1;
-  --color-brand-100: #c9ebdc;
-  --color-brand-200: #96d7bc;
-  --color-brand-300: #5ebd98;
-  --color-brand-400: #2f9f78;
-  --color-brand-500: #14855f;
-  --color-brand-600: #087553;
-  --color-brand-700: #006a4e;
-  --color-brand-800: #00553f;
-  --color-brand-900: #003d2d;
+  /*
+   * v1.8 light theme from the BBS logo (SPEC.md §13.16). Light theme only. Every pair of text and
+   * background colours used here meets WCAG AA (tests/unit/contrast.test.ts reads this file).
+   * Semantic names first; the Tailwind scales below are mapped onto them so components keep
+   * their classes (brand-*, slate-*, red-*).
+   */
+  --color-primary: #016b4f; /* buttons, active menu, links, focus ring */
+  --color-primary-hover: #01563f;
+  --color-primary-tint: #f4f8f6; /* page background, active rows */
+  --color-danger: #e8323f; /* accent only: borders and markers of danger / errors (4.2:1 — never text) */
+  --color-danger-text: #b01c28; /* error text */
+  --color-danger-fill: #c8202d; /* danger button background (white text) */
+  --color-text: #1f2937;
+  --color-text-muted: #4b5563; /* the lightest text colour allowed */
+  --color-border: #e5e7eb;
+  --color-input-border: #868d98; /* form controls: visible edge (3:1 against white) */
+  --color-placeholder: #6b7280;
+
+  --color-brand-50: #f4f8f6;
+  --color-brand-100: #e3efea;
+  --color-brand-200: #bfdccf;
+  --color-brand-300: #8cc2aa;
+  --color-brand-400: #4a9c7d;
+  --color-brand-500: #1f8063;
+  --color-brand-600: #017a5a;
+  --color-brand-700: #016b4f;
+  --color-brand-800: #01563f;
+  --color-brand-900: #00412f;
+
+  /* Neutral text and lines: near-black text, muted text never lighter than #4b5563. */
+  --color-slate-50: #f9fafb;
+  --color-slate-100: #f3f4f6;
+  --color-slate-200: #e5e7eb;
+  --color-slate-300: #d1d5db;
+  --color-slate-400: #9ca3af;
+  --color-slate-500: #4b5563;
+  --color-slate-600: #4b5563;
+  --color-slate-700: #374151;
+  --color-slate-800: #1f2937;
+  --color-slate-900: #1f2937;
+  --color-slate-950: #111827;
+
+  /* Red only for danger and errors; 500 is the logo accent, darker shades carry text. */
+  --color-red-50: #fdf0f1;
+  --color-red-100: #fbdde0;
+  --color-red-200: #f7bec3;
+  --color-red-300: #f1959d;
+  --color-red-400: #ec6570;
+  --color-red-500: #e8323f;
+  --color-red-600: #c8202d;
+  --color-red-700: #b01c28;
+  --color-red-800: #8f1721;
+  --color-red-900: #73131b;
+  --color-red-950: #4a0c11;
 }
 
 /*
@@ -39,24 +93,30 @@
  * User-Agent, v1.5): NikoshBAN's য় is drawn with a detached dot there, so Bangla comes from
  * Kohinoor Bangla (installed on every Mac / iPhone / iPad; local() = no download, nothing for the
  * CSP) and then the bundled Noto Sans Bengali. Same unicode-range as NikoshBAN, so Latin letters
- * and digits stay in Times New Roman. Kohinoor and Noto are drawn at normal size: no size-adjust.
+ * and digits stay in Times New Roman. size-adjust (v1.8) makes them the same visual size as
+ * NikoshBAN at 127%: the Bangla letter height (headline to baseline of ক) measured with fontTools
+ * is 0.561 em in NikoshBAN, 0.642 em in Kohinoor Bangla and 0.622 em in Noto Sans Bengali, so
+ * Kohinoor needs 111% and Noto 115% (app/layout.tsx).
  */
 @font-face {
   font-family: "Kohinoor Bangla Local";
   src: local("Kohinoor Bangla"), local("KohinoorBangla-Regular");
   font-weight: 100 500;
+  size-adjust: 111%;
   unicode-range: U+0980-09FF, U+0964-0965, U+200C-200D;
 }
 @font-face {
   font-family: "Kohinoor Bangla Local";
   src: local("Kohinoor Bangla Semibold"), local("KohinoorBangla-Semibold");
   font-weight: 600;
+  size-adjust: 111%;
   unicode-range: U+0980-09FF, U+0964-0965, U+200C-200D;
 }
 @font-face {
   font-family: "Kohinoor Bangla Local";
   src: local("Kohinoor Bangla Bold"), local("KohinoorBangla-Bold");
   font-weight: 700 900;
+  size-adjust: 111%;
   unicode-range: U+0980-09FF, U+0964-0965, U+200C-200D;
 }
 
@@ -68,20 +128,32 @@ html[data-engine="webkit"] {
 
 html {
   color-scheme: light;
-  /*
-   * 17 px base (instead of 16): Times New Roman reads small at 16 px. NikoshBAN is enlarged
-   * separately (size-adjust in app/layout.tsx), so Bangla and English match side by side.
-   */
-  font-size: 106.25%;
+  /* 16 px base (v1.8). Bangla fonts are enlarged with size-adjust to match Times New Roman. */
+  font-size: 100%;
 }
 
 body {
-  line-height: 1.65;
+  line-height: 1.6;
+  color: var(--color-text);
+  background-color: var(--color-primary-tint);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.3;
+}
+
+/* Subtle hover / focus feedback only (no other animation). */
+:where(a, button, input, select, textarea) {
+  transition-property: color, background-color, border-color, outline-color;
+  transition-duration: 120ms;
 }
 
 /* Visible keyboard focus everywhere (mouse clicks do not show the ring). */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 3px solid var(--color-brand-500);
+  outline: 3px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: 0.375rem;
 }

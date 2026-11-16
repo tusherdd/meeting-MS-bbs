@@ -60,7 +60,7 @@ export function UserMenu({ minimal = false }: { minimal?: boolean }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+        <div className="absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-md">
           <div className="border-b border-slate-100 px-4 py-2.5" data-testid="user-menu-header">
             <p className="truncate text-sm font-medium">{names.of(user)}</p>
             <p className="truncate text-xs text-slate-600">{subtitle}</p>

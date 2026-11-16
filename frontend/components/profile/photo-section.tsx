@@ -100,11 +100,11 @@ export function PhotoSection({ profile }: { profile: Profile }) {
               <img
                 src={current}
                 alt={t.profile.photoAlt(names.of(profile))}
-                className="size-32 rounded-xl border border-slate-200 object-cover"
+                className="size-32 rounded-lg border border-slate-200 object-cover"
                 data-testid="profile-photo"
               />
             ) : (
-              <p className="flex size-32 items-center justify-center rounded-xl border border-dashed border-slate-300 px-2 text-center text-xs text-slate-500">
+              <p className="flex size-32 items-center justify-center rounded-lg border border-dashed border-slate-300 px-2 text-center text-xs text-slate-500">
                 {t.profile.photoNone}
               </p>
             )}
@@ -116,7 +116,7 @@ export function PhotoSection({ profile }: { profile: Profile }) {
               <img
                 src={preview}
                 alt={t.profile.photoPreview}
-                className="size-32 rounded-xl border border-brand-300 object-cover"
+                className="size-32 rounded-lg border border-brand-300 object-cover"
               />
               <figcaption className="text-xs text-slate-600">{t.profile.photoPreview}</figcaption>
             </figure>

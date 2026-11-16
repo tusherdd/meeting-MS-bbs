@@ -29,7 +29,7 @@ export function StatCards({ items, label }: { items: StatItem[]; label: string }
         {items.map((item) => (
           <div
             key={item.label}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm"
           >
             <dt className="text-xs text-slate-600">{item.label}</dt>
             <dd
@@ -120,7 +120,7 @@ export function MeetingsBarChart({
                 title={t.reports.chartBar(longLabel(bar.label), formatNumber(bar.meetings))}
               >
                 {bar.meetings > 0 && bars.length <= 16 && (
-                  <span className="text-[11px] text-slate-700">{formatNumber(bar.meetings)}</span>
+                  <span className="text-xs text-slate-700">{formatNumber(bar.meetings)}</span>
                 )}
                 <span
                   className="block w-full rounded-t bg-brand-600"
@@ -133,7 +133,7 @@ export function MeetingsBarChart({
             {bars.map((bar, i) => (
               <li
                 key={bar.key}
-                className="min-w-0 flex-1 truncate text-center text-[11px] text-slate-600"
+                className="min-w-0 flex-1 truncate text-center text-xs text-slate-600"
               >
                 {i % labelEvery === 0 ? shortLabel(bar.label) : ""}
               </li>

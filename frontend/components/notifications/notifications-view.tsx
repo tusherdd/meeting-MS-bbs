@@ -113,7 +113,7 @@ export function NotificationsView() {
                       <span className="min-w-0">
                         <span className="block font-medium text-slate-900">
                           {!n.readAt && (
-                            <span className="mr-1.5 rounded bg-brand-700 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                            <span className="mr-1.5 rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-900 ring-1 ring-brand-200 ring-inset">
                               {t.header.unreadBadge}
                             </span>
                           )}

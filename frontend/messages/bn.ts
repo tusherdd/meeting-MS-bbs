@@ -6,6 +6,7 @@ const bnMessages = {
   app: {
     name: "বিবিএস সভা সূচি",
     org: "বাংলাদেশ পরিসংখ্যান ব্যুরো",
+    logoAlt: "বাংলাদেশ পরিসংখ্যান ব্যুরোর লোগো",
     skipToContent: "মূল অংশে যান",
   },
   /** v1.6 language switch: this language's own name (shown on the button in the other language). */

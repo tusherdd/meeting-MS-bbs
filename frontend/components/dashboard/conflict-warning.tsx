@@ -28,7 +28,7 @@ export function ConflictWarning({ conflicts }: { conflicts: ConflictListItem[] }
     <section
       role="alert"
       aria-labelledby="conflict-box-title"
-      className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 sm:p-5"
+      className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950 sm:p-5"
     >
       <div>
         <div className="min-w-0">

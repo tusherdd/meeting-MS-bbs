@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             if (e.target === drawerRef.current) setDrawerOpen(false);
           }}
           aria-labelledby="drawer-title"
-          className="m-0 h-full max-h-none w-72 max-w-[85vw] bg-white p-0 shadow-xl backdrop:bg-slate-900/40 lg:hidden"
+          className="m-0 h-full max-h-none w-72 max-w-[85vw] bg-white p-0 shadow-md backdrop:bg-slate-900/40 lg:hidden"
         >
           <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4">
             <h2 id="drawer-title" className="font-semibold text-slate-900">

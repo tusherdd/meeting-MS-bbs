@@ -28,7 +28,7 @@ export function Select({
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, error, hint)}
-        className={controlClass(!!error, `h-10 ${className ?? ""}`)}
+        className={controlClass(!!error, `h-11 sm:h-10 ${className ?? ""}`)}
         {...rest}
       >
         {placeholder !== undefined && <option value="">{placeholder}</option>}

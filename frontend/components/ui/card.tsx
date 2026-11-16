@@ -3,10 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 
 export function Card({ className, ...rest }: ComponentProps<"section">) {
   return (
-    <section
-      className={clsx("rounded-xl border border-slate-200 bg-white shadow-sm", className)}
-      {...rest}
-    />
+    <section className={clsx("rounded-lg border border-slate-200 bg-white", className)} {...rest} />
   );
 }
 
@@ -26,7 +23,7 @@ export function CardHeader({
         className,
       )}
     >
-      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+      <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
       {actions}
     </div>
   );

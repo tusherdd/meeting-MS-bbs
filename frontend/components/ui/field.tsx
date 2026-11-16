@@ -37,12 +37,12 @@ export function Field({
       </div>
       {children}
       {hint && !error && (
-        <p id={`${id}-hint`} className="text-xs text-slate-500">
+        <p id={`${id}-hint`} className="text-xs text-slate-600">
           {hint}
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} className="text-sm text-red-700">
+        <p id={`${id}-error`} className="text-sm font-medium text-red-700">
           {error}
         </p>
       )}
@@ -52,9 +52,9 @@ export function Field({
 
 export function controlClass(invalid: boolean, className?: string) {
   return clsx(
-    "block w-full rounded-lg border bg-white px-3 text-[15px] text-slate-900 placeholder:text-slate-500",
-    "disabled:bg-slate-100 disabled:text-slate-500",
-    invalid ? "border-red-500" : "border-slate-300 hover:border-slate-400",
+    "block w-full rounded-lg border bg-white px-3 text-[15px] text-slate-900 placeholder:text-(--color-placeholder)",
+    "focus-visible:border-brand-700 disabled:bg-slate-100 disabled:text-slate-600",
+    invalid ? "border-red-500" : "border-(--color-input-border) hover:border-slate-700",
     className,
   );
 }

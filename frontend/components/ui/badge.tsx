@@ -3,12 +3,13 @@ import type { ReactNode } from "react";
 
 export type BadgeTone = "neutral" | "green" | "blue" | "amber" | "red";
 
+/** v1.8: soft background with dark text in every tone (SPEC.md §13.16). */
 const tones: Record<BadgeTone, string> = {
-  neutral: "bg-slate-100 text-slate-700 ring-slate-200",
-  green: "bg-brand-50 text-brand-800 ring-brand-200",
-  blue: "bg-sky-50 text-sky-800 ring-sky-200",
-  amber: "bg-amber-50 text-amber-800 ring-amber-200",
-  red: "bg-red-600 text-white ring-red-600",
+  neutral: "bg-slate-100 text-slate-800 ring-slate-300",
+  green: "bg-brand-100 text-brand-900 ring-brand-200",
+  blue: "bg-sky-50 text-sky-900 ring-sky-200",
+  amber: "bg-amber-50 text-amber-900 ring-amber-300",
+  red: "bg-red-50 text-red-800 ring-red-200",
 };
 
 export function Badge({
@@ -26,7 +27,7 @@ export function Badge({
     <span
       title={title}
       className={clsx(
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs leading-5 font-medium ring-1 ring-inset",
         tones[tone],
         className,
       )}

@@ -89,7 +89,7 @@ export function WeekGrid({ sunday, meetings, conflictIds }: Props) {
           <div role="row" className="contents">
             <div
               role="rowheader"
-              className="border-b border-slate-200 px-1 py-1 text-[11px] leading-tight text-slate-500"
+              className="border-b border-slate-200 px-1 py-1 text-xs leading-tight text-slate-500"
             >
               {t.calendar.otherTimes}
             </div>
@@ -122,7 +122,7 @@ export function WeekGrid({ sunday, meetings, conflictIds }: Props) {
             {hours.map((h, i) => (
               <span
                 key={h}
-                className="absolute right-2 -translate-y-1/2 text-[11px] text-slate-500"
+                className="absolute right-2 -translate-y-1/2 text-xs text-slate-500"
                 style={{ top: i * HOUR_PX }}
               >
                 {i === 0 ? "" : hourLabel(h, digits)}
@@ -156,7 +156,7 @@ export function WeekGrid({ sunday, meetings, conflictIds }: Props) {
                     style={{ top: slot * HOUR_PX, height: HOUR_PX }}
                   >
                     {/* Always a visible (faint) text label: no icon-only or empty buttons. */}
-                    <span className="px-1.5 text-[11px] text-slate-500 group-hover:font-medium group-hover:text-brand-800 group-focus-visible:font-medium group-focus-visible:text-brand-800">
+                    <span className="px-1.5 text-xs text-slate-500 group-hover:font-medium group-hover:text-brand-800 group-focus-visible:font-medium group-focus-visible:text-brand-800">
                       {t.calendar.newSlot}
                     </span>
                   </button>
@@ -185,7 +185,7 @@ export function WeekGrid({ sunday, meetings, conflictIds }: Props) {
                     className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-red-500"
                     style={{ top: ((nowMin - GRID_START_MIN) / 60) * HOUR_PX }}
                   >
-                    <span className="absolute -top-2.5 left-1 rounded bg-red-500 px-1 text-[10px] leading-4 font-semibold text-white">
+                    <span className="absolute -top-2.5 left-1 rounded bg-red-500 px-1 text-xs leading-4 font-semibold text-white">
                       {t.calendar.now}
                     </span>
                   </div>

@@ -20,7 +20,7 @@ import "./globals.css";
  *   the next fonts in --font-sans (Times New Roman from the user's computer; it is not bundled).
  * - NikoshBAN has one weight. It is declared as 400, so the browser synthesises bold for headings.
  * - NikoshBAN draws smaller than other fonts at the same size: size-adjust enlarges only its glyphs.
- *   Together with the 17 px base size in globals.css, Bangla and English words (many labels are
+ *   With the 16 px base size (v1.8, globals.css), Bangla and English words (many labels are
  *   English since 2026-11-15) look the same size side by side.
  */
 const nikosh = localFont({
@@ -52,7 +52,11 @@ const notoBengali = localFont({
   display: "swap",
   preload: false,
   adjustFontFallback: false,
-  declarations: [{ prop: "unicode-range", value: "U+0980-09FF, U+0964-0965, U+200C-200D" }],
+  declarations: [
+    { prop: "unicode-range", value: "U+0980-09FF, U+0964-0965, U+200C-200D" },
+    // v1.8: same visual size as NikoshBAN at 127% (measured, see globals.css).
+    { prop: "size-adjust", value: "115%" },
+  ],
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -65,7 +69,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#006a4e",
+  themeColor: "#016b4f",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -81,7 +85,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       data-engine={engine}
       className={`${nikosh.variable} ${notoBengali.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-slate-50 font-sans text-slate-900">
+      <body className="min-h-full bg-brand-50 font-sans text-slate-900">
         <LocaleProvider initialLocale={locale}>
           <AppProviders>{children}</AppProviders>
         </LocaleProvider>

@@ -10,6 +10,7 @@ export const en: Messages = {
   app: {
     name: "BBS Meeting Schedule",
     org: "Bangladesh Bureau of Statistics",
+    logoAlt: "Bangladesh Bureau of Statistics logo",
     skipToContent: "Skip to main content",
   },
   language: {

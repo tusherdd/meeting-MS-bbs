@@ -49,3 +49,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /e2e/.state/
+
+# v1.8 visual review screenshots (playwright.screenshots.config.ts)
+/screenshots/

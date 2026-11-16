@@ -5,6 +5,8 @@ import { OFFICERS } from "./support/officers";
 /**
  * Owner decisions 2026-11-09 and 2026-11-14 (SPEC.md §13.5): no icons in the UI, except two in
  * the top header: the notification bell and the profile icon. Everything else is text only.
+ * v1.8 (SPEC.md §13.16): the BBS logo is allowed only in the app header (next to the app name,
+ * linking to the dashboard) and above the form on login / forgot-password / reset-password.
  * Checks the layout, header, sidebar, dropdowns, drawer and every built page.
  */
 const ICON_SELECTOR = [
@@ -14,7 +16,8 @@ const ICON_SELECTOR = [
   "[class*='icon' i]",
   "[data-icon]",
   "[role='img']",
-  "img:not([src^='/uploads/'])", // profile photos are content, not icons
+  // Profile photos are content, not icons; the BBS logo is checked separately below.
+  "img:not([src^='/uploads/']):not([data-brand-logo])",
 ].join(", ");
 
 /** Every visible button except the two header icon buttons (those have an aria-label instead). */
@@ -60,7 +63,37 @@ async function expectNoIcons(page: Page, where: string) {
   expect(allowed.every((a) => a.kind === "bell" || a.kind === "profile")).toBe(true);
   const text = await page.locator("body").innerText();
   expect(text, `icon character on ${where}`).not.toMatch(ICON_CHARACTERS);
+
+  // The BBS logo: only in its two places.
+  const logos = await page.locator("img[data-brand-logo]").evaluateAll((elements) =>
+    elements.map((e) => ({
+      kind: e.getAttribute("data-brand-logo"),
+      header: !!e.closest('header a[href="/dashboard"]'),
+    })),
+  );
+  const path = new URL(page.url()).pathname;
+  if (LOGO_PAGES.includes(path)) {
+    expect(logos, `logo on ${where}`).toEqual([{ kind: "public", header: false }]);
+  } else if (PUBLIC_PATHS.some((p) => path.startsWith(p))) {
+    expect(logos, `logo on ${where}`).toEqual([]);
+  } else {
+    expect(
+      logos.filter((l) => !(l.kind === "header" && l.header)),
+      `logo outside the app header on ${where}`,
+    ).toEqual([]);
+    expect(logos.length, `header logos on ${where}`).toBeLessThanOrEqual(1);
+  }
 }
+
+/** v1.8: pages that show the large logo; the other public pages show none. */
+const LOGO_PAGES = ["/login", "/forgot-password", "/reset-password"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/set-password",
+];
 
 test("no icons on the public pages", async ({ page }) => {
   for (const path of ["/login", "/forgot-password", "/reset-password?token=x", "/verify-email"]) {

@@ -25,9 +25,9 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 onClick={onNavigate}
                 aria-current={pathname === item.href ? "page" : undefined}
                 className={clsx(
-                  "block rounded-lg px-3 py-2 text-[15px] font-medium",
+                  "block rounded-lg px-3 py-2.5 text-[15px] font-medium",
                   active
-                    ? "bg-brand-50 text-brand-800"
+                    ? "bg-brand-100 font-semibold text-brand-900"
                     : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
                 )}
               >

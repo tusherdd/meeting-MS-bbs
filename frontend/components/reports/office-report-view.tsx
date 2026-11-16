@@ -163,7 +163,7 @@ function SmallTable({
       {empty ? (
         <p className="px-5 py-4 text-sm text-slate-500">{t.reports.noRows}</p>
       ) : (
-        <Table>
+        <Table narrow>
           <THead>
             <tr>{head}</tr>
           </THead>

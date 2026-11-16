@@ -57,7 +57,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={item.id}
             role={item.tone === "error" ? "alert" : "status"}
             className={clsx(
-              "pointer-events-auto relative flex w-full max-w-sm items-start gap-3 overflow-hidden rounded-lg border py-3 pr-3 pl-5 text-sm shadow-lg",
+              "pointer-events-auto relative flex w-full max-w-sm items-start gap-3 overflow-hidden rounded-lg border py-3 pr-3 pl-5 text-sm shadow-md",
               "before:absolute before:inset-y-0 before:left-0 before:w-1.5",
               tones[item.tone],
             )}

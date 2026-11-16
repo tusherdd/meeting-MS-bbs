@@ -618,7 +618,8 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
 ### 13.5 Design rules
 - All UI text from `messages/bn.ts`: Bangla, with common office words in English (word list in §13.12); numbers and dates with Bangla digits via `lib/format.ts`; all
   times in Asia/Dhaka (week Sunday–Saturday, same as the backend).
-- Simple and clean; BBS green (`#006a4e`, `brand-*` colours) as the accent, slate neutrals.
+- Simple and calm; colours from the BBS logo as theme tokens (v1.8, §13.16): primary green `#016b4f`, red `#e8323f`
+  only for danger and errors, near-black text.
 - Responsive: sidebar on large screens, a menu button with a drawer on phones and tablets.
 - Accessible: visible keyboard focus everywhere, labels on every field, native `<dialog>` for modals/drawer.
 - Modals are native `<dialog>` elements (focus stays inside, Escape closes, focus returns to the opener);
@@ -628,7 +629,8 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   decisions 2026-11-09 and 2026-11-14). Everything else stays text-only: no other SVG icons, no icon components or
   libraries, no emoji or symbols used as icons, no other icon-only buttons. Examples: "মেনু", "বন্ধ করুন",
   "আগের" / "পরের", status and conflicts as coloured text badges, the protected SUPER_ADMIN as the text badge
-  "সুরক্ষিত". The browser-tab favicon stays; charts are allowed.
+  "সুরক্ষিত". The browser-tab favicon stays; charts are allowed. The BBS logo is not an icon and is allowed only in
+  the places listed in §13.16.
   - The two icons are small inline SVG components written in the project (`components/layout/header-icons.tsx`):
     no icon library, no external request, 24 px, coloured with `currentColor`, inside round 40 px buttons with
     the normal visible keyboard focus; they also fit at phone width.
@@ -746,9 +748,9 @@ The files under `frontend/app/fonts/` and `backend/assets/fonts/` **must be depl
     zero-width joiners): Latin letters and digits are **not** taken from NikoshBAN.
   - Font stack (`globals.css`): NikoshBAN, "Times New Roman", Times, "Liberation Serif", Tinos, serif. On a
     computer without Times New Roman the next installed one is used.
-  - Sizes: the base size is 17 px (`html { font-size: 106.25% }`) because Times New Roman reads small at 16 px,
-    and NikoshBAN gets `size-adjust: 127%` (it draws smaller than other fonts), so Bangla and English words look
-    the same size side by side. The line heights of the text sizes are raised (1.45–1.65).
+  - Sizes (v1.8, §13.16): the base size is 16 px, and the Bangla fonts are enlarged with `size-adjust` so Bangla and
+    English words look the same size side by side: NikoshBAN 127%, and in WebKit Kohinoor Bangla 111% and Noto Sans
+    Bengali 115% (measured to match NikoshBAN). Body text line height 1.6, headings 1.3.
   - NikoshBAN has one weight (400). Bangla headings use the browser's synthesised bold.
 - **PDF reports:** `report-template.ts` embeds NikoshBAN (same `unicode-range`, `size-adjust: 112%`) and Tinos
   regular + bold as base64 `data:` URLs; base size 11 pt; nothing is fetched. `nest build` copies `assets/fonts`
@@ -939,3 +941,50 @@ Checked with fonttools, HarfBuzz and screenshots in Chromium and Firefox (the PD
   `frontend/lib/schemas.ts`). Bangla values go through `normalizeBangla()` (§13.13) on both sides.
 - **Tests:** frontend `tests/unit/display-name.test.ts` (English present, English fallback, Bangla) and
   `e2e/names.spec.ts` (Chromium + WebKit); backend `english-name.spec.ts` and the e2e checks above.
+
+### 13.16 Visual polish: theme tokens, logo, readability (v1.8)
+Simple and calm ("medium CSS"): no gradients, no heavy shadows (only `shadow-md` on floating menus, dialogs and
+toasts), no animation beyond short colour transitions on hover / focus, and no icons (§13.5).
+- **Theme tokens** (`frontend/app/globals.css`, light theme only):
+
+  | Token | Value | Use |
+  |---|---|---|
+  | `--color-primary` / `brand-700` | `#016b4f` | primary buttons, active menu, links, focus ring |
+  | `--color-primary-hover` / `brand-800` | `#01563f` | hover of the primary colour |
+  | `--color-primary-tint` / `brand-50` | `#f4f8f6` | page background, active rows |
+  | `--color-danger` / `red-500` | `#e8323f` | accent only: borders and markers of danger / errors |
+  | `--color-danger-fill` / `red-600` | `#c8202d` | danger buttons (white text) |
+  | `--color-danger-text` / `red-700` | `#b01c28` | error text |
+  | `--color-text` / `slate-800`, `slate-900` | `#1f2937` | text |
+  | `--color-text-muted` / `slate-500`, `slate-600` | `#4b5563` | muted text — the lightest text colour allowed |
+  | `--color-border` / `slate-200` | `#e5e7eb` | card and table lines |
+  | `--color-input-border` | `#868d98` | form control borders (3:1) |
+  | `--color-placeholder` | `#6b7280` | input placeholders |
+
+  The Tailwind `brand-*`, `slate-*` and `red-*` scales are remapped onto these values, so components keep their
+  classes. `#e8323f` reaches only 4.2:1 on white, so it is never used for text or as a button fill behind text: error
+  text and danger buttons use the darker reds above. `tests/unit/contrast.test.ts` reads `globals.css` and checks every
+  text pair (≥ 4.5:1) and form border / focus ring (≥ 3:1), and that no component uses a lighter text colour.
+- **Logo** (`frontend/public/brand/bbs-logo.png`, `components/layout/brand.tsx`), only in these places:
+  - login, forgot-password and reset-password pages: centred above the form, 96 px, with the office name and the
+    app name under it (not on set-password or verify-email);
+  - the app header: 36 px, next to the app name, linking to the dashboard (on phones below 420 px only the logo
+    shows; the app name stays for screen readers).
+  Never in PDF reports, emails or any other page. Rendered with `getImageProps()` from `next/image` (optimised
+  `srcset`, width and height set, eager loading, high fetch priority on login) but without next/image's inline
+  `style` attribute, which the production CSP (`style-src` with a nonce) would block; `img-src 'self'` covers the
+  image. Alt text: "Bangladesh Bureau of Statistics logo" / "বাংলাদেশ পরিসংখ্যান ব্যুরোর লোগো". `e2e/no-icons.spec.ts`
+  fails for a logo anywhere else.
+- **Readability:** base 16 px, nothing below 14 px (Tailwind `xs` = 14 px, `sm` = 15 px); page title (2xl, 26 px) >
+  section / card title (lg, 18 px) > body. Bangla fonts sized to match Times New Roman (§13.10).
+  - Forms: labels above inputs, "(required)" marked the same way everywhere, inputs 40 px tall (44 px on phones),
+    a visible focus ring in the primary green, error text in red under the field (text, never colour alone).
+  - Buttons: primary (filled green), secondary (outlined), danger (filled red), ghost (text only); the same height
+    and padding everywhere: 40 px (`sm` 36 px) from 640 px up, at least 44 px on phones.
+  - Tables: light header background, comfortable padding, subtle row hover, wrapping text; wide tables keep a
+    minimum width of 56 rem and scroll horizontally inside their card on phones (`narrow` for small tables).
+  - Cards: white, 1 px light border, 8 px radius, no shadow. Badges: soft background with dark text in every tone.
+    The green / amber / red conflict panels keep their meaning with soft backgrounds.
+- **Review screenshots:** `npx playwright test -c playwright.screenshots.config.ts` with `SHOTS=<label>` saves the key
+  pages (English and Bangla, 1440 px and 390 px, Chromium and WebKit) to `frontend/screenshots/<label>/`
+  (git-ignored).

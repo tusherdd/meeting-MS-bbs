@@ -104,7 +104,7 @@ function StatGrid({ items, testId }: { items: StatCard[]; testId: string }) {
           </>
         );
         const box = clsx(
-          "block rounded-xl border bg-white px-4 py-3 shadow-sm",
+          "block rounded-lg border bg-white px-4 py-3 shadow-sm",
           warn ? "border-red-300" : "border-slate-200",
         );
         return (

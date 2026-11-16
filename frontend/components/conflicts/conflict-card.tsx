@@ -68,7 +68,7 @@ export function ConflictCard({ conflict }: { conflict: ConflictListItem }) {
 
   return (
     <li
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
       data-testid="conflict-item"
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

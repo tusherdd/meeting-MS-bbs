@@ -39,7 +39,7 @@ export function Modal({
       onClick={(e) => {
         if (e.target === ref.current) onClose(); // click on the backdrop
       }}
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-xl bg-white p-0 shadow-xl backdrop:bg-slate-900/40"
+      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-lg bg-white p-0 shadow-md backdrop:bg-slate-900/40"
     >
       <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
         <h2 id={titleId} className="text-lg font-semibold text-slate-900">
