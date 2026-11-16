@@ -214,7 +214,7 @@ const bnMessages = {
     guestOption: (name: string) => `${name} (অতিথি কর্মকর্তা)`,
     guestsTitle: "অতিথি কর্মকর্তা",
     guestsHint:
-      "ঐচ্ছিক। যাঁদের এই ব্যবস্থায় অ্যাকাউন্ট নেই, তাঁদের নাম, পদবি ও Email দিন। তাঁরা সভার সব তথ্য Email-এ পাবেন; ডুপ্লিকেট সভা যাচাইয়ে তাঁরা গোনা হন না।",
+      "ঐচ্ছিক। কর্মকর্তাদের নাম, পদবি ও Email দিন। সভার সব তথ্য Email-এ পাবেন । ",
     guestName: "নাম",
     guestDesignation: "পদবি",
     guestEmail: "Email",
@@ -804,7 +804,7 @@ const bnMessages = {
     meetingDetail: "সভার বিস্তারিত",
   },
   format: {
-    hours: (h: string) => `${h} ঘণ্টা`,
+    hours: (h: string) => `${h} `,
     am: "পূর্বাহ্ণ",
     pm: "অপরাহ্ণ",
   },
