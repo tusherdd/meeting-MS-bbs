@@ -44,7 +44,7 @@ describe('Bangla nukta letters (e2e)', () => {
     designationId = (
       await ds.getRepository(Designation).insert({
         nameBn: 'নুক্তা পদবি',
-        nameEn: 'E2EN Designation',
+        nameEn: 'E2EB Designation', // own prefix: notifications-mail deletes 'E2EN Designation'
         priority: 7,
       })
     ).identifiers[0].id as string;
@@ -54,7 +54,7 @@ describe('Bangla nukta letters (e2e)', () => {
       passwordHash: await hashPassword(PASSWORD),
       // Stored the right way: য + ়
       nameBn: `প্রল${YA_NUKTA} নুক্তা`,
-      nameEn: 'E2EN Officer',
+      nameEn: 'E2EB Officer',
       designationId,
       role: UserRole.OFFICER,
       mustChangePassword: false,
@@ -128,7 +128,7 @@ describe('Bangla nukta letters (e2e)', () => {
     const wingId = (
       await ds
         .getRepository(Wing)
-        .insert({ nameBn: `পুরনো ব${DDA_NUKTA} উ${YYA}`, nameEn: 'E2EN Wing' })
+        .insert({ nameBn: `পুরনো ব${DDA_NUKTA} উ${YYA}`, nameEn: 'E2EB Wing' })
     ).identifiers[0].id as string;
     await ds.query(
       `INSERT INTO "audit_logs" ("action", "entityType", "after") VALUES ('WING_CREATE', 'Wing', $1::jsonb)`,

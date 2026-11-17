@@ -28,18 +28,16 @@ function ClashList({ clashes, blocking }: { clashes: Clash[]; blocking: boolean 
           {blocking && (
             <p className="font-semibold">{c.titleHidden ? t.meeting.hiddenTitle : c.title}</p>
           )}
-          {blocking ? (
-            <p>
-              {t.conflictPanel.organizer} {names.pick(c.organizer.name, c.organizer.nameEn)}
-              {c.organizer.designation &&
-                `, ${names.pick(c.organizer.designation, c.organizer.designationEn)}`}
-            </p>
-          ) : (
-            <p>
-              {t.conflictPanel.organizerDesignation}{" "}
-              {names.pickOptional(c.organizer.designation, c.organizer.designationEn) ?? "—"}
-            </p>
-          )}
+          {/* v1.9: the organizer is shown as their wing (no wing → designation). */}
+          <p>
+            {t.conflictPanel.organizer}{" "}
+            {names.organizerFrom(
+              c.organizer.wing,
+              c.organizer.wingEn,
+              c.organizer.designation,
+              c.organizer.designationEn,
+            )}
+          </p>
           <p>
             {t.conflictPanel.shared} {c.sharedOfficers.map((o) => names.of(o)).join(", ")}
           </p>

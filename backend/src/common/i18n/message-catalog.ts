@@ -348,13 +348,14 @@ export const MESSAGE_CATALOG = {
     bn: 'আলোচ্যসূচি সর্বোচ্চ ৫০০০ অক্ষরের হতে পারে।',
     en: 'The description can have at most 5000 characters.',
   },
-  ROOM_NOT_STRING: {
-    bn: 'কক্ষের নাম লেখা হতে হবে।',
-    en: 'The room name must be text.',
+  // v1.9: the room field is shown as "স্থান" / "Venue" and is required (codes keep "ROOM").
+  ROOM_REQUIRED: {
+    bn: 'স্থান লিখতে হবে।',
+    en: 'Venue is required.',
   },
   ROOM_TOO_LONG: {
-    bn: 'কক্ষের নাম সর্বোচ্চ ১০০ অক্ষরের হতে পারে।',
-    en: 'The room name can have at most 100 characters.',
+    bn: 'স্থান সর্বোচ্চ ১০০ অক্ষরের হতে পারে।',
+    en: 'The venue can have at most 100 characters.',
   },
   ONLINE_LINK_INVALID: {
     bn: 'Online Link https:// দিয়ে শুরু হওয়া সঠিক ঠিকানা হতে হবে।',

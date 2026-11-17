@@ -167,7 +167,8 @@ On re-run, the seed updates the priority of an existing designation to match thi
   PENDING request. An admin cannot approve their own request.
 
 ### 6.3 Meetings
-- Fields: title, agenda (text), start, end, room (free text, typed manually), optional online link,
+- Fields: title, agenda (text), start, end, venue (field `room`, shown as "স্থান" / "Venue"; free text typed
+  manually, **required since v1.9**, §13.17), optional online link,
   organizer (creator), optional chairperson (an officer OR one guest officer, §6.7), participants
   (officers), guest officers (§6.7), notes/minutes, status.
 - Status: `SCHEDULED`, `CANCELLED`, `COMPLETED`. Only `SCHEDULED` meetings take part in conflict checks.
@@ -283,8 +284,8 @@ People invited to a meeting who are not in the database. They never log in.
 - A guest chair gives the meeting the organizer's priority (§6.3). Guests are not in the conflict check.
 - Mail only (outbox, respects `MAIL_DRY_RUN`, `guestMeetingMail`): invitation (create or added), update
   (title / time / room / online link / agenda / chair changed), cancellation (with reason), removal. Each
-  mail carries every detail (title, date and Dhaka time range, room, online link, agenda, organizer name
-  and designation, chair) and no link that needs a login; never a password.
+  mail carries every detail (title, date and Dhaka time range, venue, online link, agenda, organizer — shown
+  as the organizer's wing since v1.9, §13.17 —, chair) and no link that needs a login; never a password.
 - `GET /meetings/:id` returns `guests` (chair first). The phrase for outside guests used before is never
   used; the term is always "অতিথি কর্মকর্তা" (checked by `wording.spec.ts`).
 
@@ -557,6 +558,9 @@ Release **v1.5** (2026-11-16, tag `v1.5`): (1) dashboard card for conflicts on m
 the chair (§6.3); (5) informational conflict notice (§6.4); (6–7) meeting form without the priority box,
 the green heading and the duration buttons (§13.6); (8) WebKit Bangla font (§13.10); (9) guest officers (§6.7).
 
+Release **v1.9** (2026-11-17, tag `v1.9`, part 1 of 3): (A) the organizer is displayed as their wing (§13.17);
+(B) "কক্ষ" → "স্থান" / "Room" → "Venue", and the venue is required (§13.17).
+
 ## 13. Frontend (`frontend/`)
 
 ### 13.1 Stack
@@ -647,7 +651,8 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
 
 ### 13.6 Meeting form and live conflict check (F2)
 - One form for create and edit; Dhaka date + start/end time (both typed; end after start, Asia/Dhaka logic
-  unchanged; the quick-duration buttons and the time-zone hint were removed in v1.5), room, https link,
+  unchanged; the quick-duration buttons and the time-zone hint were removed in v1.5), venue ("স্থান", required
+  since v1.9), https link,
   participants from `GET /users/directory` (search, wing filter, "add the whole wing" with a count).
 - v1.5: no priority box. Directly above the chair select, the optional section "অতিথি কর্মকর্তা"
   (`guest-officers.tsx`): নাম, পদবি, Email and "যোগ করুন" (enabled once all three are filled and the email is
@@ -786,7 +791,7 @@ Some Bangla translations sounded unnatural. Words that office staff normally say
 English (Latin script); everything else stays Bangla.
 
 - **English:** the words in the list below, as labels, buttons, tabs, menu items, badges and column titles.
-- **Bangla:** সভা, সভাপতি, আয়োজক, আলোচ্যসূচি, কক্ষ, কার্যবিবরণী, অগ্রাধিকার, পদবি, উইং, ডুপ্লিকেট সভা, কর্মকর্তা, অতিথি কর্মকর্তা, and all full
+- **Bangla:** সভা, সভাপতি, আয়োজক, আলোচ্যসূচি, স্থান (v1.9, was কক্ষ), কার্যবিবরণী, অগ্রাধিকার, পদবি, উইং, ডুপ্লিকেট সভা, কর্মকর্তা, অতিথি কর্মকর্তা, and all full
   sentences, help texts, confirmations and error messages. Inside such a sentence the listed nouns are still
   written in English ("Password দিন।", "কোনো Notification নেই।"), with the Bangla ending after a hyphen
   ("Email-এর Link", "Session-এর মেয়াদ"). Verbs inside sentences stay Bangla ("সংরক্ষণ করা যাবে না").
@@ -900,6 +905,7 @@ Checked with fonttools, HarfBuzz and screenshots in Chromium and Firefox (the PD
 - **English wording (owner decision 2026-11-17).** In English UI texts and English API messages the chair is
   "President" ("Presided by" where a phrase is needed; "No president selected") and the agenda is "Description"
   (form label "Description of the meeting"; "No description given."). Bangla stays সভাপতি and আলোচ্যসূচি.
+  v1.9: the room field is "Venue" ("No venue given"; Bangla "স্থান", "স্থান উল্লেখ নেই").
   Code, API fields, keys and enums keep their names (`chair`, `chairId`, `CHAIR`, `agenda`).
 - **Numbers and dates** still come only from `lib/format.ts`: Bangla digits and month names in Bangla (§13.11),
   Latin digits and English names in English; always on the Asia/Dhaka clock. User text is shown as typed.
@@ -933,7 +939,8 @@ Checked with fonttools, HarfBuzz and screenshots in Chromium and Firefox (the PD
   wing carries the Bangla and the English value (`nameBn` + `nameEn`, or `…Bn` + `…En` pairs such as
   `organizerNameBn` / `organizerNameEn`, `designationBn` / `designationEn`, `organizerDesignation` /
   `organizerDesignationEn`). `X-Lang` / `Accept-Language` never change data, only messages (§13.14).
-- **Display rule** (`frontend/lib/display-name.ts`, hook `useNames()`): English UI → the English value if it has
+- **Display rule** (`frontend/lib/display-name.ts`, hook `useNames()`; v1.9: the organizer of a meeting is shown
+  as their wing on user pages, §13.17): English UI → the English value if it has
   text, else the Bangla one; Bangla UI → the Bangla value. Used for the header (Welcome, user menu), dashboard,
   Admin officers list / detail / form and its filters, designations and wings pages, participant and chair pickers,
   meeting list and detail, duplicate meetings pages, profile, change requests, audit log and the report pages.
@@ -995,3 +1002,41 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
 - **Review screenshots:** `npx playwright test -c playwright.screenshots.config.ts` with `SHOTS=<label>` saves the key
   pages (English and Bangla, 1440 px and 390 px, Chromium and WebKit) to `frontend/screenshots/<label>/`
   (git-ignored).
+
+### 13.17 Organizer shown as wing; venue required (v1.9, owner decisions 2026-11-17)
+**A. Organizer displayed as the wing.**
+- Wherever the organizer of a meeting is **displayed** on user pages, the organizer's **current** wing is shown
+  instead of their name and designation (no snapshot: a wing change shows at once). Without a wing: their
+  designation. The column / label text stays "আয়োজক" / "Organizer".
+  - Frontend (`nameHelpers().organizer` / `organizerFrom` in `lib/display-name.ts`, unit-tested): dashboard
+    tables, my meetings list (`/meetings`), meeting detail (organizer row and the duplicate meetings listed there),
+    the duplicate meetings page (`/conflicts`), the live conflict panel in the meeting form and my report page.
+    English UI → the wing's English name (Bangla when empty); Bangla UI → the Bangla name. Calendar entries show
+    no organizer (title and time only), so nothing changed there.
+  - Always Bangla (`organizerLabelBn()` in `backend/src/modules/meetings/meeting-format.ts`): report PDFs (personal
+    and office), every meeting mail and bell notification ("আয়োজক: <উইং>"), guest officers' mails.
+  - Unchanged: notices are still **delivered** to the organizer person as before; audit logs and admin pages
+    (`/admin/meetings`, `/admin/conflicts`, `/admin/reports`, top organizers) keep the real person; the meeting form's
+    chair select still lists the organizer by name; the conflict notice text (§6.4) is unchanged.
+- API: the organizer's current wing is returned next to the person — `organizer.wing` (`{ id, nameBn, nameEn }` or
+  null) in meeting summaries and details, `organizerWing` / `organizerWingEn` in conflict meeting refs,
+  `organizer.wing` / `organizer.wingEn` in 409 clashes and check-conflicts, `organizerWingBn` / `organizerWingEn`
+  in report meeting rows. The existing name and designation fields stay.
+
+**B. "কক্ষ" → "স্থান", required.**
+- All user-visible text: "কক্ষ" → "স্থান", "Room" → "Venue", "কক্ষ উল্লেখ নেই" → "স্থান উল্লেখ নেই" (form label,
+  table headers, detail, reports and PDF, mails, notifications, validation messages). Code keeps `room` (DB column,
+  API field, message codes `ROOM_*`).
+- Required on create and edit, in the form (`lib/schemas.ts`) and the API (`CreateMeetingDto` / `UpdateMeetingDto`):
+  trimmed, not empty, at most 100 characters; one message per problem: "স্থান লিখতে হবে।" / "Venue is required."
+  (`ROOM_REQUIRED`), "স্থান সর্বোচ্চ ১০০ অক্ষরের হতে পারে।" (`ROOM_TOO_LONG`). Placeholder: "যেমন: সম্মেলন কক্ষ
+  (কক্ষ নং ৫০১) অথবা অনলাইন" / "e.g. Conference room (Room 501) or Online".
+  - `PATCH`: `room` may be left out (kept); `null` / empty is rejected. A meeting stored without a venue (before v1.9)
+    cannot be edited until one is given (`400 স্থান লিখতে হবে।`); cancel and complete are not edits and still work.
+  - `POST /meetings/check-conflicts` does not need a venue (it is not part of the check).
+- Meetings without a venue stay valid: they load everywhere (list, detail, reports, PDF) and show "স্থান উল্লেখ নেই"
+  (mails: "স্থান: স্থান উল্লেখ নেই"; bell notices: the line "স্থান উল্লেখ নেই").
+- **Tests:** backend `meeting-format.spec.ts`, `dto/meeting-input.dto.spec.ts`, `meeting-notifier.service.spec.ts`,
+  `report-template.spec.ts`, `test/meetings-v19.e2e-spec.ts` (wing + designation fallback + current wing,
+  conflicts, 409, reports, venue on create / edit / old meetings, English message); frontend
+  `tests/unit/display-name.test.ts`, `e2e/v19.spec.ts` and the updated `meetings`, `guests` specs.

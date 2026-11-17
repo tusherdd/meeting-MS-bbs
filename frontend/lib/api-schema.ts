@@ -1716,7 +1716,7 @@ export interface components {
             /** @example 6 */
             priority: number;
         };
-        PersonDto: {
+        OrganizerDto: {
             /** Format: uuid */
             id: string;
             /** @example মোঃ রহিম উদ্দিন */
@@ -1724,6 +1724,8 @@ export interface components {
             /** @example Md. Rahim Uddin */
             nameEn: string;
             designation: components["schemas"]["DesignationBriefDto"] | null;
+            /** @description Organizer's current wing (displayed as the organizer; null → show the designation) */
+            wing: components["schemas"]["WingRefDto"] | null;
         };
         MeetingSummaryDto: {
             /** Format: uuid */
@@ -1745,7 +1747,7 @@ export interface components {
              * @example 6
              */
             priority: number;
-            organizer: components["schemas"]["PersonDto"];
+            organizer: components["schemas"]["OrganizerDto"];
             /**
              * @description My role in this meeting (null = admin view)
              * @enum {string|null}
@@ -1784,8 +1786,6 @@ export interface components {
              * @example 2026-12-01T12:00:00+06:00
              */
             endAt: string;
-            /** @example সম্মেলন কক্ষ, ৫ম তলা, পরিসংখ্যান ভবন */
-            room?: string | null;
             /** @example https://meet.google.com/abc-defg-hij */
             onlineLink?: string | null;
             /**
@@ -1797,6 +1797,11 @@ export interface components {
             participantIds?: string[];
             /** @description Guest officers (no account; mail only). On update the whole list is replaced. Not part of the conflict check. */
             guests?: components["schemas"]["MeetingGuestInputDto"][];
+            /**
+             * @description Optional here; ignored by the check
+             * @example সম্মেলন কক্ষ (কক্ষ নং ৫০১)
+             */
+            room?: Record<string, never>;
             /**
              * Format: uuid
              * @description Set when editing an existing meeting: it is excluded; its stored priority is used unless the chair changes
@@ -1818,6 +1823,16 @@ export interface components {
             designation: string | null;
             /** @example Deputy Director */
             designationEn: string | null;
+            /**
+             * @description Current wing (Bangla, v1.9; displayed as the organizer, null → designation)
+             * @example কম্পিউটার উইং
+             */
+            wing: string | null;
+            /**
+             * @description Current wing (English, v1.9)
+             * @example Computer Wing
+             */
+            wingEn: string | null;
         };
         OfficerRefDto: {
             /** Format: uuid */
@@ -1859,6 +1874,15 @@ export interface components {
             blocking: components["schemas"]["ClashDto"][];
             /** @description Lower meetings whose people would be asked to cancel/reschedule */
             willNotify: components["schemas"]["ClashDto"][];
+        };
+        PersonDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example মোঃ রহিম উদ্দিন */
+            nameBn: string;
+            /** @example Md. Rahim Uddin */
+            nameEn: string;
+            designation: components["schemas"]["DesignationBriefDto"] | null;
         };
         MeetingGuestDto: {
             /** Format: uuid */
@@ -1922,6 +1946,16 @@ export interface components {
              */
             organizerDesignationEn: string | null;
             /**
+             * @description Organizer's current wing (Bangla, v1.9; displayed as the organizer, null → designation)
+             * @example কম্পিউটার উইং
+             */
+            organizerWing: string | null;
+            /**
+             * @description Organizer's current wing (English, v1.9)
+             * @example Computer Wing
+             */
+            organizerWingEn: string | null;
+            /**
              * @description True when the current user organizes this meeting (may cancel/reschedule it)
              * @example false
              */
@@ -1962,7 +1996,7 @@ export interface components {
              * @example 6
              */
             priority: number;
-            organizer: components["schemas"]["PersonDto"];
+            organizer: components["schemas"]["OrganizerDto"];
             /**
              * @description My role in this meeting (null = admin view)
              * @enum {string|null}
@@ -2006,8 +2040,11 @@ export interface components {
              * @example 2026-12-01T12:00:00+06:00
              */
             endAt: string;
-            /** @example সম্মেলন কক্ষ, ৫ম তলা, পরিসংখ্যান ভবন */
-            room?: string | null;
+            /**
+             * @description Venue (স্থান / Venue in the UI), required since v1.9: a room or "অনলাইন"
+             * @example সম্মেলন কক্ষ (কক্ষ নং ৫০১)
+             */
+            room: string;
             /** @example https://meet.google.com/abc-defg-hij */
             onlineLink?: string | null;
             /**
@@ -2053,8 +2090,6 @@ export interface components {
              * @example 2026-12-01T12:00:00+06:00
              */
             endAt?: string;
-            /** @example সম্মেলন কক্ষ, ৫ম তলা, পরিসংখ্যান ভবন */
-            room?: string | null;
             /** @example https://meet.google.com/abc-defg-hij */
             onlineLink?: string | null;
             /**
@@ -2066,6 +2101,11 @@ export interface components {
             participantIds?: string[];
             /** @description Guest officers (no account; mail only). On update the whole list is replaced. Not part of the conflict check. */
             guests?: components["schemas"]["MeetingGuestInputDto"][];
+            /**
+             * @description Venue; omit to keep it. null or empty is rejected ("স্থান লিখতে হবে।")
+             * @example সম্মেলন কক্ষ (কক্ষ নং ৫০১)
+             */
+            room?: string;
         };
         CancelMeetingDto: {
             /** @example মাননীয় সচিব মহোদয়ের জরুরি সভার কারণে স্থগিত। */
@@ -2195,6 +2235,13 @@ export interface components {
             organizerDesignationBn: string | null;
             /** @example Secretary */
             organizerDesignationEn: string | null;
+            /**
+             * @description Organizer's current wing (v1.9: displayed as the organizer; null → designation)
+             * @example কম্পিউটার উইং
+             */
+            organizerWingBn: string | null;
+            /** @example Computer Wing */
+            organizerWingEn: string | null;
             /**
              * @description Personal report only
              * @enum {string|null}

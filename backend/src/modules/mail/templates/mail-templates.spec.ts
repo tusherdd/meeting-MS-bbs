@@ -36,7 +36,7 @@ describe('mail rendering', () => {
     const mail = genericNotificationMail({
       nameBn: 'রহিম',
       title: 'সভার আমন্ত্রণ: Review v2.1',
-      body: 'সভা: Review v2.1\nকক্ষ: Conference Room 501\nসময়: ১ ডিসেম্বর ২০২৬, সকাল ১০:০০',
+      body: 'সভা: Review v2.1\nস্থান: Conference Room 501\nসময়: ১ ডিসেম্বর ২০২৬, সকাল ১০:০০',
       link: null,
     });
     for (const part of [mail.subject, mail.html, mail.text]) {

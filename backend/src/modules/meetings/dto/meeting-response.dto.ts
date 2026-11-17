@@ -29,6 +29,20 @@ export class PersonDto {
   designation!: DesignationBriefDto | null;
 }
 
+/**
+ * The organizer (v1.9, SPEC.md §13.17): the person (for permissions and admin pages) plus their
+ * CURRENT wing, which is what user pages display ("আয়োজক" = wing, or the designation without one).
+ */
+export class OrganizerDto extends PersonDto {
+  @ApiProperty({
+    type: WingRefDto,
+    nullable: true,
+    description:
+      "Organizer's current wing (displayed as the organizer; null → show the designation)",
+  })
+  wing!: WingRefDto | null;
+}
+
 export class ParticipantDto extends PersonDto {
   @ApiProperty({ enum: ParticipantRole, example: ParticipantRole.MEMBER })
   role!: ParticipantRole;
@@ -74,8 +88,8 @@ export class MeetingSummaryDto {
   })
   priority!: number;
 
-  @ApiProperty({ type: PersonDto })
-  organizer!: PersonDto;
+  @ApiProperty({ type: OrganizerDto })
+  organizer!: OrganizerDto;
 
   @ApiProperty({
     enum: ParticipantRole,
@@ -129,6 +143,23 @@ export class ConflictMeetingRefDto {
     description: "Organizer's designation (English, v1.7)",
   })
   organizerDesignationEn!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'কম্পিউটার উইং',
+    description:
+      "Organizer's current wing (Bangla, v1.9; displayed as the organizer, null → designation)",
+  })
+  organizerWing!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Computer Wing',
+    description: "Organizer's current wing (English, v1.9)",
+  })
+  organizerWingEn!: string | null;
 
   @ApiProperty({
     example: false,
@@ -251,6 +282,23 @@ export class ClashOrganizerDto {
 
   @ApiProperty({ type: String, nullable: true, example: 'Deputy Director' })
   designationEn!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'কম্পিউটার উইং',
+    description:
+      'Current wing (Bangla, v1.9; displayed as the organizer, null → designation)',
+  })
+  wing!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Computer Wing',
+    description: 'Current wing (English, v1.9)',
+  })
+  wingEn!: string | null;
 }
 
 export class ClashDto {

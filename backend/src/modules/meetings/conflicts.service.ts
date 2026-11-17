@@ -81,9 +81,11 @@ export class ConflictsService {
       .innerJoinAndSelect('c.higherMeeting', 'h')
       .innerJoinAndSelect('h.organizer', 'ho')
       .leftJoinAndSelect('ho.designation', 'hod')
+      .leftJoinAndSelect('ho.wing', 'how')
       .innerJoinAndSelect('c.lowerMeeting', 'l')
       .innerJoinAndSelect('l.organizer', 'lo')
-      .leftJoinAndSelect('lo.designation', 'lod');
+      .leftJoinAndSelect('lo.designation', 'lod')
+      .leftJoinAndSelect('lo.wing', 'low');
   }
 
   private async toItems(
@@ -104,6 +106,8 @@ export class ConflictsService {
       status: m.status,
       organizerDesignation: m.organizer.designation?.nameBn ?? null,
       organizerDesignationEn: m.organizer.designation?.nameEn ?? null,
+      organizerWing: m.organizer.wing?.nameBn ?? null,
+      organizerWingEn: m.organizer.wing?.nameEn ?? null,
       organizedByMe: m.organizerId === actor.id,
     });
     return rows.map((r) => ({

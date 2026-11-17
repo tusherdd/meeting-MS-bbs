@@ -45,6 +45,7 @@ test("add, validate and remove guests; a guest can chair; detail and edit show t
   await dd1.goto("/meetings/new");
   await dd1.getByLabel("সভার শিরোনাম").fill(title);
   await fillMeetingTime(dd1, dhakaDate(6), "10:00", "11:00");
+  await dd1.getByLabel("স্থান", { exact: true }).fill("সম্মেলন কক্ষ"); // v1.9: required
 
   // The section sits directly above the chair select.
   const order = await dd1.evaluate(() => {
@@ -130,6 +131,7 @@ test("an officer's email cannot be a guest: the backend message is shown", async
   await dd1.goto("/meetings/new");
   await dd1.getByLabel("সভার শিরোনাম").fill(uniqueTitle("অতিথি কর্মকর্তা"));
   await fillMeetingTime(dd1, dhakaDate(6), "12:00", "13:00");
+  await dd1.getByLabel("স্থান", { exact: true }).fill("অনলাইন");
   await fillGuest(dd1, "নাম", "পদবি", OFFICERS.so.loginEmail);
   await addButton(dd1).click();
   await dd1.getByRole("button", { name: "সভা তৈরি করুন" }).click();

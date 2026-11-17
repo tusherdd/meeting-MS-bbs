@@ -134,6 +134,16 @@ export class ReportMeetingDto {
   @ApiProperty({ type: String, nullable: true, example: 'Secretary' })
   organizerDesignationEn!: string | null;
   @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'কম্পিউটার উইং',
+    description:
+      "Organizer's current wing (v1.9: displayed as the organizer; null → designation)",
+  })
+  organizerWingBn!: string | null;
+  @ApiProperty({ type: String, nullable: true, example: 'Computer Wing' })
+  organizerWingEn!: string | null;
+  @ApiProperty({
     enum: ParticipantRole,
     nullable: true,
     description: 'Personal report only',

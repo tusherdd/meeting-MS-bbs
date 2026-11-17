@@ -21,6 +21,7 @@ const higher: MeetingInfo = {
   onlineLink: 'https://meet.example.org/abc',
   organizerNameBn: 'মোঃ আয়োজক',
   organizerDesignationBn: 'উপপরিচালক',
+  organizerWingBn: 'কম্পিউটার উইং',
   chairLine: 'মোঃ সচিব, সচিব',
   leadDesignationBn: 'সচিব',
 };
@@ -38,6 +39,8 @@ const lower: LoadedMeeting = {
   organizerNameEn: 'EN_ONLY organizer',
   organizerDesignationBn: 'পরিসংখ্যান কর্মকর্তা',
   organizerDesignationEn: 'EN_ONLY designation',
+  organizerWingBn: 'জনশুমারি উইং',
+  organizerWingEn: 'EN_ONLY wing',
 };
 
 function setup() {
@@ -179,15 +182,17 @@ describe('MeetingNotifierService.guests (mail only, through the outbox)', () => 
       'অতিথি কর্মকর্তা হিসেবে',
       'শিরোনাম: জরুরি সমন্বয় সভা',
       'তারিখ ও সময়: ১ জানুয়ারী ২০৩০ (মঙ্গলবার), সকাল ১০:০০ – সকাল ১১:০০',
-      'কক্ষ: সম্মেলন কক্ষ',
+      'স্থান: সম্মেলন কক্ষ',
       'Online Link: https://meet.example.org/abc',
-      'আয়োজক: মোঃ আয়োজক, উপপরিচালক',
+      'আয়োজক: কম্পিউটার উইং',
       'সভাপতি: মোঃ সচিব, সচিব',
       '১. বাজেট',
       '২. বিবিধ',
     ]) {
       expect(first.text).toContain(part);
     }
+    // v1.9: the organizer is shown as the wing, never as the person
+    expect(first.text).not.toContain('মোঃ আয়োজক');
     expect(first.html).not.toMatch(/\/login|\/meetings\//);
     expect(first.text).not.toMatch(/\/login|\/meetings\/|Password/);
   });
@@ -197,13 +202,13 @@ describe('MeetingNotifierService.guests (mail only, through the outbox)', () => 
     await service.guests(manager, 'updated', higher, guests, { changes: [] });
     expect(mail.enqueue).not.toHaveBeenCalled();
     await service.guests(manager, 'updated', higher, guests.slice(0, 1), {
-      changes: [{ label: 'কক্ষ', before: 'কক্ষ ১', after: 'সম্মেলন কক্ষ' }],
+      changes: [{ label: 'স্থান', before: 'কক্ষ ১', after: 'সম্মেলন কক্ষ' }],
     });
     const [m] = mail.enqueue.mock.calls[0] as [
       { subject: string; text: string },
     ];
     expect(m.subject).toBe('সভায় পরিবর্তন: জরুরি সমন্বয় সভা');
-    expect(m.text).toContain('কক্ষ: কক্ষ ১ → সম্মেলন কক্ষ');
+    expect(m.text).toContain('স্থান: কক্ষ ১ → সম্মেলন কক্ষ');
   });
 
   it('cancel and removal mails', async () => {
@@ -225,5 +230,56 @@ describe('MeetingNotifierService.guests (mail only, through the outbox)', () => 
       'অতিথি কর্মকর্তার তালিকা থেকে বাদ: জরুরি সমন্বয় সভা',
     );
     expect(removed.text).toContain('আপনার উপস্থিতির প্রয়োজন নেই');
+  });
+});
+
+describe('MeetingNotifierService: organizer shown as the wing, venue (v1.9)', () => {
+  it('bell + mail notices show "আয়োজক: <wing>" and are still sent to the invited people', async () => {
+    const { service, notifications } = setup();
+    await service.invited(manager, higher, ['rahim', 'karim']);
+    const [ids, message] = notifications.notify.mock.calls[0] as [
+      string[],
+      { body: string },
+    ];
+    expect(ids).toEqual(['rahim', 'karim']);
+    expect(message.body).toContain('আয়োজক: কম্পিউটার উইং');
+    expect(message.body).toContain('স্থান: সম্মেলন কক্ষ');
+    expect(message.body).not.toContain('মোঃ আয়োজক');
+    expect(message.body).not.toContain('উপপরিচালক');
+  });
+
+  it('an organizer without a wing is shown with their designation', async () => {
+    const { service, notifications, mail } = setup();
+    const noWing = { ...higher, organizerWingBn: null };
+    await service.cancelled(manager, noWing, ['rahim'], 'জরুরি কারণ');
+    await service.removed(manager, noWing, ['karim']);
+    await service.guests(manager, 'invited', noWing, [
+      { name: 'জন', email: 'john@example.org' },
+    ]);
+    const bodies = notifications.notify.mock.calls.map(
+      (c: [string[], { body: string }]) => c[1].body,
+    );
+    for (const body of bodies) {
+      expect(body).toContain('আয়োজক: উপপরিচালক');
+      expect(body).not.toContain('মোঃ আয়োজক');
+    }
+    const [guestMail] = mail.enqueue.mock.calls[0] as [{ text: string }];
+    expect(guestMail.text).toContain('আয়োজক: উপপরিচালক');
+  });
+
+  it('a meeting without a venue (created before v1.9) says "স্থান উল্লেখ নেই"', async () => {
+    const { service, notifications, mail } = setup();
+    const noVenue = { ...higher, room: null };
+    await service.invited(manager, noVenue, ['rahim']);
+    await service.guests(manager, 'invited', noVenue, [
+      { name: 'জন', email: 'john@example.org' },
+    ]);
+    const [, message] = notifications.notify.mock.calls[0] as [
+      string[],
+      { body: string },
+    ];
+    expect(message.body).toContain('স্থান উল্লেখ নেই');
+    const [guestMail] = mail.enqueue.mock.calls[0] as [{ text: string }];
+    expect(guestMail.text).toContain('স্থান: স্থান উল্লেখ নেই');
   });
 });

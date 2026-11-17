@@ -73,7 +73,11 @@ describe('Meetings and conflict engine (e2e)', () => {
   const body = (res: request.Response) => res.body as Body;
 
   const create = (who: Who, payload: Record<string, unknown>) =>
-    http().post(`${API}/meetings`).set(as(who)).send(payload);
+    // v1.9: a venue is required; tests that check that send `room` themselves.
+    http()
+      .post(`${API}/meetings`)
+      .set(as(who))
+      .send({ room: 'সম্মেলন কক্ষ', ...payload });
 
   const notificationsOf = (who: Who, type: NotificationType) =>
     ds.getRepository(Notification).find({ where: { userId: ids[who], type } });

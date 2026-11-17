@@ -11,14 +11,19 @@ import { Button, LinkButton } from "@/components/ui/button";
 import type { ConflictListItem, ConflictMeetingRef } from "@/lib/types";
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
+/** v1.9: user pages show the organizer's wing (no wing → designation); admin pages the designation. */
+export type ConflictOrganizerDisplay = "wing" | "designation";
+
 function MeetingSide({
   label,
   meeting,
   tone,
+  organizerAs,
 }: {
   label: string;
   meeting: ConflictMeetingRef;
   tone: "higher" | "lower";
+  organizerAs: ConflictOrganizerDisplay;
 }) {
   const t = useT();
   const names = useNames();
@@ -48,8 +53,19 @@ function MeetingSide({
       </p>
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
         <StatusBadge status={meeting.status} />
-        {meeting.organizerDesignation && (
-          <span>{names.pick(meeting.organizerDesignation, meeting.organizerDesignationEn)}</span>
+        {organizerAs === "wing" ? (
+          <span>
+            {names.organizerFrom(
+              meeting.organizerWing,
+              meeting.organizerWingEn,
+              meeting.organizerDesignation,
+              meeting.organizerDesignationEn,
+            )}
+          </span>
+        ) : (
+          meeting.organizerDesignation && (
+            <span>{names.pick(meeting.organizerDesignation, meeting.organizerDesignationEn)}</span>
+          )
         )}
       </div>
     </div>
@@ -57,7 +73,13 @@ function MeetingSide({
 }
 
 /** One conflict: the higher-priority meeting next to the overridden (lower) one. */
-export function ConflictCard({ conflict }: { conflict: ConflictListItem }) {
+export function ConflictCard({
+  conflict,
+  organizerAs = "wing",
+}: {
+  conflict: ConflictListItem;
+  organizerAs?: ConflictOrganizerDisplay;
+}) {
   const t = useT();
   const names = useNames();
   const { formatDateTime } = useFormat();
@@ -81,12 +103,12 @@ export function ConflictCard({ conflict }: { conflict: ConflictListItem }) {
         </Badge>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        <MeetingSide
+        <MeetingSide organizerAs={organizerAs}
           label={t.conflictsPage.higher}
           meeting={conflict.higherMeeting}
           tone="higher"
         />
-        <MeetingSide label={t.conflictsPage.lower} meeting={lower} tone="lower" />
+        <MeetingSide organizerAs={organizerAs} label={t.conflictsPage.lower} meeting={lower} tone="lower" />
       </div>
       {conflict.resolvedAt && (
         <p className="mt-2 text-xs text-slate-500">

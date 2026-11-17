@@ -125,7 +125,9 @@ describe('report PDF template', () => {
       'সভা: Joint Coordination Meeting 2026 (SDG Tracker v2.1)',
     );
     expect(out).toContain('<td>Conference Room 501</td>');
-    expect(out).toContain('Officer 3 (পরিচালক (Grade 4))');
+    // v1.9: the organizer is shown as the wing; this one has none → the designation, no name.
+    expect(out).toContain('<td>পরিচালক (Grade 4)</td>');
+    expect(out).not.toContain('Officer 3');
     expect(out).toContain('<td>Wing 7 (ICT)</td>');
     expect(out).toContain('Md. Rahim 2 — Unit 7');
     expect(out).not.toContain('v২.১');
@@ -182,5 +184,52 @@ describe('report PDF template', () => {
     });
     expect(out).not.toContain('class="guests"');
     expect(out).not.toContain('অতিথি কর্মকর্তা:');
+  });
+
+  it('v1.9: organizer column shows the Bangla wing; a meeting without a venue says so', () => {
+    const base = {
+      id: 'm1',
+      title: 'সভা',
+      startAt: new Date('2026-12-01T04:00:00Z'),
+      endAt: new Date('2026-12-01T05:00:00Z'),
+      status: MeetingStatus.SCHEDULED,
+      organizerId: 'o',
+      organizerNameBn: 'মোঃ রহিম উদ্দিন',
+      organizerNameEn: 'EN_ONLY organizer',
+      organizerDesignationId: 'd',
+      organizerDesignationBn: 'উপপরিচালক',
+      organizerDesignationEn: 'EN_ONLY designation',
+      organizerDesignationPriority: 6,
+      organizerWingId: 'w',
+      organizerWingBn: 'কম্পিউটার উইং',
+      organizerWingEn: 'EN_ONLY wing',
+      myRole: null,
+      chairNameBn: null,
+      chairNameEn: null,
+      guests: [],
+    };
+    const out = renderReportHtml({
+      header: {
+        subjectLines: [],
+        periodLabelBn: 'ডিসেম্বর ২০২৬',
+        generatedAtBn: 'প্রস্তুত',
+      },
+      summary: [],
+      extraTables: [],
+      meetings: [
+        { ...base, room: null },
+        { ...base, id: 'm2', room: 'অনলাইন', organizerWingBn: null },
+      ],
+      showMyRole: false,
+      totalMeetings: 2,
+    });
+    expect(out).toContain('<th>স্থান</th>');
+    expect(out).toContain('<th>আয়োজক</th>');
+    expect(out).toContain('<td>কম্পিউটার উইং</td>');
+    expect(out).toContain('<td>উপপরিচালক</td>'); // no wing → designation
+    expect(out).toContain('<td>স্থান উল্লেখ নেই</td>');
+    expect(out).toContain('<td>অনলাইন</td>');
+    expect(out).not.toContain('মোঃ রহিম উদ্দিন');
+    expect(out).not.toContain('EN_ONLY');
   });
 });

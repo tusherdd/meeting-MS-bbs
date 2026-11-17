@@ -68,8 +68,12 @@ function ConflictList({ title, items }: { title: string; items: MeetingConflict[
             </div>
             <p className="text-slate-600">
               {formatDateTime(c.otherMeeting.startAt)}
-              {c.otherMeeting.organizerDesignation &&
-                ` · ${names.pick(c.otherMeeting.organizerDesignation, c.otherMeeting.organizerDesignationEn)}`}
+              {` · ${names.organizerFrom(
+                c.otherMeeting.organizerWing,
+                c.otherMeeting.organizerWingEn,
+                c.otherMeeting.organizerDesignation,
+                c.otherMeeting.organizerDesignationEn,
+              )}`}
             </p>
             <p className="text-slate-600">
               {t.meetingDetail.sharedOfficer} {names.of(c.officer)}
@@ -118,7 +122,7 @@ function Detail({ meeting }: { meeting: MeetingDetail }) {
                     {formatTimeRange(meeting.startAt, meeting.endAt)}
                   </span>
                 </Row>
-                <Row label={t.meetingDetail.room}>{meeting.room ?? "—"}</Row>
+                <Row label={t.meetingDetail.room}>{meeting.room ?? t.meeting.noRoom}</Row>
                 <Row label={t.meetingDetail.link}>
                   {meeting.onlineLink ? (
                     <a
@@ -133,7 +137,8 @@ function Detail({ meeting }: { meeting: MeetingDetail }) {
                     "—"
                   )}
                 </Row>
-                <Row label={t.meetingDetail.organizer}>{personLine(meeting.organizer, names)}</Row>
+                {/* v1.9: the organizer is shown as their wing (no wing → designation). */}
+                <Row label={t.meetingDetail.organizer}>{names.organizer(meeting.organizer)}</Row>
                 <Row label={t.meetingDetail.chair}>
                   {meeting.chair
                     ? personLine(meeting.chair, names)

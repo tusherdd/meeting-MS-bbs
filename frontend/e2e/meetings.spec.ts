@@ -73,7 +73,7 @@ test("create a meeting with the form; it shows on the dashboard, calendar and li
 
   await dd1.getByLabel("সভার শিরোনাম").fill(title);
   await fillMeetingTime(dd1, dhakaDate(0), time(start), time(end));
-  await dd1.getByLabel("কক্ষ", { exact: true }).fill("সম্মেলন কক্ষ");
+  await dd1.getByLabel("স্থান", { exact: true }).fill("সম্মেলন কক্ষ"); // v1.9: required
   await addParticipant(dd1, "so");
   await expect(panel(dd1)).toHaveAttribute("data-state", "ok");
   // Green panel: only the line, no bold heading (v1.5).
@@ -146,13 +146,15 @@ test("higher priority overrides lower: amber panel, save, lower organizer is not
   await dg.goto("/meetings/new");
   await dg.getByLabel("সভার শিরোনাম").fill(highTitle);
   await fillMeetingTime(dg, day, "14:00", "15:00");
+  await dg.getByLabel("স্থান", { exact: true }).fill("সম্মেলন কক্ষ"); // v1.9: required
   await addParticipant(dg, "dd2");
   await expect(panel(dg)).toHaveAttribute("data-state", "warn");
   await expect(panel(dg)).toContainText("নিম্ন অগ্রাধিকারের ডুপ্লিকেট সভা আছে");
   await expect(panel(dg)).toContainText(
     "এই সভা তৈরি হলে নিচের সভাগুলোর আয়োজক ও যৌথ কর্মকর্তাদের জানানো হবে।",
   );
-  await expect(panel(dg)).toContainText("উপপরিচালক"); // organizer designation of the lower one
+  // v1.9: the organizer is shown as the wing; the test officers have none → the designation.
+  await expect(panel(dg)).toContainText("আয়োজক: উপপরিচালক");
   await submit(dg).click();
   await expect(dg).toHaveURL(/\/meetings\/[0-9a-f-]{36}$/);
   created.push({ page: () => dg, id: meetingIdFrom(dg) });

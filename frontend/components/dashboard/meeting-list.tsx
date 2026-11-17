@@ -14,15 +14,26 @@ interface Props {
   conflictIds: ReadonlySet<string>;
   /** Week / month: also show the date. */
   showDate?: boolean;
+  /**
+   * v1.9 (SPEC.md §13.17): user pages show the organizer as their wing (no wing → designation);
+   * admin pages keep the person ("name, designation").
+   */
+  organizerAs?: "wing" | "person";
 }
 
-function organizerText(m: MeetingSummary, names: NameHelpers) {
+function organizerText(m: MeetingSummary, names: NameHelpers, as: "wing" | "person") {
+  if (as === "wing") return names.organizer(m.organizer);
   const designation = names.maybe(m.organizer.designation);
   return designation ? `${names.of(m.organizer)}, ${designation}` : names.of(m.organizer);
 }
 
 /** Time-ordered meeting list: a table on wide screens, cards on phones. */
-export function MeetingList({ meetings, conflictIds, showDate = false }: Props) {
+export function MeetingList({
+  meetings,
+  conflictIds,
+  showDate = false,
+  organizerAs = "wing",
+}: Props) {
   const t = useT();
   const names = useNames();
   const { formatDateWithWeekday, formatTimeRange } = useFormat();
@@ -47,7 +58,7 @@ export function MeetingList({ meetings, conflictIds, showDate = false }: Props) 
               {m.title}
             </Link>
             <p className="mt-0.5 text-sm text-slate-600">
-              {m.room ?? t.meeting.noRoom} · {organizerText(m, names)}
+              {m.room ?? t.meeting.noRoom} · {organizerText(m, names, organizerAs)}
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <StatusBadge status={m.status} />
@@ -98,7 +109,7 @@ export function MeetingList({ meetings, conflictIds, showDate = false }: Props) 
                   )}
                 </Td>
                 <Td>{m.room ?? <span className="text-slate-500">{t.meeting.noRoom}</span>}</Td>
-                <Td>{organizerText(m, names)}</Td>
+                <Td>{organizerText(m, names, organizerAs)}</Td>
                 <Td>
                   <RoleBadge role={m.myRole} />
                 </Td>

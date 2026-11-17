@@ -36,6 +36,7 @@ import type {
   MeetingConflictDto,
   MeetingDetailDto,
   MeetingSummaryDto,
+  OrganizerDto,
   PersonDto,
 } from './dto/meeting-response.dto';
 import { MeetingConflict } from './entities/meeting-conflict.entity';
@@ -68,6 +69,16 @@ const TIME_MESSAGES: Record<TimeProblem, string> = {
 
 export function isAdmin(actor: Pick<AuthUser, 'role'>): boolean {
   return actor.role === UserRole.ADMIN || actor.role === UserRole.SUPER_ADMIN;
+}
+
+/** The organizer: the person plus their CURRENT wing (v1.9, displayed as the organizer). */
+function organizerDto(u: User): OrganizerDto {
+  return {
+    ...personDto(u),
+    wing: u.wing
+      ? { id: u.wing.id, nameBn: u.wing.nameBn, nameEn: u.wing.nameEn }
+      : null,
+  };
 }
 
 function personDto(u: User): PersonDto {
@@ -145,7 +156,7 @@ export class MeetingsService {
           agenda: dto.agenda ?? null,
           startAt,
           endAt,
-          room: dto.room ?? null,
+          room: dto.room,
           onlineLink: dto.onlineLink ?? null,
           organizerId: actor.id,
           chairId,
@@ -225,6 +236,11 @@ export class MeetingsService {
         throw new ConflictException(MSG.notScheduled);
       if (meeting.endAt.getTime() <= Date.now())
         throw new ConflictException(MSG.alreadyEnded);
+      // v1.9: a venue is required. A meeting stored without one (created before v1.9) stays
+      // readable, but an edit must give it a venue (the DTO already rejects null / "").
+      if (dto.room === undefined && !meeting.room?.trim()) {
+        throw new BadRequestException(MSG.venueRequired);
+      }
 
       const startAt =
         dto.startAt !== undefined ? new Date(dto.startAt) : meeting.startAt;
@@ -628,7 +644,7 @@ export class MeetingsService {
     const meeting = await this.meetings.findOne({
       where: { id },
       relations: {
-        organizer: { designation: true },
+        organizer: { designation: true, wing: true },
         chair: { designation: true },
         participants: { user: { designation: true, wing: true } },
         guests: true,
@@ -745,7 +761,8 @@ export class MeetingsService {
   ): Promise<User> {
     return manager.getRepository(User).findOneOrFail({
       where: { id: userId },
-      relations: { designation: true },
+      // wing: the organizer is displayed as their current wing in notices (v1.9)
+      relations: { designation: true, wing: true },
     });
   }
 
@@ -1073,6 +1090,8 @@ export class MeetingsService {
         nameEn: c.meeting.organizerNameEn,
         designation: c.meeting.organizerDesignationBn,
         designationEn: c.meeting.organizerDesignationEn,
+        wing: c.meeting.organizerWingBn,
+        wingEn: c.meeting.organizerWingEn,
       },
       sharedOfficers: c.sharedPeopleIds.map((id) => ({
         id,
@@ -1125,6 +1144,7 @@ export class MeetingsService {
       onlineLink: meeting.onlineLink,
       organizerNameBn: organizer.nameBn,
       organizerDesignationBn: organizer.designation?.nameBn ?? null,
+      organizerWingBn: organizer.wing?.nameBn ?? null,
       chairLine: chair
         ? line(chair.nameBn, chair.designation?.nameBn)
         : guestChair
@@ -1204,7 +1224,8 @@ export class MeetingsService {
     const qb = this.meetings
       .createQueryBuilder('m')
       .leftJoinAndSelect('m.organizer', 'o')
-      .leftJoinAndSelect('o.designation', 'od');
+      .leftJoinAndSelect('o.designation', 'od')
+      .leftJoinAndSelect('o.wing', 'ow');
     if (scope === 'mine') {
       qb.where(
         new Brackets((b) =>
@@ -1245,7 +1266,7 @@ export class MeetingsService {
       onlineLink: m.onlineLink,
       status: m.status,
       priority: m.priority,
-      organizer: personDto(m.organizer),
+      organizer: organizerDto(m.organizer),
       myRole: m.participants?.find((p) => p.userId === actor.id)?.role ?? null,
     };
   }
@@ -1259,8 +1280,8 @@ export class MeetingsService {
       where: [{ higherMeetingId: meetingId }, { lowerMeetingId: meetingId }],
       relations: {
         user: true,
-        higherMeeting: { organizer: { designation: true } },
-        lowerMeeting: { organizer: { designation: true } },
+        higherMeeting: { organizer: { designation: true, wing: true } },
+        lowerMeeting: { organizer: { designation: true, wing: true } },
       },
       order: { createdAt: 'DESC' },
     });
@@ -1285,6 +1306,8 @@ export class MeetingsService {
           status: other.status,
           organizerDesignation: other.organizer.designation?.nameBn ?? null,
           organizerDesignationEn: other.organizer.designation?.nameEn ?? null,
+          organizerWing: other.organizer.wing?.nameBn ?? null,
+          organizerWingEn: other.organizer.wing?.nameEn ?? null,
           organizedByMe: other.organizerId === actor.id,
         },
         officer: {

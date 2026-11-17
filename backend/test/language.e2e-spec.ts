@@ -207,6 +207,7 @@ describe('v1.6: API language (e2e)', () => {
           title: 'ভাষা পরীক্ষার সভা',
           startAt: at(10),
           endAt: at(11),
+          room: 'সম্মেলন কক্ষ',
           participantIds: [ids.colleague],
           guests: [
             {
@@ -241,8 +242,10 @@ describe('v1.6: API language (e2e)', () => {
         expect(BANGLA.test(m.subject)).toBe(true);
         if (m.html) expect(m.html).toContain('<html lang="bn">');
         // v1.7: officer and designation names in mails are the Bangla ones, never the English.
+        // v1.9: the organizer is shown as the wing (none here → the Bangla designation).
         const content = `${m.subject}\n${m.html ?? ''}\n${m.text ?? ''}`;
-        expect(content).toContain('ভাষা officer');
+        expect(content).toContain('আয়োজক: ভাষা পদবি');
+        expect(content).not.toContain('ভাষা officer');
         expect(content).not.toContain('E2EL');
       }
       for (const n of notes)

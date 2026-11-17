@@ -96,10 +96,10 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 |---|---|---|---|---|---|
 | GET | `/meetings/today` | 👤 | My meetings today (Asia/Dhaka day), ordered by start — dashboard default | — | 200 |
 | GET | `/meetings` | 👤 | My meetings by range | `page` (query), `limit` (query), `from` (query), `to` (query), `status` (query), `role` (query), `scope` (query) | 200, 403 |
-| POST | `/meetings` | 👤 | Create a meeting (you are the organizer; priority = your designation priority now) | `title`*, `agenda`, `startAt`*, `endAt`*, `room`, `onlineLink`, `chairId`, `participantIds`, `guests` | 201, 400, 403, 409 |
-| POST | `/meetings/check-conflicts` | 👤 | Dry run of the conflict engine (nothing is saved) | `title`*, `agenda`, `startAt`*, `endAt`*, `room`, `onlineLink`, `chairId`, `participantIds`, `guests`, `meetingId` | 200, 400 |
+| POST | `/meetings` | 👤 | Create a meeting (you are the organizer; priority = your designation priority now) | `title`*, `agenda`, `startAt`*, `endAt`*, `room`*, `onlineLink`, `chairId`, `participantIds`, `guests` | 201, 400, 403, 409 |
+| POST | `/meetings/check-conflicts` | 👤 | Dry run of the conflict engine (nothing is saved) | `title`*, `agenda`, `startAt`*, `endAt`*, `onlineLink`, `chairId`, `participantIds`, `guests`, `room`, `meetingId` | 200, 400 |
 | GET | `/meetings/:id` | 👤 | Meeting detail with people, chair and conflicts (its people and admins only) | — | 200, 404 |
-| PATCH | `/meetings/:id` | 👤 | Update (organizer or ADMIN; not after the meeting ended) | `title`, `agenda`, `startAt`, `endAt`, `room`, `onlineLink`, `chairId`, `participantIds`, `guests` | 200, 403, 404, 409 |
+| PATCH | `/meetings/:id` | 👤 | Update (organizer or ADMIN; not after the meeting ended) | `title`, `agenda`, `startAt`, `endAt`, `onlineLink`, `chairId`, `participantIds`, `guests`, `room` | 200, 403, 404, 409 |
 | DELETE | `/meetings/:id` | 🛡 | Hard delete (ADMIN); participants and conflicts are deleted too | — | 204, 403, 404 |
 | POST | `/meetings/:id/cancel` | 👤 | Cancel with a reason (organizer or ADMIN); resolves its conflicts | `reason`* | 200, 403, 404, 409 |
 | POST | `/meetings/:id/complete` | 👤 | Mark completed and save notes/minutes (after the start; organizer or ADMIN) | `notes` | 200, 403, 409 |
@@ -237,8 +237,8 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | `MEETING_TITLE_LENGTH` | The title must be 3 to 200 characters long. | শিরোনাম ৩ থেকে ২০০ অক্ষরের হতে হবে। |
 | `AGENDA_NOT_STRING` | The description must be text. | আলোচ্যসূচি লেখা হতে হবে। |
 | `AGENDA_TOO_LONG` | The description can have at most 5000 characters. | আলোচ্যসূচি সর্বোচ্চ ৫০০০ অক্ষরের হতে পারে। |
-| `ROOM_NOT_STRING` | The room name must be text. | কক্ষের নাম লেখা হতে হবে। |
-| `ROOM_TOO_LONG` | The room name can have at most 100 characters. | কক্ষের নাম সর্বোচ্চ ১০০ অক্ষরের হতে পারে। |
+| `ROOM_REQUIRED` | Venue is required. | স্থান লিখতে হবে। |
+| `ROOM_TOO_LONG` | The venue can have at most 100 characters. | স্থান সর্বোচ্চ ১০০ অক্ষরের হতে পারে। |
 | `ONLINE_LINK_INVALID` | The online link must be a valid address starting with https://. | Online Link https:// দিয়ে শুরু হওয়া সঠিক ঠিকানা হতে হবে। |
 | `LINK_TOO_LONG` | The link is too long. | Link খুব দীর্ঘ। |
 | `CHAIR_INVALID` | Select a valid president. | সঠিক সভাপতি নির্বাচন করুন। |

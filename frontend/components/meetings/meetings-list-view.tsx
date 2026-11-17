@@ -174,7 +174,13 @@ export function MeetingsListView({ scope = "mine" }: { scope?: "mine" | "all" })
             <p className="px-4 pt-3 text-sm text-slate-500 sm:px-5">
               {t.meetingsList.total(formatNumber(meetings.data.total))}
             </p>
-            <MeetingList meetings={meetings.data.items} conflictIds={conflictIds} showDate />
+            <MeetingList
+              meetings={meetings.data.items}
+              conflictIds={conflictIds}
+              showDate
+              // /admin/meetings is an admin page: it keeps the organizer person (v1.9).
+              organizerAs={forceAll ? "person" : "wing"}
+            />
             <Pagination page={page} totalPages={meetings.data.totalPages} onChange={setPage} />
           </div>
         )}

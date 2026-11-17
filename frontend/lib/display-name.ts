@@ -39,6 +39,23 @@ export interface Named {
   nameEn?: string | null;
 }
 
+/**
+ * How the organizer of a meeting is DISPLAYED on user pages (v1.9, SPEC.md §13.17): the
+ * organizer's current wing in the UI language, or their designation when they have no wing.
+ * Admin pages and audit logs keep the person (they do not use this).
+ */
+export function organizerLabel(
+  locale: Locale,
+  wing: { bn: string | null | undefined; en?: string | null },
+  designation: { bn: string | null | undefined; en?: string | null },
+): string {
+  return (
+    pickOptionalName(locale, wing.bn, wing.en) ??
+    pickOptionalName(locale, designation.bn, designation.en) ??
+    "—"
+  );
+}
+
 /** The functions components use; built once per locale by `useNames()`. */
 export interface NameHelpers {
   /** `{ nameBn, nameEn }` → display name. */
@@ -48,6 +65,15 @@ export interface NameHelpers {
   /** Separate fields, e.g. organizerNameBn / organizerNameEn. */
   pick: (bn: string, en?: string | null) => string;
   pickOptional: (bn: string | null | undefined, en?: string | null) => string | null;
+  /** Organizer as displayed (v1.9): `{ wing, designation }` objects → wing, else designation. */
+  organizer: (o: { wing?: Named | null; designation?: Named | null }) => string;
+  /** Same from separate fields (conflict and report rows). */
+  organizerFrom: (
+    wingBn: string | null | undefined,
+    wingEn: string | null | undefined,
+    designationBn: string | null | undefined,
+    designationEn: string | null | undefined,
+  ) => string;
 }
 
 export function nameHelpers(locale: Locale): NameHelpers {
@@ -56,6 +82,14 @@ export function nameHelpers(locale: Locale): NameHelpers {
     maybe: (v) => (v ? pickName(locale, v.nameBn, v.nameEn) : null),
     pick: (bn, en) => pickName(locale, bn, en),
     pickOptional: (bn, en) => pickOptionalName(locale, bn, en),
+    organizer: (o) =>
+      organizerLabel(
+        locale,
+        { bn: o.wing?.nameBn, en: o.wing?.nameEn },
+        { bn: o.designation?.nameBn, en: o.designation?.nameEn },
+      ),
+    organizerFrom: (wingBn, wingEn, designationBn, designationEn) =>
+      organizerLabel(locale, { bn: wingBn, en: wingEn }, { bn: designationBn, en: designationEn }),
   };
 }
 

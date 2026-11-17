@@ -52,3 +52,39 @@ describe("English name rule (v1.7, same as the backend)", () => {
     }
   });
 });
+
+describe("organizer shown as the wing (v1.9)", () => {
+  const wing = { nameBn: "কম্পিউটার উইং", nameEn: "Computer Wing" };
+  const designation = { nameBn: "উপপরিচালক", nameEn: "Deputy Director" };
+
+  it("shows the wing in the UI language", () => {
+    expect(nameHelpers("en").organizer({ wing, designation })).toBe("Computer Wing");
+    expect(nameHelpers("bn").organizer({ wing, designation })).toBe("কম্পিউটার উইং");
+  });
+
+  it("falls back to the designation when the organizer has no wing", () => {
+    expect(nameHelpers("en").organizer({ wing: null, designation })).toBe("Deputy Director");
+    expect(nameHelpers("bn").organizer({ wing: null, designation })).toBe("উপপরিচালক");
+  });
+
+  it("English UI uses the Bangla wing when its English name is empty", () => {
+    expect(nameHelpers("en").organizer({ wing: { nameBn: "উইং", nameEn: "" }, designation })).toBe(
+      "উইং",
+    );
+  });
+
+  it("shows a dash when there is neither", () => {
+    expect(nameHelpers("bn").organizer({ wing: null, designation: null })).toBe("—");
+  });
+
+  it("works from separate fields (conflict and report rows)", () => {
+    const h = nameHelpers("en");
+    expect(h.organizerFrom("কম্পিউটার উইং", "Computer Wing", "উপপরিচালক", "Deputy Director")).toBe(
+      "Computer Wing",
+    );
+    expect(h.organizerFrom(null, null, "উপপরিচালক", "Deputy Director")).toBe("Deputy Director");
+    expect(nameHelpers("bn").organizerFrom(null, null, "উপপরিচালক", "Deputy Director")).toBe(
+      "উপপরিচালক",
+    );
+  });
+});

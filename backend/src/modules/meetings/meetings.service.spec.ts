@@ -49,6 +49,8 @@ function loaded(
     organizerNameEn: 'Organizer',
     organizerDesignationBn: 'উপপরিচালক',
     organizerDesignationEn: 'Deputy Director',
+    organizerWingBn: 'কম্পিউটার উইং',
+    organizerWingEn: 'Computer Wing',
   };
 }
 
@@ -164,6 +166,7 @@ const dto = {
   title: 'জরুরি সমন্বয় সভা',
   startAt: '2030-01-01T10:30:00+06:00',
   endAt: '2030-01-01T11:30:00+06:00',
+  room: 'সম্মেলন কক্ষ (কক্ষ নং ৫০১)',
   chairId: 'chair' as string | null,
   participantIds: ['shared', 'secretary'],
 };

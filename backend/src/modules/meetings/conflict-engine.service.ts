@@ -22,6 +22,9 @@ export interface LoadedMeeting extends ExistingMeeting {
   organizerNameEn: string;
   organizerDesignationBn: string | null;
   organizerDesignationEn: string | null;
+  /** Organizer's current wing (v1.9: what is displayed as the organizer). */
+  organizerWingBn: string | null;
+  organizerWingEn: string | null;
 }
 
 export interface ResolvedConflict {
@@ -99,7 +102,10 @@ export class ConflictEngineService {
 
     const meetings = await manager.getRepository(Meeting).find({
       where: { id: In(rows.map((r) => r.id)) },
-      relations: { participants: true, organizer: { designation: true } },
+      relations: {
+        participants: true,
+        organizer: { designation: true, wing: true },
+      },
     });
     return meetings.map((m) => ({
       id: m.id,
@@ -114,6 +120,8 @@ export class ConflictEngineService {
       organizerNameEn: m.organizer.nameEn,
       organizerDesignationBn: m.organizer.designation?.nameBn ?? null,
       organizerDesignationEn: m.organizer.designation?.nameEn ?? null,
+      organizerWingBn: m.organizer.wing?.nameBn ?? null,
+      organizerWingEn: m.organizer.wing?.nameEn ?? null,
     }));
   }
 

@@ -412,6 +412,8 @@ function toItem(m: ReportMeeting): ReportMeetingDto {
     organizerNameEn: m.organizerNameEn,
     organizerDesignationBn: m.organizerDesignationBn,
     organizerDesignationEn: m.organizerDesignationEn,
+    organizerWingBn: m.organizerWingBn,
+    organizerWingEn: m.organizerWingEn,
     myRole: m.myRole,
     chairNameBn: m.chairNameBn,
     chairNameEn: m.chairNameEn,

@@ -129,7 +129,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
       const common = {
         title: values.title.trim(),
         agenda: values.agenda.trim() || null,
-        room: values.room.trim() || null,
+        room: values.room.trim(),
         onlineLink: values.onlineLink.trim() || null,
         chairId:
           values.chairId && !values.chairId.startsWith(GUEST_CHAIR_PREFIX) ? values.chairId : null,
@@ -257,6 +257,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                 <Input
                   id="room"
                   label={t.meetingForm.room}
+                  required
                   placeholder={t.meetingForm.roomPlaceholder}
                   error={errors.room?.message}
                   {...form.register("room")}

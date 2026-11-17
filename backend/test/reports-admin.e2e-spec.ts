@@ -114,6 +114,7 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
           title,
           startAt: at(start),
           endAt: at(end),
+          room: 'সম্মেলন কক্ষ',
           participantIds: participants,
         })
         .expect(201);

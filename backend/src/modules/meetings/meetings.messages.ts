@@ -18,6 +18,9 @@ export const MEETING_MESSAGES = {
   blocking:
     'নির্বাচিত সময়ে এক বা একাধিক কর্মকর্তার সমান বা উচ্চতর অগ্রাধিকারের সভা আছে। সময় বা অংশগ্রহণকারী পরিবর্তন করুন।',
   hiddenTitle: 'অন্য একটি সভা',
+  /** v1.9: the venue (স্থান, field `room`) is required on create and edit. */
+  venueRequired: 'স্থান লিখতে হবে।',
+  venueTooLong: 'স্থান সর্বোচ্চ ১০০ অক্ষরের হতে পারে।',
   scopeAllAdminOnly: 'সব সভা দেখার অনুমতি শুধু প্রশাসকের আছে।',
   oneChair: 'সভাপতি একজনই হতে পারেন: একজন কর্মকর্তা অথবা একজন অতিথি কর্মকর্তা।',
   guestDuplicateEmail: (email: string) =>

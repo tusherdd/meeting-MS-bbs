@@ -8,7 +8,11 @@ import {
 import { NotificationType } from '../notifications/enums/notification-type.enum';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { LoadedMeeting } from './conflict-engine.service';
-import { formatDhakaRange } from './meeting-format';
+import {
+  formatDhakaRange,
+  NO_VENUE_BN,
+  organizerLabelBn,
+} from './meeting-format';
 
 /** What the notices need about a meeting. */
 export interface MeetingInfo {
@@ -21,6 +25,8 @@ export interface MeetingInfo {
   onlineLink: string | null;
   organizerNameBn: string;
   organizerDesignationBn: string | null;
+  /** Organizer's current wing: what notices show as "আয়োজক" (v1.9; no wing → designation). */
+  organizerWingBn: string | null;
   /** "name, designation" of the chair (officer or guest); null = no chair. */
   chairLine: string | null;
   /**
@@ -44,14 +50,15 @@ export interface GuestRecipient {
 
 const link = (id: string) => `/meetings/${id}`;
 
+/** "আয়োজক: <wing>" (or the designation when the organizer has no wing), v1.9. */
 function organizerLine(m: MeetingInfo): string {
-  return `আয়োজক: ${m.organizerNameBn}${m.organizerDesignationBn ? ` (${m.organizerDesignationBn})` : ''}`;
+  return `আয়োজক: ${organizerLabelBn(m.organizerWingBn, m.organizerDesignationBn)}`;
 }
 
 function detailLines(m: MeetingInfo): string[] {
   return [
     `সময়: ${formatDhakaRange(m.startAt, m.endAt)}`,
-    ...(m.room ? [`স্থান: ${m.room}`] : []),
+    m.room ? `স্থান: ${m.room}` : NO_VENUE_BN,
     ...(m.onlineLink ? [`Online Link: ${m.onlineLink}`] : []),
     organizerLine(m),
   ];
@@ -259,9 +266,10 @@ export class MeetingNotifierService {
           room: m.room,
           onlineLink: m.onlineLink,
           agenda: m.agenda,
-          organizer: m.organizerDesignationBn
-            ? `${m.organizerNameBn}, ${m.organizerDesignationBn}`
-            : m.organizerNameBn,
+          organizer: organizerLabelBn(
+            m.organizerWingBn,
+            m.organizerDesignationBn,
+          ),
           chair: m.chairLine,
         },
         changes: extra.changes,

@@ -10,7 +10,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { escapeHtml } from '../../../common/utils/html';
 import { toBanglaDigits } from '../../../common/utils/digits';
-import { formatDhakaRange } from '../../meetings/meeting-format';
+import {
+  formatDhakaRange,
+  NO_VENUE_BN,
+  organizerLabelBn,
+} from '../../meetings/meeting-format';
 import type { DayCount, ReportMeeting, StatusCounts } from '../report-math';
 
 export const REPORT_TITLE_BN = 'বাংলাদেশ পরিসংখ্যান ব্যুরো — সভা প্রতিবেদন';
@@ -195,8 +199,9 @@ export function renderReportHtml(input: {
       // System-generated time range (already Bangla); title, room and names are user text.
       sys(formatDhakaRange(m.startAt, m.endAt)),
       m.title,
-      m.room ?? '—',
-      `${m.organizerNameBn}${m.organizerDesignationBn ? ` (${m.organizerDesignationBn})` : ''}`,
+      m.room ?? NO_VENUE_BN,
+      // v1.9: the organizer is shown as their current wing (no wing → designation).
+      organizerLabelBn(m.organizerWingBn, m.organizerDesignationBn),
       m.chairNameBn ?? '—',
       ...(input.showMyRole ? [m.myRole ? ROLE_BN[m.myRole] : '—'] : []),
       STATUS_BN[m.status] ?? m.status,

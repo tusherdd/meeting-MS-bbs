@@ -162,9 +162,12 @@ export function MeetingsBarChart({
 export function ReportMeetingsTable({
   meetings,
   showMyRole,
+  organizerAs = "wing",
 }: {
   meetings: ReportMeeting[];
   showMyRole: boolean;
+  /** v1.9: my report shows the organizer's wing; the admin office report keeps the person. */
+  organizerAs?: "wing" | "person";
 }) {
   const t = useT();
   const names = useNames();
@@ -211,11 +214,22 @@ export function ReportMeetingsTable({
             </Td>
             <Td>{m.room ?? <span className="text-slate-500">{t.meeting.noRoom}</span>}</Td>
             <Td>
-              {names.pick(m.organizerNameBn, m.organizerNameEn)}
-              {m.organizerDesignationBn && (
-                <span className="block text-xs text-slate-600">
-                  {names.pick(m.organizerDesignationBn, m.organizerDesignationEn)}
-                </span>
+              {organizerAs === "wing" ? (
+                names.organizerFrom(
+                  m.organizerWingBn,
+                  m.organizerWingEn,
+                  m.organizerDesignationBn,
+                  m.organizerDesignationEn,
+                )
+              ) : (
+                <>
+                  {names.pick(m.organizerNameBn, m.organizerNameEn)}
+                  {m.organizerDesignationBn && (
+                    <span className="block text-xs text-slate-600">
+                      {names.pick(m.organizerDesignationBn, m.organizerDesignationEn)}
+                    </span>
+                  )}
+                </>
               )}
             </Td>
             <Td>{names.pickOptional(m.chairNameBn, m.chairNameEn) ?? "—"}</Td>

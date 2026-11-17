@@ -1,4 +1,9 @@
-import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  OmitType,
+  PartialType,
+} from '@nestjs/swagger';
 import { Transform, Type, type TransformFnParams } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -16,6 +21,8 @@ import {
   Length,
   Matches,
   MaxLength,
+  ValidateBy,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
@@ -27,12 +34,36 @@ import {
 import { normalizeBangla } from '../../../common/utils/bangla';
 import { ConflictStatus } from '../enums/conflict-status.enum';
 import { MeetingStatus } from '../enums/meeting-status.enum';
+import { MEETING_MESSAGES } from '../meetings.messages';
 
 /** ISO 8601 date-time WITH an explicit offset (Z or ±hh:mm), e.g. 2026-12-01T10:30:00+06:00. */
 const ISO_WITH_OFFSET =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
 const TIME_MESSAGE =
   'সময় ISO 8601 আকারে, অফসেটসহ দিন (যেমন 2026-12-01T10:30:00+06:00)।';
+
+export const VENUE_MAX_LENGTH = 100;
+
+/**
+ * The venue (স্থান, field `room`, v1.9): a non-empty text of at most 100 characters after
+ * trimming (`trimToNull` runs first, so "" and "   " arrive as null). One message per problem:
+ * missing/empty → "স্থান লিখতে হবে।", too long → the length message.
+ */
+function IsVenue(): PropertyDecorator {
+  return ValidateBy({
+    name: 'isVenue',
+    validator: {
+      validate: (value: unknown) =>
+        typeof value === 'string' &&
+        value.trim() !== '' &&
+        value.length <= VENUE_MAX_LENGTH,
+      defaultMessage: (args) =>
+        typeof args?.value === 'string' && args.value.trim() !== ''
+          ? MEETING_MESSAGES.venueTooLong
+          : MEETING_MESSAGES.venueRequired,
+    },
+  });
+}
 
 /** Trimmed, inner whitespace collapsed, Bangla nukta letters in the stored form (§13.13). */
 const trimBangla = (params: TransformFnParams): unknown => {
@@ -117,16 +148,15 @@ export class CreateMeetingDto {
   @IsISO8601({ strict: true }, { message: TIME_MESSAGE })
   endAt!: string;
 
-  @ApiPropertyOptional({
-    type: String,
-    nullable: true,
-    example: 'সম্মেলন কক্ষ, ৫ম তলা, পরিসংখ্যান ভবন',
+  @ApiProperty({
+    example: 'সম্মেলন কক্ষ (কক্ষ নং ৫০১)',
+    maxLength: VENUE_MAX_LENGTH,
+    description:
+      'Venue (স্থান / Venue in the UI), required since v1.9: a room or "অনলাইন"',
   })
-  @IsOptional()
   @Transform(trimToNull)
-  @IsString({ message: 'কক্ষের নাম লেখা হতে হবে।' })
-  @MaxLength(100, { message: 'কক্ষের নাম সর্বোচ্চ ১০০ অক্ষরের হতে পারে।' })
-  room?: string | null;
+  @IsVenue()
+  room!: string;
 
   @ApiPropertyOptional({
     type: String,
@@ -185,12 +215,40 @@ export class CreateMeetingDto {
 
 /**
  * Any subset. `participantIds` and `guests` replace the whole list; `null` clears
- * room/link/chair/agenda.
+ * link/chair/agenda. The venue (`room`) can be changed but never cleared (v1.9): when sent it
+ * must not be empty; when left out it stays as stored, and a meeting stored without a venue
+ * cannot be edited until one is given (checked in the service).
  * The conflict engine re-runs only when the time or the people change.
  */
-export class UpdateMeetingDto extends PartialType(CreateMeetingDto) {}
+export class UpdateMeetingDto extends PartialType(
+  OmitType(CreateMeetingDto, ['room'] as const),
+) {
+  @ApiPropertyOptional({
+    example: 'সম্মেলন কক্ষ (কক্ষ নং ৫০১)',
+    maxLength: VENUE_MAX_LENGTH,
+    description:
+      'Venue; omit to keep it. null or empty is rejected ("স্থান লিখতে হবে।")',
+  })
+  @ValidateIf((o: { room?: unknown }) => o.room !== undefined)
+  @Transform(trimToNull)
+  @IsVenue()
+  room?: string;
+}
 
-export class CheckConflictsDto extends CreateMeetingDto {
+/** Live dry run: the venue is not needed (it is never part of the conflict check). */
+export class CheckConflictsDto extends OmitType(CreateMeetingDto, [
+  'room',
+] as const) {
+  @ApiPropertyOptional({
+    example: 'সম্মেলন কক্ষ (কক্ষ নং ৫০১)',
+    maxLength: VENUE_MAX_LENGTH,
+    description: 'Optional here; ignored by the check',
+  })
+  @IsOptional()
+  @Transform(trimToNull)
+  @IsVenue()
+  room?: string | null;
+
   @ApiPropertyOptional({
     format: 'uuid',
     description:

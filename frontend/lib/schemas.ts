@@ -108,7 +108,12 @@ export function createSchemas(t: Messages) {
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t.meetingForm.dateRequired),
       startTime: z.string().regex(/^\d{2}:\d{2}$/, t.meetingForm.timeRequired),
       endTime: z.string().regex(/^\d{2}:\d{2}$/, t.meetingForm.timeRequired),
-      room: z.string().trim().max(100, t.meetingForm.roomTooLong),
+      // v1.9: the venue is required (same rule as the backend DTO).
+      room: z
+        .string()
+        .trim()
+        .min(1, t.meetingForm.roomRequired)
+        .max(100, t.meetingForm.roomTooLong),
       onlineLink: z
         .string()
         .trim()

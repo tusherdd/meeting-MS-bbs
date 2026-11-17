@@ -77,7 +77,11 @@ describe('v1.5: chair priority, informational conflicts, guest officers (e2e)', 
   const http = () => request(app.getHttpServer());
   const as = (who: Who) => ({ Authorization: `Bearer ${tokens[who]}` });
   const create = (who: Who, payload: Record<string, unknown>) =>
-    http().post(`${API}/meetings`).set(as(who)).send(payload);
+    // v1.9: a venue is required; tests that check that send `room` themselves.
+    http()
+      .post(`${API}/meetings`)
+      .set(as(who))
+      .send({ room: 'সম্মেলন কক্ষ', ...payload });
   const patch = (who: Who, id: string, payload: Record<string, unknown>) =>
     http().patch(`${API}/meetings/${id}`).set(as(who)).send(payload);
   const detail = (res: request.Response) => res.body as Detail;
@@ -580,9 +584,10 @@ describe('v1.5: chair priority, informational conflicts, guest officers (e2e)', 
         'প্রিয় অতিথি ga',
         'অতিথি কর্মকর্তা হিসেবে',
         'শিরোনাম: অতিথিসহ সভা',
-        'কক্ষ: কক্ষ ৫০১',
+        'স্থান: কক্ষ ৫০১',
         'Online Link: https://meet.example.org/v15',
-        'আয়োজক: উপপরিচালক এক, উপপরিচালক (v1.5)',
+        // v1.9: the organizer is shown as the wing; this one has none → the designation.
+        'আয়োজক: উপপরিচালক (v1.5)',
         'সভাপতি: অতিথি ga, যুগ্মসচিব, পরিকল্পনা মন্ত্রণালয় (অতিথি কর্মকর্তা)',
         '১. বাজেট',
       ]) {

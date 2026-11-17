@@ -5948,7 +5948,7 @@
           "priority"
         ]
       },
-      "PersonDto": {
+      "OrganizerDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -5971,13 +5971,24 @@
                 "$ref": "#/components/schemas/DesignationBriefDto"
               }
             ]
+          },
+          "wing": {
+            "nullable": true,
+            "description": "Organizer's current wing (displayed as the organizer; null → show the designation)",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WingRefDto"
+              }
+            ]
           }
         },
         "required": [
           "id",
           "nameBn",
           "nameEn",
-          "designation"
+          "designation",
+          "wing"
         ]
       },
       "MeetingSummaryDto": {
@@ -6023,7 +6034,7 @@
             "description": "Snapshot: the internal chair's designation priority, else the organizer's (taken on create and when the chair changes). Never shown in the UI."
           },
           "organizer": {
-            "$ref": "#/components/schemas/PersonDto"
+            "$ref": "#/components/schemas/OrganizerDto"
           },
           "myRole": {
             "type": "string",
@@ -6104,11 +6115,6 @@
             "example": "2026-12-01T12:00:00+06:00",
             "description": "After startAt, at most 12 h later"
           },
-          "room": {
-            "type": "string",
-            "nullable": true,
-            "example": "সম্মেলন কক্ষ, ৫ম তলা, পরিসংখ্যান ভবন"
-          },
           "onlineLink": {
             "type": "string",
             "nullable": true,
@@ -6136,6 +6142,12 @@
             "items": {
               "$ref": "#/components/schemas/MeetingGuestInputDto"
             }
+          },
+          "room": {
+            "type": "object",
+            "example": "সম্মেলন কক্ষ (কক্ষ নং ৫০১)",
+            "maxLength": 100,
+            "description": "Optional here; ignored by the check"
           },
           "meetingId": {
             "type": "string",
@@ -6171,13 +6183,27 @@
             "type": "string",
             "nullable": true,
             "example": "Deputy Director"
+          },
+          "wing": {
+            "type": "string",
+            "nullable": true,
+            "example": "কম্পিউটার উইং",
+            "description": "Current wing (Bangla, v1.9; displayed as the organizer, null → designation)"
+          },
+          "wingEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Computer Wing",
+            "description": "Current wing (English, v1.9)"
           }
         },
         "required": [
           "name",
           "nameEn",
           "designation",
-          "designationEn"
+          "designationEn",
+          "wing",
+          "wingEn"
         ]
       },
       "OfficerRefDto": {
@@ -6279,6 +6305,38 @@
           "allowed",
           "blocking",
           "willNotify"
+        ]
+      },
+      "PersonDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          },
+          "designation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DesignationBriefDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn",
+          "designation"
         ]
       },
       "MeetingGuestDto": {
@@ -6415,6 +6473,18 @@
             "example": "Deputy Director",
             "description": "Organizer's designation (English, v1.7)"
           },
+          "organizerWing": {
+            "type": "string",
+            "nullable": true,
+            "example": "কম্পিউটার উইং",
+            "description": "Organizer's current wing (Bangla, v1.9; displayed as the organizer, null → designation)"
+          },
+          "organizerWingEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Computer Wing",
+            "description": "Organizer's current wing (English, v1.9)"
+          },
           "organizedByMe": {
             "type": "boolean",
             "example": false,
@@ -6431,6 +6501,8 @@
           "status",
           "organizerDesignation",
           "organizerDesignationEn",
+          "organizerWing",
+          "organizerWingEn",
           "organizedByMe"
         ]
       },
@@ -6520,7 +6592,7 @@
             "description": "Snapshot: the internal chair's designation priority, else the organizer's (taken on create and when the chair changes). Never shown in the UI."
           },
           "organizer": {
-            "$ref": "#/components/schemas/PersonDto"
+            "$ref": "#/components/schemas/OrganizerDto"
           },
           "myRole": {
             "type": "string",
@@ -6644,8 +6716,9 @@
           },
           "room": {
             "type": "string",
-            "nullable": true,
-            "example": "সম্মেলন কক্ষ, ৫ম তলা, পরিসংখ্যান ভবন"
+            "example": "সম্মেলন কক্ষ (কক্ষ নং ৫০১)",
+            "maxLength": 100,
+            "description": "Venue (স্থান / Venue in the UI), required since v1.9: a room or \"অনলাইন\""
           },
           "onlineLink": {
             "type": "string",
@@ -6679,7 +6752,8 @@
         "required": [
           "title",
           "startAt",
-          "endAt"
+          "endAt",
+          "room"
         ]
       },
       "MeetingConflictErrorDto": {
@@ -6742,11 +6816,6 @@
             "example": "2026-12-01T12:00:00+06:00",
             "description": "After startAt, at most 12 h later"
           },
-          "room": {
-            "type": "string",
-            "nullable": true,
-            "example": "সম্মেলন কক্ষ, ৫ম তলা, পরিসংখ্যান ভবন"
-          },
           "onlineLink": {
             "type": "string",
             "nullable": true,
@@ -6774,6 +6843,12 @@
             "items": {
               "$ref": "#/components/schemas/MeetingGuestInputDto"
             }
+          },
+          "room": {
+            "type": "string",
+            "example": "সম্মেলন কক্ষ (কক্ষ নং ৫০১)",
+            "maxLength": 100,
+            "description": "Venue; omit to keep it. null or empty is rejected (\"স্থান লিখতে হবে।\")"
           }
         }
       },
@@ -7096,6 +7171,17 @@
             "nullable": true,
             "example": "Secretary"
           },
+          "organizerWingBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "কম্পিউটার উইং",
+            "description": "Organizer's current wing (v1.9: displayed as the organizer; null → designation)"
+          },
+          "organizerWingEn": {
+            "type": "string",
+            "nullable": true,
+            "example": "Computer Wing"
+          },
           "myRole": {
             "type": "string",
             "enum": [
@@ -7137,6 +7223,8 @@
           "organizerNameEn",
           "organizerDesignationBn",
           "organizerDesignationEn",
+          "organizerWingBn",
+          "organizerWingEn",
           "myRole",
           "chairNameBn",
           "chairNameEn",

@@ -13,16 +13,24 @@ import { meetingsApi, queryKeys } from "@/lib/endpoints";
 import type { ConflictListItem, ConflictStatus } from "@/lib/types";
 import { useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
-import { ConflictCard } from "./conflict-card";
+import { ConflictCard, type ConflictOrganizerDisplay } from "./conflict-card";
 
 type Tab = "PENDING" | "RESOLVED" | "ALL";
 
-function ConflictItems({ items, empty }: { items: ConflictListItem[]; empty: string }) {
+function ConflictItems({
+  items,
+  empty,
+  organizerAs = "wing",
+}: {
+  items: ConflictListItem[];
+  empty: string;
+  organizerAs?: ConflictOrganizerDisplay;
+}) {
   if (items.length === 0) return <EmptyState title={empty} />;
   return (
     <ul className="space-y-3 p-4 sm:p-5">
       {items.map((c) => (
-        <ConflictCard key={c.id} conflict={c} />
+        <ConflictCard key={c.id} conflict={c} organizerAs={organizerAs} />
       ))}
     </ul>
   );
@@ -55,7 +63,7 @@ function MyConflicts({ status }: { status: ConflictStatus }) {
   );
 }
 
-function AllConflicts() {
+function AllConflicts({ organizerAs = "wing" }: { organizerAs?: ConflictOrganizerDisplay }) {
   const t = useT();
   const [status, setStatus] = useState<ConflictStatus | "">("PENDING");
   const [page, setPage] = useState(1);
@@ -90,7 +98,11 @@ function AllConflicts() {
         </div>
       ) : (
         <div aria-busy={list.isFetching}>
-          <ConflictItems items={list.data.items} empty={t.conflictsPage.emptyResolved} />
+          <ConflictItems
+            items={list.data.items}
+            empty={t.conflictsPage.emptyResolved}
+            organizerAs={organizerAs}
+          />
           <Pagination page={page} totalPages={list.data.totalPages} onChange={setPage} />
         </div>
       )}
@@ -107,7 +119,8 @@ export function ConflictsView({ scope = "mine" }: { scope?: "mine" | "all" }) {
       <div className="space-y-6">
         <h1 className="text-2xl font-semibold text-slate-900">{t.admin.conflictsTitle}</h1>
         <Card>
-          <AllConflicts />
+          {/* /admin/conflicts is an admin page: no wing display there (v1.9). */}
+          <AllConflicts organizerAs="designation" />
         </Card>
       </div>
     );

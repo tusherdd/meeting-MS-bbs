@@ -132,7 +132,11 @@ export function OfficeReportView() {
                 </span>
               }
             />
-            <ReportMeetingsTable meetings={data.meetings.items} showMyRole={false} />
+            <ReportMeetingsTable
+              meetings={data.meetings.items}
+              showMyRole={false}
+              organizerAs="person"
+            />
             <Pagination
               page={data.meetings.page}
               totalPages={data.meetings.totalPages}

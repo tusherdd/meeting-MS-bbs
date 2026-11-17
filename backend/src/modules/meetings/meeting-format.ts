@@ -29,3 +29,18 @@ export function formatDhakaRange(startAt: Date, endAt: Date): string {
     : `${e.toFormat('d MMMM yyyy')}, ${formatDhakaTime(endAt)}`;
   return `${day}, ${formatDhakaTime(startAt)} – ${end}`;
 }
+
+/** Shown wherever a meeting has no venue (meetings created before v1.9, SPEC.md §13.17). */
+export const NO_VENUE_BN = 'স্থান উল্লেখ নেই';
+
+/**
+ * How the organizer of a meeting is DISPLAYED (v1.9, SPEC.md §13.17): the organizer's current
+ * wing, or their designation when they have no wing. Bangla (PDF, mails, bell notifications).
+ * Deliveries still go to the organizer person; only the shown text changes.
+ */
+export function organizerLabelBn(
+  wingBn: string | null | undefined,
+  designationBn: string | null | undefined,
+): string {
+  return wingBn?.trim() || designationBn?.trim() || '—';
+}

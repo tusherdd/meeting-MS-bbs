@@ -1,4 +1,9 @@
-import { formatDhakaRange, formatDhakaTime } from './meeting-format';
+import {
+  formatDhakaRange,
+  formatDhakaTime,
+  NO_VENUE_BN,
+  organizerLabelBn,
+} from './meeting-format';
 
 describe('Dhaka time formatting (Bangla)', () => {
   it('formats in Asia/Dhaka with Bangla digits and part of day', () => {
@@ -28,5 +33,26 @@ describe('Dhaka time formatting (Bangla)', () => {
         new Date('2026-11-30T20:00:00Z'),
       ),
     ).toMatch(/^১ ডিসেম্বর/);
+  });
+});
+
+describe('organizerLabelBn (v1.9: organizer shown as the wing)', () => {
+  it('shows the wing', () => {
+    expect(organizerLabelBn('কম্পিউটার উইং', 'উপপরিচালক')).toBe(
+      'কম্পিউটার উইং',
+    );
+  });
+
+  it('falls back to the designation when there is no wing', () => {
+    expect(organizerLabelBn(null, 'উপপরিচালক')).toBe('উপপরিচালক');
+    expect(organizerLabelBn('  ', 'উপপরিচালক')).toBe('উপপরিচালক');
+  });
+
+  it('shows a dash when there is neither', () => {
+    expect(organizerLabelBn(null, null)).toBe('—');
+  });
+
+  it('has one text for a missing venue', () => {
+    expect(NO_VENUE_BN).toBe('স্থান উল্লেখ নেই');
   });
 });

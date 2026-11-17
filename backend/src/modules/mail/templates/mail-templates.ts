@@ -257,7 +257,7 @@ export interface GuestMeetingDetails {
   room: string | null;
   onlineLink: string | null;
   agenda: string | null;
-  /** "name, designation" */
+  /** The organizer as displayed: their wing, or their designation without one (v1.9). */
   organizer: string;
   /** "name, designation" of the officer or guest chair; null = no chair. */
   chair: string | null;
@@ -302,7 +302,7 @@ export function guestMeetingMail(input: {
   const details: Array<[string, string]> = [
     ['শিরোনাম', m.title],
     ['তারিখ ও সময়', m.when],
-    ['কক্ষ', m.room ?? '—'],
+    ['স্থান', m.room ?? 'স্থান উল্লেখ নেই'],
     ['Online Link', m.onlineLink ?? '—'],
     ['আয়োজক', m.organizer],
     ['সভাপতি', m.chair ?? '—'],
