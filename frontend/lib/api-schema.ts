@@ -2290,8 +2290,6 @@ export interface components {
              * @example 5
              */
             complete: number;
-            /** @description I organize or chair at least one meeting (shows the dashboard card) */
-            leads: boolean;
         };
         DecisionUploaderDto: {
             /** Format: uuid */

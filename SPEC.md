@@ -480,7 +480,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 ### Meeting decisions (v1.11, §6.9)
 | Method | Path | Access | Purpose |
 |---|---|---|---|
-| GET | `/decisions/summary` | 👤 | Pending / Complete counts of meetings I organize or chair (+ `leads`) |
+| GET | `/decisions/summary` | 👤 | Pending / Complete counts of meetings I organize or chair (sidebar count, `/decisions` tabs) |
 | GET | `/decisions?as=lead\|member&status=PENDING\|COMPLETE` | 👤 | Meetings by decision status (members: Pending only) |
 | GET | `/meetings/:id/decision` | 👤 | Status, files, what I may do (its people and admins; others 403) |
 | POST | `/meetings/:id/decision/files` | 👤 | Upload (multipart `files`; organizer, chair, members; after the start; not cancelled) |
@@ -1175,8 +1175,9 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
 - **`/decisions`** ("সভা সিদ্ধান্ত"): tabs "Pending (n)" and "Complete (n)" with the meetings I organize or chair (meeting
   rows with the three-dot menu, paginated); below, the section "আমি সদস্য" / "As member": meetings where I am only a
   member and the decision is Pending (no counts for members), so members can upload.
-- **Dashboard:** for users who organize or chair any meeting (`leads`), a card "সভা সিদ্ধান্ত" with the Pending and
-  Complete counts and a link to `/decisions`.
+- **Dashboard:** no decision card. (A "সভা সিদ্ধান্ত" card with Pending / Complete counts shipped in v1.11 and was
+  removed the same day, owner decision 2026-11-17; the `leads` field of `GET /decisions/summary`, used only by it,
+  was removed too.)
 - **`/meetings/:id/decision`:** meeting summary (title, date and time, venue, organizer as the wing), status badge
   (Pending amber / Complete green; a note instead when the meeting has not started or is cancelled), the upload form
   (only when allowed: a labelled native file input with `multiple`, no icons; client pre-check of type, size and

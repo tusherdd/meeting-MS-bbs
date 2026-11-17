@@ -101,12 +101,6 @@ export class DecisionSummaryDto {
     description: 'Meetings I organize or chair whose decision is Complete',
   })
   complete!: number;
-
-  @ApiProperty({
-    description:
-      'I organize or chair at least one meeting (shows the dashboard card)',
-  })
-  leads!: boolean;
 }
 
 export class DecisionListQueryDto extends PaginationQueryDto {

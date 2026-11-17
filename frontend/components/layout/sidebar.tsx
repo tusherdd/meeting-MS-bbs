@@ -11,7 +11,7 @@ import { isActivePath, navFor } from "./nav-items";
 
 /**
  * v1.11: number of Pending decisions of meetings I organize or chair; hidden when 0. Shared cache
- * with the dashboard card and /decisions (refreshed with every meeting change).
+ * with /decisions (refreshed with every meeting change).
  */
 function DecisionCount() {
   const t = useT();

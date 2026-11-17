@@ -3,7 +3,6 @@
 import clsx from "clsx";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type KeyboardEvent } from "react";
-import { DecisionCard } from "@/components/decisions/decision-card";
 import { ErrorAlert } from "@/components/ui/alert";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -100,8 +99,6 @@ export function DashboardView() {
       )}
 
       <SummaryRow />
-
-      <DecisionCard />
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 pt-3 sm:px-5">

@@ -13,13 +13,13 @@ import {
 /**
  * v1.11 (SPEC.md §6.9, §13.19): meeting decisions "সভা সিদ্ধান্ত".
  * A member opens "Upload decision" from the row menu, uploads a PDF and the status turns
- * Complete; the organizer sees the counts in the sidebar, on the dashboard card and in the
- * /decisions tabs (the numbers come from the same API, so other test meetings do not matter).
+ * Complete; the organizer sees the counts in the sidebar and in the /decisions tabs (the numbers
+ * come from the same API, so other test meetings do not matter). The dashboard has no decision
+ * card (removed after v1.11, owner decision 2026-11-17).
  */
 interface Summary {
   pending: number;
   complete: number;
-  leads: boolean;
 }
 
 const PDF = Buffer.from(
@@ -42,12 +42,11 @@ async function expectOrganizerCounts(page: Page, s: Summary) {
   } else {
     await expect(nav.getByTestId("nav-decision-count")).toHaveCount(0);
   }
-  // Dashboard card.
-  const card = page.getByTestId("decision-card");
-  await expect(card.getByTestId("decision-card-pending")).toHaveText(toBanglaDigits(s.pending));
-  await expect(card.getByTestId("decision-card-complete")).toHaveText(toBanglaDigits(s.complete));
-  // /decisions tabs with counts.
-  await card.getByRole("link", { name: bn.decisions.cardLink }).click();
+  // No decision card on the dashboard.
+  await expect(page.getByRole("heading", { name: bn.dashboard.title, level: 1 })).toBeVisible();
+  await expect(page.getByTestId("decision-card")).toHaveCount(0);
+  // /decisions tabs with counts, reached through the sidebar item.
+  await navLink.click();
   await expect(page).toHaveURL(/\/decisions$/);
   await expect(page.getByRole("heading", { name: bn.decisions.title, level: 1 })).toBeVisible();
   await expect(

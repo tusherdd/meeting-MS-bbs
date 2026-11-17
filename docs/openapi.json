@@ -7489,16 +7489,11 @@
             "type": "number",
             "example": 5,
             "description": "Meetings I organize or chair whose decision is Complete"
-          },
-          "leads": {
-            "type": "boolean",
-            "description": "I organize or chair at least one meeting (shows the dashboard card)"
           }
         },
         "required": [
           "pending",
-          "complete",
-          "leads"
+          "complete"
         ]
       },
       "DecisionUploaderDto": {

@@ -353,7 +353,7 @@ describe('v1.11: meeting decisions (e2e)', () => {
     it('organizer: Pending / Complete counts and lists; member: only the Pending member list', async () => {
       const before = (
         await http().get(`${API}/decisions/summary`).set(as('org')).expect(200)
-      ).body as { pending: number; complete: number; leads: boolean };
+      ).body as { pending: number; complete: number };
       const pendingId = await meeting(93, 'অপেক্ষমাণ সভা');
       const doneId = await meeting(94, 'সম্পন্ন সিদ্ধান্ত সভা');
       await upload('chair', doneId, 'scan.pdf', PDF).expect(201);
@@ -361,7 +361,6 @@ describe('v1.11: meeting decisions (e2e)', () => {
       const after = (
         await http().get(`${API}/decisions/summary`).set(as('org')).expect(200)
       ).body as typeof before;
-      expect(after.leads).toBe(true);
       expect(after.pending).toBe(before.pending + 1);
       expect(after.complete).toBe(before.complete + 1);
 
@@ -399,7 +398,7 @@ describe('v1.11: meeting decisions (e2e)', () => {
           .set(as('member'))
           .expect(200)
       ).body as typeof before;
-      expect(memberSummary).toEqual({ pending: 0, complete: 0, leads: false });
+      expect(memberSummary).toEqual({ pending: 0, complete: 0 });
     });
   });
 });

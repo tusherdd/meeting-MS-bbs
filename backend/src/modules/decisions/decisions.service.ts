@@ -373,7 +373,7 @@ export class DecisionsService {
     actor: AuthUser,
     now = new Date(),
   ): Promise<DecisionSummaryDto> {
-    const [pending, complete, leads] = await Promise.all([
+    const [pending, complete] = await Promise.all([
       this.listQuery(actor, LEAD_ROLES, DecisionStatus.PENDING, now).getCount(),
       this.listQuery(
         actor,
@@ -381,18 +381,8 @@ export class DecisionsService {
         DecisionStatus.COMPLETE,
         now,
       ).getCount(),
-      this.dataSource
-        .getRepository(Meeting)
-        .createQueryBuilder('m')
-        .innerJoin(
-          'm.participants',
-          'mine',
-          'mine.userId = :me AND mine.role IN (:...roles)',
-          { me: actor.id, roles: LEAD_ROLES },
-        )
-        .getExists(),
     ]);
-    return { pending, complete, leads };
+    return { pending, complete };
   }
 
   async list(
