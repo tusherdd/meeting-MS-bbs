@@ -2,8 +2,14 @@
   "extends": "./tsconfig.json",
   "exclude": [
     "node_modules",
-    "test",
     "dist",
+    "coverage",
+    "screenshots",
+    "test-results",
+    "assets",
+    "uploads",
+    "tmp",
+    "test",
     "**/*spec.ts",
     "scripts"
   ]

@@ -29,9 +29,13 @@ export class Semaphore {
   }
 }
 
+/** Close the shared browser after this long without a render (it restarts on the next PDF). */
+export const BROWSER_IDLE_CLOSE_MS = 5 * 60_000;
+
 /**
  * HTML → A4 PDF with Puppeteer (SPEC.md §3: needed for correct Bangla shaping).
- * - One browser for the whole app (started on first use, closed on shutdown).
+ * - One shared browser, launched lazily on the first PDF request (never at app start), reused
+ *   by later renders, closed after BROWSER_IDLE_CLOSE_MS without renders and on shutdown.
  * - At most 2 renders at once, 30 s limit per render.
  * - JavaScript is disabled and EVERY network request is blocked: templates are self-contained
  *   (the Bangla font is embedded as a data: URL), so a report can never fetch anything.
@@ -41,10 +45,20 @@ export class PdfService implements OnApplicationShutdown {
   private readonly logger = new Logger(PdfService.name);
   private readonly slots = new Semaphore(MAX_CONCURRENT_RENDERS);
   private browser?: Promise<Browser>;
-  private closing = false;
+  /** Browsers we close on purpose (idle/shutdown): their "disconnected" is not a crash. */
+  private readonly closedOnPurpose = new WeakSet<Browser>();
+  private activeRenders = 0;
+  private idleTimer?: NodeJS.Timeout;
 
   async render(html: string): Promise<Buffer> {
-    return this.slots.run(() => this.withTimeout(this.renderNow(html)));
+    this.activeRenders++;
+    this.clearIdleTimer();
+    try {
+      return await this.slots.run(() => this.withTimeout(this.renderNow(html)));
+    } finally {
+      this.activeRenders--;
+      if (this.activeRenders === 0) this.scheduleIdleClose();
+    }
   }
 
   private async renderNow(html: string): Promise<Buffer> {
@@ -92,22 +106,27 @@ export class PdfService implements OnApplicationShutdown {
     }
   }
 
-  private getBrowser(): Promise<Browser> {
+  /** Starts Chromium. Separate method so unit tests can replace it. */
+  protected async launchBrowser(): Promise<Browser> {
     // Puppeteer is an ES module: loaded with a dynamic import (works in Node and in Jest with
     // --experimental-vm-modules) and only when the first PDF is requested.
-    this.browser ??= import('puppeteer')
-      .then(({ default: puppeteer }) =>
-        puppeteer.launch({
-          headless: true,
-          // The Chrome sandbox stays ON. On Linux run the app as a normal user (not root).
-          args: ['--font-render-hinting=none', '--disable-gpu'],
-        }),
-      )
+    const { default: puppeteer } = await import('puppeteer');
+    return puppeteer.launch({
+      headless: true,
+      // The Chrome sandbox stays ON. On Linux run the app as a normal user (not root).
+      args: ['--font-render-hinting=none', '--disable-gpu'],
+    });
+  }
+
+  private getBrowser(): Promise<Browser> {
+    if (this.browser) return this.browser;
+    const launching: Promise<Browser> = this.launchBrowser()
       .then((browser) => {
         browser.on('disconnected', () => {
-          this.browser = undefined;
-          // Expected while shutting down; otherwise Chrome crashed and restarts on next use.
-          if (!this.closing) {
+          // Only forget it if it is still the current browser (a newer one may exist already).
+          if (this.browser === launching) this.browser = undefined;
+          // Expected after an idle/shutdown close; otherwise Chrome crashed and restarts on next use.
+          if (!this.closedOnPurpose.has(browser)) {
             this.logger.warn(
               'PDF browser disconnected; it will be restarted on next use',
             );
@@ -116,18 +135,46 @@ export class PdfService implements OnApplicationShutdown {
         return browser;
       })
       .catch((err: unknown) => {
-        this.browser = undefined;
+        if (this.browser === launching) this.browser = undefined;
         throw err;
       });
-    return this.browser;
+    this.browser = launching;
+    return launching;
+  }
+
+  private scheduleIdleClose(): void {
+    if (!this.browser) return;
+    this.clearIdleTimer();
+    this.idleTimer = setTimeout(() => {
+      this.idleTimer = undefined;
+      if (this.activeRenders > 0) return;
+      void this.closeBrowser().then((closed) => {
+        if (closed) this.logger.log('PDF browser closed after idle time');
+      });
+    }, BROWSER_IDLE_CLOSE_MS);
+    // The timer alone must never keep the process alive (tests, shutdown).
+    this.idleTimer.unref();
+  }
+
+  private clearIdleTimer(): void {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = undefined;
+  }
+
+  /** Closes the current browser (if any). Returns true when one was closed. */
+  private async closeBrowser(): Promise<boolean> {
+    const current = this.browser;
+    if (!current) return false;
+    this.browser = undefined;
+    const browser = await current.catch(() => undefined);
+    if (!browser) return false;
+    this.closedOnPurpose.add(browser);
+    await browser.close().catch(() => undefined);
+    return true;
   }
 
   async onApplicationShutdown(): Promise<void> {
-    if (!this.browser) return;
-    this.closing = true;
-    const browser = await this.browser.catch(() => undefined);
-    this.browser = undefined;
-    await browser?.close().catch(() => undefined);
-    this.logger.log('PDF browser closed');
+    this.clearIdleTimer();
+    if (await this.closeBrowser()) this.logger.log('PDF browser closed');
   }
 }

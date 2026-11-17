@@ -14,6 +14,7 @@ import { request } from "@playwright/test";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { components } from "../lib/api-schema";
+import { killOrphanPlaywrightBrowsers } from "./support/orphans";
 import {
   BACKEND_URL,
   FRONTEND_ORIGIN,
@@ -215,6 +216,8 @@ async function resetThrottle() {
 }
 
 export default async function globalSetup() {
+  // Browsers left over from an earlier hard-killed run would only waste memory.
+  killOrphanPlaywrightBrowsers();
   loadEnvFile();
   mkdirSync(STATE_DIR, { recursive: true });
   // Default browser state for every test: Bangla UI (the older specs check Bangla texts).
