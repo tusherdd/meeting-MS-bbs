@@ -146,7 +146,8 @@ export class ReportMeetingDto {
   @ApiProperty({
     enum: ParticipantRole,
     nullable: true,
-    description: 'Personal report only',
+    description:
+      "The viewer's role in this meeting (personal report: the officer's role; office report since v1.10: the admin's own role, null when they are not one of its people)",
   })
   myRole!: ParticipantRole | null;
   @ApiProperty({

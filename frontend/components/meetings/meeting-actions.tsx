@@ -26,10 +26,12 @@ export function meetingPermissions(
   now = new Date(),
 ) {
   const manage = isAdmin || meeting.organizer.id === userId;
+  // v1.10: the internal chair may edit and cancel like the organizer (not complete).
+  const editOrCancel = manage || meeting.chair?.id === userId;
   const scheduled = meeting.status === "SCHEDULED";
   return {
-    edit: manage && scheduled && now < new Date(meeting.endAt),
-    cancel: manage && scheduled,
+    edit: editOrCancel && scheduled && now < new Date(meeting.endAt),
+    cancel: editOrCancel && scheduled,
     complete: manage && scheduled && now >= new Date(meeting.startAt),
     remove: isAdmin,
   };

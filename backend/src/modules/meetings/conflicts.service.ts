@@ -109,6 +109,7 @@ export class ConflictsService {
       organizerWing: m.organizer.wing?.nameBn ?? null,
       organizerWingEn: m.organizer.wing?.nameEn ?? null,
       organizedByMe: m.organizerId === actor.id,
+      chairedByMe: m.chairId === actor.id,
     });
     return rows.map((r) => ({
       id: r.id,

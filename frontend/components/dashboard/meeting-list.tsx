@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { MeetingRowMenu } from "@/components/meetings/meeting-row-menu";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/table";
+import { isOrganizerOrChair } from "@/lib/row-actions";
 
 import type { MeetingSummary } from "@/lib/types";
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
@@ -44,7 +46,10 @@ export function MeetingList({
       {/* Phones */}
       <ul className="divide-y divide-slate-100 md:hidden" data-testid="meeting-list">
         {sorted.map((m) => (
-          <li key={m.id} className="px-4 py-3">
+          <li key={m.id} className="relative px-4 py-3 pr-14">
+            <div className="absolute top-2 right-2">
+              <MeetingRowMenu meeting={m} mine={isOrganizerOrChair(m.myRole)} />
+            </div>
             {showDate && (
               <p className="text-xs text-slate-500">{formatDateWithWeekday(m.startAt)}</p>
             )}
@@ -80,6 +85,9 @@ export function MeetingList({
               <Th>{t.meeting.organizer}</Th>
               <Th>{t.meeting.role}</Th>
               <Th>{t.meeting.statusLabel}</Th>
+              <Th className="w-14">
+                <span className="sr-only">{t.rowMenu.column}</span>
+              </Th>
             </tr>
           </THead>
           <TBody>
@@ -115,6 +123,9 @@ export function MeetingList({
                 </Td>
                 <Td>
                   <StatusBadge status={m.status} />
+                </Td>
+                <Td className="py-2 text-right">
+                  <MeetingRowMenu meeting={m} mine={isOrganizerOrChair(m.myRole)} />
                 </Td>
               </Tr>
             ))}

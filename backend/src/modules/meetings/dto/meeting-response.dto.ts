@@ -167,6 +167,13 @@ export class ConflictMeetingRefDto {
       'True when the current user organizes this meeting (may cancel/reschedule it)',
   })
   organizedByMe!: boolean;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'True when the current user is the internal chair of this meeting (v1.10: may edit/cancel it)',
+  })
+  chairedByMe!: boolean;
 }
 
 export class OfficerRefDto {

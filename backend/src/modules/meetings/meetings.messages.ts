@@ -10,6 +10,13 @@ export const MEETING_MESSAGES = {
   peopleInvalid: 'নির্বাচিত ব্যক্তিদের মধ্যে কেউ Inactive অথবা পাওয়া যায়নি।',
   organizerNoDesignation: 'আপনার কোনো পদবি নেই, তাই সভা আয়োজন করা যাবে না।',
   notOrganizer: 'শুধু সভার আয়োজক অথবা প্রশাসক এই কাজটি করতে পারেন।',
+  /** v1.10: edit and cancel are also allowed for the internal chair. */
+  notOrganizerOrChair:
+    'শুধু সভার আয়োজক, সভাপতি অথবা প্রশাসক এই কাজটি করতে পারেন।',
+  /** v1.10: the meeting notice PDF. */
+  noticeForbidden:
+    'শুধু সভার সংশ্লিষ্ট কর্মকর্তা অথবা প্রশাসক এই সভার নোটিশ নিতে পারেন।',
+  noticeCancelled: 'বাতিল সভার নোটিশ তৈরি করা যাবে না।',
   notScheduled: 'বাতিল বা সম্পন্ন সভা পরিবর্তন করা যাবে না।',
   alreadyEnded:
     'সভাটি ইতিমধ্যে শেষ হয়েছে; শুধু সম্পন্ন হিসেবে চিহ্নিত করে নোট যোগ করা যাবে।',

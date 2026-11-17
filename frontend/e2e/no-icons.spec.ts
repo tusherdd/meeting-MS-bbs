@@ -7,6 +7,8 @@ import { OFFICERS } from "./support/officers";
  * the top header: the notification bell and the profile icon. Everything else is text only.
  * v1.8 (SPEC.md §13.16): the BBS logo is allowed only in the app header (next to the app name,
  * linking to the dashboard) and above the form on login / forgot-password / reset-password.
+ * v1.10: the three-dot "More actions" button of meeting rows is the one allowed exception (its
+ * "⋮" glyph only, aria-hidden, inside the labelled menu button).
  * Checks the layout, header, sidebar, dropdowns, drawer and every built page.
  */
 const ICON_SELECTOR = [
@@ -61,7 +63,30 @@ async function expectNoIcons(page: Page, where: string) {
     `profile icons on ${where}`,
   ).toBeLessThanOrEqual(1);
   expect(allowed.every((a) => a.kind === "bell" || a.kind === "profile")).toBe(true);
-  const text = await page.locator("body").innerText();
+  // v1.10 (owner decision 2026-11-17): the three dots of the meeting row menu are the one
+  // allowed symbol outside the header, only as the aria-hidden glyph inside its labelled button.
+  const glyphs = await page.locator("[data-row-menu-glyph]").evaluateAll((elements) =>
+    elements.map((e) => ({
+      inButton: !!e.closest("button[data-row-menu-button][aria-label][aria-haspopup='menu']"),
+      hidden: e.getAttribute("aria-hidden") === "true",
+      text: e.textContent?.trim(),
+    })),
+  );
+  expect(
+    glyphs.filter((g) => !g.inButton || !g.hidden || g.text !== "\u22ee"),
+    `row menu glyph out of place on ${where}`,
+  ).toEqual([]);
+  const text = await page
+    .locator("body")
+    .evaluate((body) => {
+      // innerText without the allowed glyphs (they are the only "⋮" that may appear).
+      const glyphEls = Array.from(body.querySelectorAll<HTMLElement>("[data-row-menu-glyph]"));
+      const saved = glyphEls.map((g) => g.textContent);
+      glyphEls.forEach((g) => (g.textContent = ""));
+      const result = (body as HTMLElement).innerText;
+      glyphEls.forEach((g, i) => (g.textContent = saved[i]));
+      return result;
+    });
   expect(text, `icon character on ${where}`).not.toMatch(ICON_CHARACTERS);
 
   // The BBS logo: only in its two places.

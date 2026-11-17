@@ -141,6 +141,7 @@ export class ReportsService {
   // ---------------------------------------------------------------- office
 
   async office(
+    actor: AuthUser,
     period: ReportPeriod,
     date: string | undefined,
     filter: OfficeFilter,
@@ -148,7 +149,7 @@ export class ReportsService {
   ): Promise<OfficeReportDto> {
     const p = resolvePeriod(period, date);
     const [meetings, filters] = await Promise.all([
-      this.load(p.range, { office: filter }),
+      this.load(p.range, { office: filter }, actor.id),
       this.filterNames(filter),
     ]);
     const conflicts = await this.officeConflicts(meetings.map((m) => m.id));
@@ -233,7 +234,10 @@ export class ReportsService {
   private async load(
     range: DateRange,
     scope: { personId: string } | { office: OfficeFilter },
+    /** Whose `myRole` to fill: the report's officer, or (office report page) the admin viewer. */
+    viewerArg?: string,
   ): Promise<ReportMeeting[]> {
+    const viewerId = viewerArg ?? ('personId' in scope ? scope.personId : null);
     const qb = this.meetings
       .createQueryBuilder('m')
       .innerJoinAndSelect('m.organizer', 'o')
@@ -266,13 +270,13 @@ export class ReportsService {
     const rows = await qb.getMany();
 
     const roles =
-      'personId' in scope && rows.length > 0
+      viewerId && rows.length > 0
         ? new Map<string, ParticipantRole>(
             (
               await this.dataSource.getRepository(MeetingParticipant).find({
                 select: { meetingId: true, role: true },
                 where: {
-                  userId: scope.personId,
+                  userId: viewerId,
                   meetingId: In(rows.map((r) => r.id)),
                 },
               })

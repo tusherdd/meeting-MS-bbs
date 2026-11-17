@@ -68,7 +68,7 @@ let fontCss: string | undefined;
  *   and slightly enlarged (it draws smaller than Latin fonts at the same size).
  * - Tinos regular and bold: everything else (Latin letters, ASCII digits, punctuation, dashes).
  */
-function embeddedFontCss(): string {
+export function embeddedFontCss(): string {
   if (fontCss) return fontCss;
   const data = (file: string) =>
     readFileSync(reportFontPath(file)).toString('base64');

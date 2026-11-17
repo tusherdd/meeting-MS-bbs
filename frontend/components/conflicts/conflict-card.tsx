@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { StatusBadge } from "@/components/dashboard/meeting-badges";
 import { CancelMeetingModal } from "@/components/meetings/cancel-meeting-modal";
+import { MeetingRowMenu } from "@/components/meetings/meeting-row-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 
@@ -35,12 +36,23 @@ function MeetingSide({
         tone === "higher" ? "border-slate-200 bg-slate-50" : "border-amber-300 bg-amber-50",
       )}
     >
-      <p className="text-xs font-semibold tracking-wide text-slate-500">
-        {label}
-        {meeting.organizedByMe && (
-          <span className="ml-1 text-amber-800">· {t.conflictsPage.mine}</span>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-semibold tracking-wide text-slate-500">
+          {label}
+          {meeting.organizedByMe && (
+            <span className="ml-1 text-amber-800">· {t.conflictsPage.mine}</span>
+          )}
+        </p>
+        {/* v1.10: a meeting whose title is hidden from me cannot be opened, so it has no menu. */}
+        {!meeting.titleHidden && (
+          <div className="-mt-1 -mr-1">
+            <MeetingRowMenu
+              meeting={meeting}
+              mine={meeting.organizedByMe || meeting.chairedByMe}
+            />
+          </div>
         )}
-      </p>
+      </div>
       <Link
         href={`/meetings/${meeting.id}`}
         className="mt-1 block font-semibold text-slate-900 hover:underline"

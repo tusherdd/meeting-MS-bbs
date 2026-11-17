@@ -93,8 +93,12 @@ export class ReportsController {
   })
   @ApiOkResponse({ type: OfficeReportDto })
   @ApiForbiddenResponse({ description: 'Not an admin' })
-  office(@Query() query: OfficeReportQueryDto): Promise<OfficeReportDto> {
+  office(
+    @CurrentUser() user: AuthUser,
+    @Query() query: OfficeReportQueryDto,
+  ): Promise<OfficeReportDto> {
     return this.reports.office(
+      user,
       query.period,
       query.date,
       { wingId: query.wingId, designationId: query.designationId },

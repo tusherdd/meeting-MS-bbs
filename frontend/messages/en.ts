@@ -345,6 +345,17 @@ export const en: Messages = {
     confirmDelete: "Delete permanently",
     deleted: "The meeting has been deleted.",
   },
+  /** v1.10: the "more actions" menu at the end of every meeting row. */
+  rowMenu: {
+    button: "More actions",
+    column: "Actions",
+    view: "View details",
+    exportPdf: "Export PDF",
+    edit: "Edit",
+    cancel: "Cancel",
+    exporting: "Preparing…",
+    exportDone: "The PDF download has started.",
+  },
   meetingsList: {
     title: "Meetings",
     from: "From date",
@@ -810,6 +821,7 @@ export const en: Messages = {
       MEETING_COMPLETE: "Meeting completed",
       MEETING_DELETE: "Meeting deleted",
       MEETING_CHAIR_PRIORITY_APPLIED: "President's designation priority applied",
+      MEETING_NOTICE_EXPORTED: "Meeting notice exported (PDF)",
       CONFLICT_CREATED: "Duplicate meeting found",
       CONFLICT_RESOLVED: "Duplicate meeting resolved",
     },

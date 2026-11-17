@@ -47,6 +47,8 @@ export enum AuditAction {
   MEETING_DELETE = 'MEETING_DELETE',
   /** v1.5: an internal chair (not the organizer) gave the meeting their designation priority. */
   MEETING_CHAIR_PRIORITY_APPLIED = 'MEETING_CHAIR_PRIORITY_APPLIED',
+  /** v1.10: someone downloaded the single-meeting notice PDF ("সভার নোটিশ"). */
+  MEETING_NOTICE_EXPORTED = 'MEETING_NOTICE_EXPORTED',
   CONFLICT_CREATED = 'CONFLICT_CREATED',
   CONFLICT_RESOLVED = 'CONFLICT_RESOLVED',
 }

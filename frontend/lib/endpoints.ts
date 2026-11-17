@@ -183,6 +183,11 @@ export const meetingsApi = {
   complete: (id: string, notes: string | null) =>
     api<MeetingDetail>(`${meetingPath(id)}/complete`, { method: "POST", body: { notes } }),
   remove: (id: string) => api<void>(meetingPath(id), { method: "DELETE" }),
+  /** v1.10: the single-meeting notice "সভার নোটিশ" (always Bangla). */
+  noticePdf: (id: string) =>
+    apiDownload(`${meetingPath(id)}/notice.pdf`, {
+      fallbackName: `meeting-notice-${id.slice(0, 8)}.pdf`,
+    }),
   checkConflicts: (input: CheckConflictsInput, signal?: AbortSignal) =>
     api<CheckConflictsResponse>("/meetings/check-conflicts", {
       method: "POST",

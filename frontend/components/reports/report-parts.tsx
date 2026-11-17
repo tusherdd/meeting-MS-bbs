@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { RoleBadge, StatusBadge } from "@/components/dashboard/meeting-badges";
+import { MeetingRowMenu } from "@/components/meetings/meeting-row-menu";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -11,6 +12,7 @@ import { useToast } from "@/components/ui/toast";
 import { saveBlob, type DownloadedFile } from "@/lib/api";
 
 import { chartBars } from "@/lib/report-period";
+import { isOrganizerOrChair } from "@/lib/row-actions";
 import type { DayCount, PeriodDto, ReportMeeting, StatusCounts } from "@/lib/types";
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
@@ -166,7 +168,10 @@ export function ReportMeetingsTable({
 }: {
   meetings: ReportMeeting[];
   showMyRole: boolean;
-  /** v1.9: my report shows the organizer's wing; the admin office report keeps the person. */
+  /**
+   * v1.9: my report shows the organizer's wing. v1.10: the admin office report page shows the wing
+   * too (like its PDF); "person" is kept for pages that need the name.
+   */
   organizerAs?: "wing" | "person";
 }) {
   const t = useT();
@@ -184,6 +189,9 @@ export function ReportMeetingsTable({
           <Th>{t.reports.chair}</Th>
           {showMyRole && <Th>{t.meeting.role}</Th>}
           <Th>{t.meeting.statusLabel}</Th>
+          <Th className="w-14">
+            <span className="sr-only">{t.rowMenu.column}</span>
+          </Th>
         </tr>
       </THead>
       <TBody>
@@ -240,6 +248,9 @@ export function ReportMeetingsTable({
             )}
             <Td>
               <StatusBadge status={m.status} />
+            </Td>
+            <Td className="py-2 text-right">
+              <MeetingRowMenu meeting={m} mine={isOrganizerOrChair(m.myRole)} />
             </Td>
           </Tr>
         ))}

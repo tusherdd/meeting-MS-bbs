@@ -341,6 +341,17 @@ const bnMessages = {
     confirmDelete: "Delete Permanently",
     deleted: "সভা মুছে ফেলা হয়েছে।",
   },
+  /** v1.10: the three-dot menu at the end of every meeting row (action words stay in English). */
+  rowMenu: {
+    button: "আরও অপশন",
+    column: "অপশন",
+    view: "View details",
+    exportPdf: "Export PDF",
+    edit: "Edit",
+    cancel: "Cancel",
+    exporting: "তৈরি হচ্ছে…",
+    exportDone: "PDF Download শুরু হয়েছে।",
+  },
   meetingsList: {
     title: "সভা",
     from: "শুরুর তারিখ",
@@ -803,6 +814,7 @@ const bnMessages = {
       MEETING_COMPLETE: "সভা সম্পন্ন",
       MEETING_DELETE: "সভা মুছে ফেলা",
       MEETING_CHAIR_PRIORITY_APPLIED: "সভাপতির পদবির অগ্রাধিকার প্রয়োগ",
+      MEETING_NOTICE_EXPORTED: "সভার নোটিশ Export (PDF)",
       CONFLICT_CREATED: "ডুপ্লিকেট সভা শনাক্ত",
       CONFLICT_RESOLVED: "ডুপ্লিকেট সভা মীমাংসা",
     },

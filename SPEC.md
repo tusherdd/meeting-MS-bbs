@@ -98,7 +98,7 @@ Controllers stay thin; business rules live in services. Every endpoint has Swagg
 |---|---|---|
 | `SUPER_ADMIN` | `admin@bbs.gov.bd` (seeded) | Everything. Cannot be demoted or deactivated by anyone. |
 | `ADMIN` | Officers promoted from the admin dashboard | Manage users, designations, wings, approve change requests, see all meetings and admin reports. Cannot change SUPER_ADMIN. |
-| `OFFICER` | Every officer | Own profile, create meetings, edit/cancel meetings they organize, see meetings they are part of, own reports. |
+| `OFFICER` | Every officer | Own profile, create meetings, edit/cancel meetings they organize or chair (internal chair, v1.10), see meetings they are part of, own reports. |
 
 - Accounts are created **only by admins**. No self-registration.
 - Seeded super admin has `mustChangePassword = true`; until changed, only `/auth/change-password`, `/auth/me` and `/auth/logout` work.
@@ -185,13 +185,19 @@ On re-run, the seed updates the priority of an existing designation to match thi
     `MEETING_CHAIR_PRIORITY_APPLIED` (actor, meeting, before `{priority}`, after `{chairId, priority}`).
 - Every officer creates their own meetings. There is **no "on behalf of" option**: nobody can create a meeting
   for someone else. Choosing a chair is how a meeting gets a higher (or lower) priority.
-- Only the organizer or an admin can edit, cancel or complete a meeting.
+- Only the organizer or an admin can complete a meeting. **Edit and cancel (v1.10, owner decision 2026-11-17):**
+  the organizer, the **internal chair** (`meetings.chairId`, an officer) or an admin. A guest chair has no login,
+  so this never applies to guests. Checked in `MeetingsService.assertCanManage` (403 `NOT_ORGANIZER_OR_CHAIR`
+  for others; complete keeps `NOT_ORGANIZER`); the audit log records the real actor; the usual notices
+  (update / cancel / chair assigned, everyone except the actor) and the chair-priority rules (§6.3) apply
+  unchanged. Admin rights are unchanged.
 - `end` must be after `start`. Meetings cannot be created in the past.
 - Room is **not** checked for conflicts.
 - People of a meeting = organizer ∪ chair ∪ participants; the organizer always has a `meeting_participants`
   row (role `ORGANIZER`). Duration at most 12 h; start at most 5 minutes in the past. SUPER_ADMIN (no
   designation) cannot organize or be invited. Meetings that already ended cannot be edited, only completed.
-- Visibility: only the meeting's people and admins can open a meeting; everyone else gets 404.
+- Visibility: only the meeting's people and admins can open a meeting; everyone else gets 404 (exception: the
+  notice PDF answers 403, owner decision 2026-11-17, §6.8).
 - A job every 15 minutes completes SCHEDULED meetings that ended more than 1 hour ago.
 
 ### 6.4 Conflict engine (the core rule)
@@ -288,6 +294,43 @@ People invited to a meeting who are not in the database. They never log in.
   as the organizer's wing since v1.9, §13.17 —, chair) and no link that needs a login; never a password.
 - `GET /meetings/:id` returns `guests` (chair first). The phrase for outside guests used before is never
   used; the term is always "অতিথি কর্মকর্তা" (checked by `wording.spec.ts`).
+
+### 6.8 Meeting notice "সভার নোটিশ" (v1.10, owner decisions 2026-11-17)
+`GET /meetings/:id/notice.pdf`: a one-page (or longer) official notice for one meeting, rendered by the shared
+lazy `PdfService` (`reports/pdf/pdf.module.ts`, one browser for reports and notices). Code:
+`meetings/notice/notice-template.ts` (pure, unit-tested) and `meeting-notice.service.ts`.
+- **Access:** the meeting's people (organizer, chair, participants) and admins; anyone else **403**
+  (`NOTICE_FORBIDDEN`); unknown id 404; a **cancelled** meeting 409 (`NOTICE_CANCELLED`). Same PDF rate limit as
+  the reports. Audit `MEETING_NOTICE_EXPORTED` (actor = exporter). File name (ASCII):
+  `meeting-notice-YYYY-MM-DD-<first 8 hex of the id>.pdf` (meeting date, Asia/Dhaka).
+- **Always Bangla** (whatever the UI language), A4, NikoshBAN for Bangla + Tinos for Latin (embedded), Bangla
+  digits for system numbers, **no logo**, no memo number, no project line, no "অনুলিপি". Layout as
+  `docs/samples/meeting-notice-sample.html` (fictional data), top to bottom:
+  1. centred: "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" / **"বাংলাদেশ পরিসংখ্যান ব্যুরো"** / "ই-২৭/এ, আগারগাঁও, ঢাকা-১২০৭" /
+     underlined "www.bbs.gov.bd";
+  2. right: "তারিখ :" with the **export date** (Asia/Dhaka) as two lines split by a rule: Bangla calendar on top
+     ("২ অগ্রহায়ণ, ১৪৩৩"), Gregorian below ("১৭ নভেম্বর, ২০২৬");
+  3. centred, bold, underlined "সভার নোটিশ";
+  4. `"<title as typed>" শীর্ষক একটি সভা নিম্নবর্ণিত সময় অনুযায়ী অনুষ্ঠিত হবে:`;
+  5. label : value table — সভাপতি "জনাব <Bangla name>, <designation>" (guest chair: the guest's name and
+     designation; row left out without a chair) · তারিখ ও সময় "২০ নভেম্বর, ২০২৬; বেলা: ১১.০০ ঘটিকা" (start, 12-hour)
+     · স্থান: the venue ("স্থান উল্লেখ নেই" when empty), the online link on a new line · আলোচ্যসূচি: the agenda as
+     typed with its line breaks (row left out when there is no agenda);
+  6. "২। সভায় সংশ্লিষ্ট সকলকে যথাসময়ে উপস্থিত থাকার জন্য নির্দেশক্রমে অনুরোধ করা হলো।";
+  7. right: signature space (18 mm), then the **exporting user's** Bangla name and designation;
+  8. "বিতরণ: সদয় কার্যার্থে (জ্যেষ্ঠতার ক্রমানুসারে):" and a list numbered "১.", "২." …: every internal person
+     (organizer and chair included) by designation priority (most senior first), ties by Bangla name —
+     "জনাব <name>, <designation>, <wing>, বিবিএস, আগারগাঁও, ঢাকা-১২০৭।" (no wing → left out); then the guest officers
+     (chair first, then by name) — "জনাব <name>, <designation> (অতিথি কর্মকর্তা)।";
+  9. footer: page numbers "১/২".
+- Designation = the Bangla designation, plus the officer's `designationRemark` in brackets when set
+  ("উপমহাপরিচালক (যুগ্মসচিব)", owner decision 2026-11-17). Names always Bangla; title, agenda, venue, link and guest
+  data exactly as typed (HTML-escaped).
+- **Bangla calendar** (`common/utils/bangla-calendar.ts`): Bangladesh revised Bangabda (2019): 1 Boishakh =
+  14 April; Boishakh–Ashwin 31 days; Kartik, Agrahayan, Poush, Magh, Chaitra 30; Falgun 29, or 30 when it lies
+  in a Gregorian leap year.
+- Tests: `bangla-calendar.spec.ts`, `notice-template.spec.ts`, `meeting-notice.service.spec.ts`,
+  `test/meetings-v110.e2e-spec.ts`, `frontend/e2e/v110.spec.ts`.
 
 ## 7. Data model (TypeORM entities)
 
@@ -393,8 +436,9 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | GET | `/meetings/:id` | 👤 | Detail (organizer, participants, admins only); people with designation and wing; guest officers |
 | POST | `/meetings/check-conflicts` | 👤 | Dry run of the conflict engine |
 | POST | `/meetings` | 👤 | Create (409 on blocking conflict) |
-| PATCH | `/meetings/:id` | 👤 | Update (organizer/admin; re-runs conflict engine) |
-| POST | `/meetings/:id/cancel` | 👤 | Cancel with reason (organizer/admin) |
+| PATCH | `/meetings/:id` | 👤 | Update (organizer, internal chair or admin; re-runs conflict engine) |
+| POST | `/meetings/:id/cancel` | 👤 | Cancel with reason (organizer, internal chair or admin) |
+| GET | `/meetings/:id/notice.pdf` | 👤 | Meeting notice "সভার নোটিশ" as PDF (its people and admins; not cancelled), §6.8 |
 | POST | `/meetings/:id/complete` | 👤 | Mark completed, save notes/minutes |
 | DELETE | `/meetings/:id` | 🛡 | Hard delete (admin only) |
 
@@ -457,10 +501,12 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
    required everywhere and must meet the password rule; it is allowed in production (owner decision
    2026-11-09), where startup logs one warning line "Default officer password is enabled" (never the value).
 9. Uploads: size limit, mime + magic-byte check, random file names, stored outside `src/`, served read-only.
-10. Authorization checked in services (organizer/admin for meeting edits; SUPER_ADMIN protected).
+10. Authorization checked in services (organizer, internal chair or admin for meeting edit/cancel; organizer/admin
+    for complete; SUPER_ADMIN protected).
 11. Only parameterized queries (TypeORM query builder / repositories). No string-built SQL.
 12. All tokens in links (reset, verify) are random 32 bytes, stored hashed, single-use, expiring.
-13. Audit log for: login, user create/update/role/status, change-request decisions, meeting create/update/cancel/delete, designation priority changes.
+13. Audit log for: login, user create/update/role/status, change-request decisions, meeting create/update/cancel/delete,
+    meeting notice export (`MEETING_NOTICE_EXPORTED`, v1.10), designation priority changes.
 14. Swagger enabled only when `SWAGGER_ENABLED=true` (off by default); in production only behind HTTP basic auth
     (`SWAGGER_USER`, `SWAGGER_PASSWORD`).
 15. Errors never leak stack traces or SQL in production. Every response has an `X-Request-Id` (also in error bodies
@@ -561,6 +607,10 @@ the green heading and the duration buttons (§13.6); (8) WebKit Bangla font (§1
 Release **v1.9** (2026-11-17, tag `v1.9`, part 1 of 3): (A) the organizer is displayed as their wing (§13.17);
 (B) "কক্ষ" → "স্থান" / "Room" → "Venue", and the venue is required (§13.17).
 
+Release **v1.10** (2026-11-17, tag `v1.10`, part 2 of 3): (A) the three-dot row menu on every meeting row (§13.18)
+and edit/cancel for the internal chair (§6.3); (B) the meeting notice PDF "সভার নোটিশ" (§6.8); (C) the admin
+office report page shows the organizer as the wing (§13.17), e2e test for completing a meeting without a venue.
+
 ## 13. Frontend (`frontend/`)
 
 ### 13.1 Stack
@@ -633,7 +683,8 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   every dangerous action asks for confirmation. Toasts, the conflict panel, the report range and the offline
   message are `aria-live`. Text and badge colours keep a contrast of at least 4.5:1.
 - **No icons in the UI, except two in the top header: the notification bell and the profile icon** (owner
-  decisions 2026-11-09 and 2026-11-14). Everything else stays text-only: no other SVG icons, no icon components or
+  decisions 2026-11-09 and 2026-11-14), **and the three-dot "⋮" button of the meeting row menu** (v1.10, owner
+  decision 2026-11-17, §13.18). Everything else stays text-only: no other SVG icons, no icon components or
   libraries, no emoji or symbols used as icons, no other icon-only buttons. Examples: "মেনু", "বন্ধ করুন",
   "আগের" / "পরের", status and conflicts as coloured text badges, the protected SUPER_ADMIN as the text badge
   "সুরক্ষিত". The browser-tab favicon stays; charts are allowed. The BBS logo is not an icon and is allowed only in
@@ -1016,7 +1067,8 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   - Always Bangla (`organizerLabelBn()` in `backend/src/modules/meetings/meeting-format.ts`): report PDFs (personal
     and office), every meeting mail and bell notification ("আয়োজক: <উইং>"), guest officers' mails.
   - Unchanged: notices are still **delivered** to the organizer person as before; audit logs and admin pages
-    (`/admin/meetings`, `/admin/conflicts`, `/admin/reports`, top organizers) keep the real person; the meeting form's
+    (`/admin/meetings`, `/admin/conflicts`, top organizers) keep the real person (v1.10: the `/admin/reports` meeting
+    table shows the wing, like its PDF); the meeting form's
     chair select still lists the organizer by name; the conflict notice text (§6.4) is unchanged.
 - API: the organizer's current wing is returned next to the person — `organizer.wing` (`{ id, nameBn, nameEn }` or
   null) in meeting summaries and details, `organizerWing` / `organizerWingEn` in conflict meeting refs,
@@ -1040,3 +1092,22 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   `report-template.spec.ts`, `test/meetings-v19.e2e-spec.ts` (wing + designation fallback + current wing,
   conflicts, 409, reports, venue on create / edit / old meetings, English message); frontend
   `tests/unit/display-name.test.ts`, `e2e/v19.spec.ts` and the updated `meetings`, `guests` specs.
+
+### 13.18 Three-dot row menu (v1.10, owner decisions 2026-11-17)
+- Every meeting row ends with a "⋮" button (`components/meetings/meeting-row-menu.tsx`): dashboard and my
+  meetings list (table and phone cards), `/admin/meetings`, the report pages (`/reports`, `/admin/reports`) and both
+  meetings of every duplicate meetings card (`/conflicts`, `/admin/conflicts`; no menu for a meeting whose title is
+  hidden from the viewer).
+- The only symbol allowed outside the header (§13.5): the glyph is `aria-hidden` inside a button with
+  `aria-label` "More actions" / "আরও অপশন", `aria-haspopup="menu"`, `aria-expanded`. Menu-button keyboard pattern
+  (Enter / Space / Arrow keys open it, arrows / Home / End move, Escape closes and returns focus, Tab closes);
+  a click or tap outside closes it. The menu is `position: fixed` (never clipped by a table's scroll box), opens
+  upwards near the bottom edge, follows the button on scroll. Buttons are 44 px on phones.
+- Items (action words in English in both languages, §13.12; rules in `lib/row-actions.ts`, unit-tested):
+  "View details" (everyone who sees the row); "Export PDF" (everyone who sees the row, not for cancelled meetings;
+  downloads the notice, §6.8); "Edit" and "Cancel" **only for the organizer and the internal chair** (`myRole`
+  ORGANIZER / CHAIR, or `organizedByMe` / `chairedByMe` on duplicate meetings cards), with the usual status rules
+  (edit: scheduled and not ended; cancel: scheduled; Cancel opens the usual reason dialog). Admins keep their
+  rights on the detail page.
+- API support: `ConflictMeetingRefDto.chairedByMe`; office report rows carry the admin viewer's own `myRole`.
+- Tests: `tests/unit/row-actions.test.ts`, `e2e/v110.spec.ts`, `e2e/no-icons.spec.ts` (the glyph only inside its button).

@@ -457,6 +457,18 @@ export const MESSAGE_CATALOG = {
     bn: 'শুধু সভার আয়োজক অথবা প্রশাসক এই কাজটি করতে পারেন।',
     en: 'Only the organizer of the meeting or an administrator can do this.',
   },
+  NOT_ORGANIZER_OR_CHAIR: {
+    bn: 'শুধু সভার আয়োজক, সভাপতি অথবা প্রশাসক এই কাজটি করতে পারেন।',
+    en: 'Only the organizer, the president of the meeting or an administrator can do this.',
+  },
+  NOTICE_FORBIDDEN: {
+    bn: 'শুধু সভার সংশ্লিষ্ট কর্মকর্তা অথবা প্রশাসক এই সভার নোটিশ নিতে পারেন।',
+    en: 'Only the officers of this meeting or an administrator can get its notice.',
+  },
+  NOTICE_CANCELLED: {
+    bn: 'বাতিল সভার নোটিশ তৈরি করা যাবে না।',
+    en: 'A notice cannot be created for a cancelled meeting.',
+  },
   MEETING_NOT_SCHEDULED: {
     bn: 'বাতিল বা সম্পন্ন সভা পরিবর্তন করা যাবে না।',
     en: 'Cancelled or completed meetings cannot be changed.',

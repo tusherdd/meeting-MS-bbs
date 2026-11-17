@@ -132,11 +132,8 @@ export function OfficeReportView() {
                 </span>
               }
             />
-            <ReportMeetingsTable
-              meetings={data.meetings.items}
-              showMyRole={false}
-              organizerAs="person"
-            />
+            {/* v1.10: the organizer is shown as the wing (fallback designation), like the PDF. */}
+            <ReportMeetingsTable meetings={data.meetings.items} showMyRole={false} />
             <Pagination
               page={data.meetings.page}
               totalPages={data.meetings.totalPages}

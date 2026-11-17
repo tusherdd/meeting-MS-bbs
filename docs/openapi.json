@@ -81,6 +81,7 @@
                 "MEETING_COMPLETE",
                 "MEETING_DELETE",
                 "MEETING_CHAIR_PRIORITY_APPLIED",
+                "MEETING_NOTICE_EXPORTED",
                 "CONFLICT_CREATED",
                 "CONFLICT_RESOLVED"
               ]
@@ -3225,7 +3226,7 @@
             }
           },
           "403": {
-            "description": "Not the organizer / admin"
+            "description": "Not the organizer / chair / admin"
           },
           "404": {
             "description": "Not found or not visible"
@@ -3246,7 +3247,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update (organizer or ADMIN; not after the meeting ended)",
+        "summary": "Update (organizer, internal chair or ADMIN; not after the meeting ended)",
         "tags": [
           "Meetings"
         ]
@@ -3300,6 +3301,70 @@
         "x-access": "ADMIN"
       }
     },
+    "/api/v1/meetings/{id}/notice.pdf": {
+      "get": {
+        "description": "A4, always Bangla (Bangla digits), no logo. Signed by the user who exports it; distribution list = every internal officer by designation priority, then the guest officers. Allowed for the meeting's people and admins; not for cancelled meetings. File name `meeting-notice-YYYY-MM-DD-<shortid>.pdf`. Audited as MEETING_NOTICE_EXPORTED.",
+        "operationId": "MeetingsController_noticePdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A4 PDF (Bangla), downloaded as an attachment",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not one of the meeting’s people and not an admin"
+          },
+          "404": {
+            "description": "Meeting not found"
+          },
+          "409": {
+            "description": "The meeting is cancelled"
+          },
+          "503": {
+            "description": "PDF rendering took longer than 30 s"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Meeting notice \"সভার নোটিশ\" as PDF (v1.10)",
+        "tags": [
+          "Meetings"
+        ]
+      }
+    },
     "/api/v1/meetings/{id}/cancel": {
       "post": {
         "operationId": "MeetingsController_cancel",
@@ -3349,7 +3414,7 @@
             }
           },
           "403": {
-            "description": "Not the organizer / admin"
+            "description": "Not the organizer / chair / admin"
           },
           "404": {
             "description": "Not found or not visible"
@@ -3363,7 +3428,7 @@
             "bearer": []
           }
         ],
-        "summary": "Cancel with a reason (organizer or ADMIN); resolves its conflicts",
+        "summary": "Cancel with a reason (organizer, internal chair or ADMIN); resolves its conflicts",
         "tags": [
           "Meetings"
         ]
@@ -4176,6 +4241,7 @@
               "MEETING_COMPLETE",
               "MEETING_DELETE",
               "MEETING_CHAIR_PRIORITY_APPLIED",
+              "MEETING_NOTICE_EXPORTED",
               "CONFLICT_CREATED",
               "CONFLICT_RESOLVED"
             ],
@@ -6489,6 +6555,11 @@
             "type": "boolean",
             "example": false,
             "description": "True when the current user organizes this meeting (may cancel/reschedule it)"
+          },
+          "chairedByMe": {
+            "type": "boolean",
+            "example": false,
+            "description": "True when the current user is the internal chair of this meeting (v1.10: may edit/cancel it)"
           }
         },
         "required": [
@@ -6503,7 +6574,8 @@
           "organizerDesignationEn",
           "organizerWing",
           "organizerWingEn",
-          "organizedByMe"
+          "organizedByMe",
+          "chairedByMe"
         ]
       },
       "MeetingConflictDto": {
@@ -7190,7 +7262,7 @@
               "MEMBER"
             ],
             "nullable": true,
-            "description": "Personal report only"
+            "description": "The viewer's role in this meeting (personal report: the officer's role; office report since v1.10: the admin's own role, null when they are not one of its people)"
           },
           "chairNameBn": {
             "type": "string",

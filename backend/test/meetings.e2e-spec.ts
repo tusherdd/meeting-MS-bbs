@@ -575,17 +575,18 @@ describe('Meetings and conflict engine (e2e)', () => {
       expect(body(res).message).toBe(MEETING_MESSAGES.notFound);
     });
 
-    it('only the organizer or an admin may edit/cancel; invitees get 403, outsiders 404', async () => {
+    it('only the organizer, the internal chair (v1.10) or an admin may edit/cancel; members get 403, outsiders 404', async () => {
       await http()
         .patch(`${API}/meetings/${meetingId}`)
         .set(as('shared'))
         .send({ room: 'x' })
         .expect(403);
+      // v1.10: the internal chair may edit like the organizer (see meetings-v110.e2e-spec.ts).
       await http()
         .patch(`${API}/meetings/${meetingId}`)
         .set(as('director'))
-        .send({ room: 'x' })
-        .expect(403); // chair is not organizer
+        .send({ room: 'সভাপতির কক্ষ' })
+        .expect(200);
       await http()
         .patch(`${API}/meetings/${meetingId}`)
         .set(as('outsider'))

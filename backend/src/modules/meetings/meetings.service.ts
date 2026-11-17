@@ -514,6 +514,7 @@ export class MeetingsService {
         actor,
         meeting,
         meeting.participants.map((p) => p.userId),
+        { allowChair: false },
       );
       if (meeting.status === MeetingStatus.CANCELLED) {
         throw new ConflictException(MSG.cancelledCannotComplete);
@@ -787,17 +788,27 @@ export class MeetingsService {
     }
   }
 
-  /** People of the meeting or admins see it (else 404); only organizer/admin may change it (else 403). */
+  /**
+   * People of the meeting or admins see it (else 404). Who may change it (else 403):
+   * - edit, cancel and the edit form's conflict check: the organizer, the INTERNAL chair (v1.10)
+   *   or an admin (`allowChair`, default);
+   * - complete: only the organizer or an admin (`allowChair: false`).
+   * A guest chair has no account, so only `meeting.chairId` (an officer) counts.
+   */
   private assertCanManage(
     actor: AuthUser,
     meeting: Meeting,
     peopleIds: string[],
+    { allowChair = true }: { allowChair?: boolean } = {},
   ): void {
-    if (!isAdmin(actor) && !peopleIds.includes(actor.id))
+    if (isAdmin(actor)) return;
+    if (!peopleIds.includes(actor.id))
       throw new NotFoundException(MSG.notFound);
-    if (!isAdmin(actor) && meeting.organizerId !== actor.id) {
-      throw new ForbiddenException(MSG.notOrganizer);
-    }
+    if (meeting.organizerId === actor.id) return;
+    if (allowChair && meeting.chairId === actor.id) return;
+    throw new ForbiddenException(
+      allowChair ? MSG.notOrganizerOrChair : MSG.notOrganizer,
+    );
   }
 
   /** Priority for a chair choice (SPEC.md §6.3, v1.5). The chair must already be checked usable. */
@@ -1309,6 +1320,7 @@ export class MeetingsService {
           organizerWing: other.organizer.wing?.nameBn ?? null,
           organizerWingEn: other.organizer.wing?.nameEn ?? null,
           organizedByMe: other.organizerId === actor.id,
+          chairedByMe: other.chairId === actor.id,
         },
         officer: {
           id: r.user.id,

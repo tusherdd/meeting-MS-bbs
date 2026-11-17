@@ -722,10 +722,30 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Update (organizer or ADMIN; not after the meeting ended)
+         * Update (organizer, internal chair or ADMIN; not after the meeting ended)
          * @description Re-runs the engine when time or people change. Conflict rule: for every overlapping SCHEDULED meeting that shares a person (organizer, chair or participant): if this meeting has a SMALLER priority number (higher rank) it is saved and the other meeting's people are asked to cancel/reschedule; equal or larger number → 409 and nothing is saved. Touching times (11:00–12:00 after 10:00–11:00) do not clash.
          */
         patch: operations["MeetingsController_update"];
+        trace?: never;
+    };
+    "/api/v1/meetings/{id}/notice.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Meeting notice "সভার নোটিশ" as PDF (v1.10)
+         * @description A4, always Bangla (Bangla digits), no logo. Signed by the user who exports it; distribution list = every internal officer by designation priority, then the guest officers. Allowed for the meeting's people and admins; not for cancelled meetings. File name `meeting-notice-YYYY-MM-DD-<shortid>.pdf`. Audited as MEETING_NOTICE_EXPORTED.
+         */
+        get: operations["MeetingsController_noticePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/meetings/{id}/cancel": {
@@ -737,7 +757,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Cancel with a reason (organizer or ADMIN); resolves its conflicts */
+        /** Cancel with a reason (organizer, internal chair or ADMIN); resolves its conflicts */
         post: operations["MeetingsController_cancel"];
         delete?: never;
         options?: never;
@@ -936,7 +956,7 @@ export interface components {
              * @example MEETING_CREATE
              * @enum {string}
              */
-            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
             /** @example meeting */
             entityType: string;
             entityId: string | null;
@@ -1960,6 +1980,11 @@ export interface components {
              * @example false
              */
             organizedByMe: boolean;
+            /**
+             * @description True when the current user is the internal chair of this meeting (v1.10: may edit/cancel it)
+             * @example false
+             */
+            chairedByMe: boolean;
         };
         MeetingConflictDto: {
             /** Format: uuid */
@@ -2243,7 +2268,7 @@ export interface components {
             /** @example Computer Wing */
             organizerWingEn: string | null;
             /**
-             * @description Personal report only
+             * @description The viewer's role in this meeting (personal report: the officer's role; office report since v1.10: the admin's own role, null when they are not one of its people)
              * @enum {string|null}
              */
             myRole: "ORGANIZER" | "CHAIR" | "MEMBER" | null;
@@ -2443,7 +2468,7 @@ export interface operations {
                 limit?: number;
                 /** @description Who did it */
                 actorId?: string;
-                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
                 /** @description user, meeting, designation, change_request, … */
                 entityType?: string;
                 /** @description Id of the changed record */
@@ -4284,7 +4309,7 @@ export interface operations {
                     "application/json": components["schemas"]["MeetingDetailDto"];
                 };
             };
-            /** @description Not the organizer / admin */
+            /** @description Not the organizer / chair / admin */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4306,6 +4331,59 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MeetingConflictErrorDto"];
                 };
+            };
+        };
+    };
+    MeetingsController_noticePdf: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A4 PDF (Bangla), downloaded as an attachment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description Not one of the meeting’s people and not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The meeting is cancelled */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PDF rendering took longer than 30 s */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4335,7 +4413,7 @@ export interface operations {
                     "application/json": components["schemas"]["MeetingDetailDto"];
                 };
             };
-            /** @description Not the organizer / admin */
+            /** @description Not the organizer / chair / admin */
             403: {
                 headers: {
                     [name: string]: unknown;
