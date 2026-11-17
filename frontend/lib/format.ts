@@ -162,10 +162,17 @@ export function createFormatter(locale: Locale) {
     return `${digits(d)} ${months[mo - 1]} ${digits(y)}`;
   }
 
+  /** v1.11: file sizes, "৮৫০ KB" / "1.2 MB" (KB below 1 MB, at most one decimal). */
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024 * 1024) return `${formatNumber(Math.max(1, Math.round(bytes / 1024)), 0)} KB`;
+    return `${formatNumber(bytes / (1024 * 1024), 1)} MB`;
+  }
+
   return {
     locale,
     digits,
     formatNumber,
+    formatFileSize,
     formatDate,
     formatDateWithWeekday,
     formatTime,

@@ -42,6 +42,8 @@ export interface EnvVars {
   MAIL_DRY_RUN: boolean;
 
   UPLOAD_DIR: string;
+  /** v1.11: meeting decision files; never served statically (SPEC.md §6.9). */
+  DECISION_UPLOAD_DIR: string;
   MAX_UPLOAD_MB: number;
   SWAGGER_ENABLED: boolean;
   /** Cron jobs (mail worker, cleanups). false in e2e tests. */
@@ -172,6 +174,7 @@ export const envSchema = Joi.object<EnvVars>({
   MAIL_DRY_RUN: Joi.boolean().default(true),
 
   UPLOAD_DIR: Joi.string().default('./uploads'),
+  DECISION_UPLOAD_DIR: Joi.string().default('./storage/uploads'),
   MAX_UPLOAD_MB: Joi.number().positive().max(50).default(2),
   // Off unless explicitly enabled (SPEC.md §9.14).
   SWAGGER_ENABLED: Joi.boolean().default(false),

@@ -38,6 +38,8 @@ export interface ReportMeeting {
    * (the counts only use organizer and participant rows).
    */
   guests: Array<{ name: string; designation: string }>;
+  /** v1.11: number of decision files (for the row menu's "Upload decision"). */
+  decisionFileCount?: number;
 }
 
 export type StatusCounts = Record<MeetingStatus, number>;

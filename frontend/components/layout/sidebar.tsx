@@ -3,9 +3,36 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useT } from "@/providers/locale-provider";
+import { useQuery } from "@tanstack/react-query";
+import { decisionsApi, queryKeys } from "@/lib/endpoints";
+import { useFormat, useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { isActivePath, navFor } from "./nav-items";
+
+/**
+ * v1.11: number of Pending decisions of meetings I organize or chair; hidden when 0. Shared cache
+ * with the dashboard card and /decisions (refreshed with every meeting change).
+ */
+function DecisionCount() {
+  const t = useT();
+  const { formatNumber } = useFormat();
+  const summary = useQuery({
+    queryKey: queryKeys.decisionSummary,
+    queryFn: decisionsApi.summary,
+    staleTime: 60_000,
+  });
+  const pending = summary.data?.pending ?? 0;
+  if (pending === 0) return null;
+  return (
+    <span
+      className="ml-2 inline-flex min-w-6 items-center justify-center rounded-full bg-amber-100 px-1.5 text-xs leading-5 font-semibold text-amber-900"
+      data-testid="nav-decision-count"
+    >
+      <span aria-hidden="true">{formatNumber(pending)}</span>
+      <span className="sr-only">{t.decisions.navCount(formatNumber(pending))}</span>
+    </span>
+  );
+}
 
 /** Menu links by role. Used in the desktop sidebar and in the mobile drawer. */
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
@@ -32,6 +59,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 )}
               >
                 {item.label}
+                {item.badge === "decisions" && <DecisionCount />}
               </Link>
               {item.children && (
                 <ul className="mt-1 ml-8 space-y-0.5 border-l border-slate-200 pl-3">

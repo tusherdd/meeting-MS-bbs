@@ -29,10 +29,13 @@ const GAP = 4;
 export function MeetingRowMenu({
   meeting,
   mine,
+  participant = mine,
 }: {
   meeting: RowMeeting & { id: string; title: string };
   /** The viewer organizes the meeting or is its internal chair. */
   mine: boolean;
+  /** v1.11: the viewer is one of the meeting's people (may upload a decision). */
+  participant?: boolean;
 }) {
   const t = useT();
   const toast = useToast();
@@ -45,7 +48,7 @@ export function MeetingRowMenu({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<unknown>(null);
-  const can = rowActions(meeting, mine);
+  const can = rowActions(meeting, mine, new Date(), participant);
 
   const close = useCallback((returnFocus: boolean) => {
     setOpen(false);
@@ -221,6 +224,17 @@ export function MeetingRowMenu({
             <button role="menuitem" tabIndex={-1} type="button" className={itemClass} onClick={onExport}>
               {t.rowMenu.exportPdf}
             </button>
+          )}
+          {can.uploadDecision && (
+            <Link
+              role="menuitem"
+              tabIndex={-1}
+              href={`/meetings/${meeting.id}/decision`}
+              className={itemClass}
+              onClick={() => close(false)}
+            >
+              {t.rowMenu.upload}
+            </Link>
           )}
           {can.edit && (
             <Link

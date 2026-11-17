@@ -47,3 +47,12 @@ describe("format.ts — Bangla", () => {
     expect(toBanglaDigits("2026-11-09 10:30")).toBe("২০২৬-১১-০৯ ১০:৩০");
   });
 });
+
+describe("formatFileSize (v1.11)", () => {
+  it("KB below 1 MB, MB with one decimal, system digits per language", () => {
+    expect(createFormatter("en").formatFileSize(850 * 1024)).toBe("850 KB");
+    expect(createFormatter("en").formatFileSize(1.25 * 1024 * 1024)).toBe("1.3 MB");
+    expect(createFormatter("bn").formatFileSize(2 * 1024 * 1024)).toBe("২ MB");
+    expect(createFormatter("en").formatFileSize(10)).toBe("1 KB");
+  });
+});

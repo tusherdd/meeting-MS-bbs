@@ -82,6 +82,8 @@
                 "MEETING_DELETE",
                 "MEETING_CHAIR_PRIORITY_APPLIED",
                 "MEETING_NOTICE_EXPORTED",
+                "MEETING_DECISION_UPLOADED",
+                "MEETING_DECISION_DELETED",
                 "CONFLICT_CREATED",
                 "CONFLICT_RESOLVED"
               ]
@@ -3657,6 +3659,433 @@
         "x-access": "ADMIN"
       }
     },
+    "/api/v1/decisions/summary": {
+      "get": {
+        "operationId": "DecisionsController_summary",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionSummaryDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pending / Complete decision counts of the meetings I organize or chair (sidebar, dashboard)",
+        "tags": [
+          "Meeting decisions"
+        ]
+      }
+    },
+    "/api/v1/decisions": {
+      "get": {
+        "description": "`as=lead` (default): meetings I organize or chair, `status=PENDING|COMPLETE`. `as=member`: meetings where I am only a member and the decision is Pending. Cancelled meetings never appear.",
+        "operationId": "DecisionsController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "For `as=member` only PENDING is listed",
+            "schema": {
+              "default": "PENDING",
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "COMPLETE"
+              ]
+            }
+          },
+          {
+            "name": "as",
+            "required": false,
+            "in": "query",
+            "description": "lead = meetings I organize or chair; member = meetings where I am only a member (Pending only)",
+            "schema": {
+              "default": "lead",
+              "type": "string",
+              "enum": [
+                "lead",
+                "member"
+              ]
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/MeetingSummaryDto"
+                          }
+                        }
+                      },
+                      "required": [
+                        "items"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Meetings by decision status",
+        "tags": [
+          "Meeting decisions"
+        ]
+      }
+    },
+    "/api/v1/meetings/{id}/decision": {
+      "get": {
+        "description": "The meeting's people and admins.",
+        "operationId": "DecisionsController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionDetailDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not one of the meeting’s people / not an admin"
+          },
+          "404": {
+            "description": "Meeting not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Decision of a meeting: status, files and what I may do",
+        "tags": [
+          "Meeting decisions"
+        ]
+      }
+    },
+    "/api/v1/meetings/{id}/decision/files": {
+      "post": {
+        "description": "PDF, JPEG or PNG only, checked by their bytes; max 10 MB each, max 10 per meeting. Image metadata is removed. Not before the start, never for cancelled meetings. Organizer and chair (not the uploader) get a bell notification. Audited per file.",
+        "operationId": "DecisionsController_upload",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionUploadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file, wrong type, unreadable, too many files"
+          },
+          "403": {
+            "description": "Not the organizer / chair / a member (admins cannot upload)"
+          },
+          "409": {
+            "description": "Meeting cancelled or not started yet"
+          },
+          "413": {
+            "description": "A file is larger than 10 MB"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload decision files (organizer, chair, members; after the start)",
+        "tags": [
+          "Meeting decisions"
+        ]
+      }
+    },
+    "/api/v1/meetings/{id}/decision/files/{fileId}": {
+      "get": {
+        "description": "The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition.",
+        "operationId": "DecisionsController_download",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "inline",
+            "required": false,
+            "in": "query",
+            "description": "true = open in the browser (Content-Disposition: inline)",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not one of the meeting’s people / not an admin"
+          },
+          "404": {
+            "description": "Meeting or file not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download (or with ?inline=true open) one decision file",
+        "tags": [
+          "Meeting decisions"
+        ]
+      },
+      "delete": {
+        "description": "Deleting the last file makes the decision Pending again. Audited.",
+        "operationId": "DecisionsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "403": {
+            "description": "Not the uploader, organizer or chair"
+          },
+          "404": {
+            "description": "Meeting or file not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a decision file (uploader, organizer or chair)",
+        "tags": [
+          "Meeting decisions"
+        ]
+      }
+    },
     "/api/v1/reports/me": {
       "get": {
         "description": "Meetings where I am organizer, chair or participant and that START in the period (Asia/Dhaka). Example: `?period=month&date=2026-12-01`.",
@@ -4242,6 +4671,8 @@
               "MEETING_DELETE",
               "MEETING_CHAIR_PRIORITY_APPLIED",
               "MEETING_NOTICE_EXPORTED",
+              "MEETING_DECISION_UPLOADED",
+              "MEETING_DECISION_DELETED",
               "CONFLICT_CREATED",
               "CONFLICT_RESOLVED"
             ],
@@ -6057,6 +6488,14 @@
           "wing"
         ]
       },
+      "DecisionStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "COMPLETE"
+        ],
+        "description": "v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started"
+      },
       "MeetingSummaryDto": {
         "type": "object",
         "properties": {
@@ -6111,6 +6550,20 @@
             ],
             "nullable": true,
             "description": "My role in this meeting (null = admin view)"
+          },
+          "decisionFileCount": {
+            "type": "number",
+            "example": 0,
+            "description": "v1.11: number of decision files (\"সভা সিদ্ধান্ত\")"
+          },
+          "decisionStatus": {
+            "nullable": true,
+            "description": "v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DecisionStatus"
+              }
+            ]
           }
         },
         "required": [
@@ -6123,7 +6576,9 @@
           "status",
           "priority",
           "organizer",
-          "myRole"
+          "myRole",
+          "decisionFileCount",
+          "decisionStatus"
         ]
       },
       "MeetingGuestInputDto": {
@@ -6676,6 +7131,20 @@
             "nullable": true,
             "description": "My role in this meeting (null = admin view)"
           },
+          "decisionFileCount": {
+            "type": "number",
+            "example": 0,
+            "description": "v1.11: number of decision files (\"সভা সিদ্ধান্ত\")"
+          },
+          "decisionStatus": {
+            "nullable": true,
+            "description": "v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DecisionStatus"
+              }
+            ]
+          },
           "agenda": {
             "type": "string",
             "nullable": true
@@ -6748,6 +7217,8 @@
           "priority",
           "organizer",
           "myRole",
+          "decisionFileCount",
+          "decisionStatus",
           "agenda",
           "chair",
           "guests",
@@ -7004,6 +7475,171 @@
           "lowerMeeting",
           "createdAt",
           "resolvedAt"
+        ]
+      },
+      "DecisionSummaryDto": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "number",
+            "example": 2,
+            "description": "Meetings I organize or chair whose decision is Pending"
+          },
+          "complete": {
+            "type": "number",
+            "example": 5,
+            "description": "Meetings I organize or chair whose decision is Complete"
+          },
+          "leads": {
+            "type": "boolean",
+            "description": "I organize or chair at least one meeting (shows the dashboard card)"
+          }
+        },
+        "required": [
+          "pending",
+          "complete",
+          "leads"
+        ]
+      },
+      "DecisionUploaderDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "মোঃ রহিম উদ্দিন"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Md. Rahim Uddin"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn"
+        ]
+      },
+      "DecisionFileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "originalName": {
+            "type": "string",
+            "example": "সভার সিদ্ধান্ত.pdf",
+            "description": "Sanitized original name; the extension follows the detected type"
+          },
+          "mime": {
+            "type": "string",
+            "enum": [
+              "application/pdf",
+              "image/jpeg",
+              "image/png"
+            ]
+          },
+          "size": {
+            "type": "number",
+            "example": 182044,
+            "description": "Bytes"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uploadedBy": {
+            "$ref": "#/components/schemas/DecisionUploaderDto"
+          },
+          "canDelete": {
+            "type": "boolean",
+            "description": "The current user may delete it (uploader, organizer or chair)"
+          }
+        },
+        "required": [
+          "id",
+          "originalName",
+          "mime",
+          "size",
+          "createdAt",
+          "uploadedBy",
+          "canDelete"
+        ]
+      },
+      "DecisionDetailDto": {
+        "type": "object",
+        "properties": {
+          "meeting": {
+            "$ref": "#/components/schemas/MeetingSummaryDto"
+          },
+          "status": {
+            "nullable": true,
+            "description": "null = cancelled or not started yet",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DecisionStatus"
+              }
+            ]
+          },
+          "canUpload": {
+            "type": "boolean",
+            "description": "The current user may upload now"
+          },
+          "uploadBlock": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "forbidden",
+              "cancelled",
+              "notStarted",
+              "tooMany"
+            ],
+            "description": "Why an upload is not possible (null = it is)"
+          },
+          "maxFiles": {
+            "type": "number",
+            "example": 10
+          },
+          "maxFileMb": {
+            "type": "number",
+            "example": 10
+          },
+          "files": {
+            "description": "Oldest first",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionFileDto"
+            }
+          }
+        },
+        "required": [
+          "meeting",
+          "status",
+          "canUpload",
+          "uploadBlock",
+          "maxFiles",
+          "maxFileMb",
+          "files"
+        ]
+      },
+      "DecisionUploadDto": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "description": "PDF, JPEG or PNG (checked by their bytes), max 10 MB each, max 10 per meeting. Image metadata (EXIF) is removed."
+          }
+        },
+        "required": [
+          "files"
         ]
       },
       "PeriodDto": {
@@ -7282,6 +7918,11 @@
             "items": {
               "$ref": "#/components/schemas/ReportGuestDto"
             }
+          },
+          "decisionFileCount": {
+            "type": "number",
+            "example": 0,
+            "description": "v1.11: number of decision files (\"সভা সিদ্ধান্ত\")"
           }
         },
         "required": [
@@ -7300,7 +7941,8 @@
           "myRole",
           "chairNameBn",
           "chairNameEn",
-          "guests"
+          "guests",
+          "decisionFileCount"
         ]
       },
       "ReportMeetingPageDto": {

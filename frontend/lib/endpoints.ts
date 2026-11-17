@@ -4,9 +4,12 @@
  *
  * Key prefixes matter: lib/invalidate.ts refreshes whole groups ("meetings", "conflicts", …).
  */
-import { api, apiDownload } from "./api";
+import { api, apiDownload, apiUpload } from "./api";
 import type {
   AdminStats,
+  DecisionDetail,
+  DecisionStatus,
+  DecisionSummary,
   AppNotification,
   AuditAction,
   AuditLogItem,
@@ -92,6 +95,10 @@ export const queryKeys = {
   officeReport: (period: ReportPeriod, date: string, filter: OfficeFilter, page: number) =>
     ["reports", "office", period, date, filter, page] as const,
   verifyEmail: (token: string) => ["profile", "verify-email", token] as const,
+  decisionSummary: ["decisions", "summary"] as const,
+  decisionList: (as: "lead" | "member", status: DecisionStatus, page: number) =>
+    ["decisions", "list", as, status, page] as const,
+  decision: (id: string) => ["decisions", "detail", id] as const,
   directory: (query: DirectoryQuery) => ["directory", query] as const,
   wings: ["wings", "active"] as const,
   profile: ["profile", "me"] as const,
@@ -227,6 +234,33 @@ export const notificationsApi = {
   markRead: (id: string) =>
     api<AppNotification>(`/notifications/${encodeURIComponent(id)}/read`, { method: "PATCH" }),
   markAllRead: () => api<unknown>("/notifications/read-all", { method: "PATCH" }),
+};
+
+// Meeting decisions (v1.11) ---------------------------------------------------------------------
+export const DECISIONS_PAGE_SIZE = 20;
+
+export const decisionsApi = {
+  summary: () => api<DecisionSummary>("/decisions/summary"),
+  list: (as: "lead" | "member", status: DecisionStatus, page: number) =>
+    api<Paginated<MeetingSummary>>("/decisions", {
+      query: { as, status, page, limit: DECISIONS_PAGE_SIZE },
+    }),
+  detail: (id: string) => api<DecisionDetail>(`${meetingPath(id)}/decision`),
+  /** One file per request (with progress), so a request never exceeds the 12 MB proxy limit. */
+  upload: (id: string, file: File, onProgress?: (fraction: number) => void) => {
+    const form = new FormData();
+    form.append("files", file, file.name);
+    return apiUpload<DecisionDetail>(`${meetingPath(id)}/decision/files`, form, { onProgress });
+  },
+  download: (id: string, fileId: string, inline = false) =>
+    apiDownload(`${meetingPath(id)}/decision/files/${encodeURIComponent(fileId)}`, {
+      query: inline ? { inline: true } : undefined,
+      fallbackName: "decision",
+    }),
+  remove: (id: string, fileId: string) =>
+    api<void>(`${meetingPath(id)}/decision/files/${encodeURIComponent(fileId)}`, {
+      method: "DELETE",
+    }),
 };
 
 // Reports ----------------------------------------------------------------------------------------

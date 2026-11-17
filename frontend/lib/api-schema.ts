@@ -816,6 +816,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/decisions/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pending / Complete decision counts of the meetings I organize or chair (sidebar, dashboard) */
+        get: operations["DecisionsController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Meetings by decision status
+         * @description `as=lead` (default): meetings I organize or chair, `status=PENDING|COMPLETE`. `as=member`: meetings where I am only a member and the decision is Pending. Cancelled meetings never appear.
+         */
+        get: operations["DecisionsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meetings/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Decision of a meeting: status, files and what I may do
+         * @description The meeting's people and admins.
+         */
+        get: operations["DecisionsController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meetings/{id}/decision/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload decision files (organizer, chair, members; after the start)
+         * @description PDF, JPEG or PNG only, checked by their bytes; max 10 MB each, max 10 per meeting. Image metadata is removed. Not before the start, never for cancelled meetings. Organizer and chair (not the uploader) get a bell notification. Audited per file.
+         */
+        post: operations["DecisionsController_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meetings/{id}/decision/files/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download (or with ?inline=true open) one decision file
+         * @description The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition.
+         */
+        get: operations["DecisionsController_download"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a decision file (uploader, organizer or chair)
+         * @description Deleting the last file makes the decision Pending again. Audited.
+         */
+        delete: operations["DecisionsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/me": {
         parameters: {
             query?: never;
@@ -956,7 +1057,7 @@ export interface components {
              * @example MEETING_CREATE
              * @enum {string}
              */
-            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
             /** @example meeting */
             entityType: string;
             entityId: string | null;
@@ -1747,6 +1848,11 @@ export interface components {
             /** @description Organizer's current wing (displayed as the organizer; null → show the designation) */
             wing: components["schemas"]["WingRefDto"] | null;
         };
+        /**
+         * @description v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started
+         * @enum {string}
+         */
+        DecisionStatus: "PENDING" | "COMPLETE";
         MeetingSummaryDto: {
             /** Format: uuid */
             id: string;
@@ -1773,6 +1879,13 @@ export interface components {
              * @enum {string|null}
              */
             myRole: "ORGANIZER" | "CHAIR" | "MEMBER" | null;
+            /**
+             * @description v1.11: number of decision files ("সভা সিদ্ধান্ত")
+             * @example 0
+             */
+            decisionFileCount: number;
+            /** @description v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started */
+            decisionStatus: components["schemas"]["DecisionStatus"] | null;
         };
         MeetingGuestInputDto: {
             /** @example ড. ফারহানা ইসলাম */
@@ -2027,6 +2140,13 @@ export interface components {
              * @enum {string|null}
              */
             myRole: "ORGANIZER" | "CHAIR" | "MEMBER" | null;
+            /**
+             * @description v1.11: number of decision files ("সভা সিদ্ধান্ত")
+             * @example 0
+             */
+            decisionFileCount: number;
+            /** @description v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started */
+            decisionStatus: components["schemas"]["DecisionStatus"] | null;
             agenda: string | null;
             /** @description Internal chair (null when the chair is a guest, see guests[].isChair) */
             chair: components["schemas"]["PersonDto"] | null;
@@ -2159,6 +2279,71 @@ export interface components {
             /** Format: date-time */
             resolvedAt: string | null;
         };
+        DecisionSummaryDto: {
+            /**
+             * @description Meetings I organize or chair whose decision is Pending
+             * @example 2
+             */
+            pending: number;
+            /**
+             * @description Meetings I organize or chair whose decision is Complete
+             * @example 5
+             */
+            complete: number;
+            /** @description I organize or chair at least one meeting (shows the dashboard card) */
+            leads: boolean;
+        };
+        DecisionUploaderDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example মোঃ রহিম উদ্দিন */
+            nameBn: string;
+            /** @example Md. Rahim Uddin */
+            nameEn: string;
+        };
+        DecisionFileDto: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description Sanitized original name; the extension follows the detected type
+             * @example সভার সিদ্ধান্ত.pdf
+             */
+            originalName: string;
+            /** @enum {string} */
+            mime: "application/pdf" | "image/jpeg" | "image/png";
+            /**
+             * @description Bytes
+             * @example 182044
+             */
+            size: number;
+            /** Format: date-time */
+            createdAt: string;
+            uploadedBy: components["schemas"]["DecisionUploaderDto"];
+            /** @description The current user may delete it (uploader, organizer or chair) */
+            canDelete: boolean;
+        };
+        DecisionDetailDto: {
+            meeting: components["schemas"]["MeetingSummaryDto"];
+            /** @description null = cancelled or not started yet */
+            status: components["schemas"]["DecisionStatus"] | null;
+            /** @description The current user may upload now */
+            canUpload: boolean;
+            /**
+             * @description Why an upload is not possible (null = it is)
+             * @enum {string|null}
+             */
+            uploadBlock: "forbidden" | "cancelled" | "notStarted" | "tooMany" | null;
+            /** @example 10 */
+            maxFiles: number;
+            /** @example 10 */
+            maxFileMb: number;
+            /** @description Oldest first */
+            files: components["schemas"]["DecisionFileDto"][];
+        };
+        DecisionUploadDto: {
+            /** @description PDF, JPEG or PNG (checked by their bytes), max 10 MB each, max 10 per meeting. Image metadata (EXIF) is removed. */
+            files: string[];
+        };
         PeriodDto: {
             /**
              * @example month
@@ -2284,6 +2469,11 @@ export interface components {
             chairNameEn: string | null;
             /** @description Guest officers (listed only, never counted) */
             guests: components["schemas"]["ReportGuestDto"][];
+            /**
+             * @description v1.11: number of decision files ("সভা সিদ্ধান্ত")
+             * @example 0
+             */
+            decisionFileCount: number;
         };
         ReportMeetingPageDto: {
             items: components["schemas"]["ReportMeetingDto"][];
@@ -2468,7 +2658,7 @@ export interface operations {
                 limit?: number;
                 /** @description Who did it */
                 actorId?: string;
-                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
                 /** @description user, meeting, designation, change_request, … */
                 entityType?: string;
                 /** @description Id of the changed record */
@@ -4531,6 +4721,236 @@ export interface operations {
             };
             /** @description Not an admin */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DecisionsController_summary: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionSummaryDto"];
+                };
+            };
+        };
+    };
+    DecisionsController_list: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                /** @description For `as=member` only PENDING is listed */
+                status?: "PENDING" | "COMPLETE";
+                /** @description lead = meetings I organize or chair; member = meetings where I am only a member (Pending only) */
+                as?: "lead" | "member";
+            };
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponseDto"] & {
+                        items: components["schemas"]["MeetingSummaryDto"][];
+                    };
+                };
+            };
+        };
+    };
+    DecisionsController_detail: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionDetailDto"];
+                };
+            };
+            /** @description Not one of the meeting’s people / not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DecisionsController_upload: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["DecisionUploadDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionDetailDto"];
+                };
+            };
+            /** @description No file, wrong type, unreadable, too many files */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not the organizer / chair / a member (admins cannot upload) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting cancelled or not started yet */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A file is larger than 10 MB */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DecisionsController_download: {
+        parameters: {
+            query?: {
+                /** @description true = open in the browser (Content-Disposition: inline) */
+                inline?: boolean;
+            };
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                    "image/jpeg": string;
+                    "image/png": string;
+                };
+            };
+            /** @description Not one of the meeting’s people / not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting or file not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DecisionsController_remove: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not the uploader, organizer or chair */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting or file not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

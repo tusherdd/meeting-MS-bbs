@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/toast";
 import { saveBlob, type DownloadedFile } from "@/lib/api";
 
 import { chartBars } from "@/lib/report-period";
-import { isOrganizerOrChair } from "@/lib/row-actions";
+import { isOrganizerOrChair, isParticipant } from "@/lib/row-actions";
 import type { DayCount, PeriodDto, ReportMeeting, StatusCounts } from "@/lib/types";
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
@@ -250,7 +250,11 @@ export function ReportMeetingsTable({
               <StatusBadge status={m.status} />
             </Td>
             <Td className="py-2 text-right">
-              <MeetingRowMenu meeting={m} mine={isOrganizerOrChair(m.myRole)} />
+              <MeetingRowMenu
+                meeting={m}
+                mine={isOrganizerOrChair(m.myRole)}
+                participant={isParticipant(m.myRole)}
+              />
             </Td>
           </Tr>
         ))}

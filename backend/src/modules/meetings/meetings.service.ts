@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, EntityManager, In, Repository } from 'typeorm';
@@ -15,6 +16,8 @@ import type { AuthUser } from '../../common/types/auth-user';
 import { getDayRange } from '../../common/utils/time';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/enums/audit-action.enum';
+import { DecisionStorageService } from '../decisions/decision-storage.service';
+import { decisionStatus } from '../decisions/decision-rules';
 import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
 import {
@@ -108,6 +111,8 @@ export class MeetingsService {
     private readonly notifier: MeetingNotifierService,
     private readonly audit: AuditService,
     private readonly dataSource: DataSource,
+    /** v1.11: a hard delete also removes the meeting's decision files from disk. */
+    @Optional() private readonly decisionFiles?: DecisionStorageService,
   ) {}
 
   // ================================================================= create
@@ -568,6 +573,7 @@ export class MeetingsService {
       );
       await manager.getRepository(Meeting).delete(id);
     });
+    await this.decisionFiles?.removeMeeting(id);
   }
 
   // ================================================================= dry run
@@ -656,6 +662,12 @@ export class MeetingsService {
     if (!meeting || !(isAdmin(actor) || people.includes(actor.id))) {
       throw new NotFoundException(MSG.notFound);
     }
+    meeting.decisionFileCount = await this.dataSource
+      .getRepository(Meeting)
+      .createQueryBuilder('m')
+      .innerJoin('m.decisionFiles', 'f')
+      .where('m.id = :id', { id })
+      .getCount();
     return {
       ...this.summary(meeting, actor),
       agenda: meeting.agenda,
@@ -1236,7 +1248,9 @@ export class MeetingsService {
       .createQueryBuilder('m')
       .leftJoinAndSelect('m.organizer', 'o')
       .leftJoinAndSelect('o.designation', 'od')
-      .leftJoinAndSelect('o.wing', 'ow');
+      .leftJoinAndSelect('o.wing', 'ow')
+      // v1.11: decision status (SPEC.md §6.9) for every listed meeting.
+      .loadRelationCountAndMap('m.decisionFileCount', 'm.decisionFiles');
     if (scope === 'mine') {
       qb.where(
         new Brackets((b) =>
@@ -1248,6 +1262,11 @@ export class MeetingsService {
       );
     }
     return qb;
+  }
+
+  /** Summaries with my role (used by the decisions lists, v1.11). */
+  toSummaries(actor: AuthUser, rows: Meeting[]): Promise<MeetingSummaryDto[]> {
+    return this.withMyRoles(actor, rows);
   }
 
   private async withMyRoles(
@@ -1279,6 +1298,8 @@ export class MeetingsService {
       priority: m.priority,
       organizer: organizerDto(m.organizer),
       myRole: m.participants?.find((p) => p.userId === actor.id)?.role ?? null,
+      decisionFileCount: m.decisionFileCount ?? 0,
+      decisionStatus: decisionStatus(m, m.decisionFileCount ?? 0),
     };
   }
 

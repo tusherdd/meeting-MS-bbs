@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { DecisionStorageModule } from '../decisions/decision-storage.service';
 import { PdfModule } from '../reports/pdf/pdf.module';
 import { User } from '../users/entities/user.entity';
 import { ConflictEngineService } from './conflict-engine.service';
@@ -25,6 +26,7 @@ import { MeetingNoticeService } from './notice/meeting-notice.service';
       User,
     ]),
     PdfModule,
+    DecisionStorageModule,
   ],
   controllers: [MeetingsController, ConflictsController],
   providers: [

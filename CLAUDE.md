@@ -21,7 +21,8 @@ for rules, data model, API list and security requirements. If a request conflict
 - Time: store UTC `timestamptz`; compute day/week/month/year ranges in `Asia/Dhaka` via `common/utils/time`.
 
 ## Security (never skip)
-Follow SPEC.md §9 in every step. Never commit `.env` or files under `backend/src/database/seeds/data/`.
+Follow SPEC.md §9 in every step. Never commit `.env`, files under `backend/src/database/seeds/data/` or uploaded
+files (`backend/uploads/`, `backend/storage/` = `DECISION_UPLOAD_DIR`, v1.11).
 Never log passwords, tokens or full request bodies of auth routes.
 Never print passwords, secrets, tokens or .env values in chat explanations or reports — refer to the variable name instead.
 Default officer password (owner decision 2026-11-09): only in `DEFAULT_OFFICER_PASSWORD` (env) — never in code,

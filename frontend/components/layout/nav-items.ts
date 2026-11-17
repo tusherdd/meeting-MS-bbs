@@ -4,6 +4,8 @@ import type { Messages } from "@/messages";
 export interface NavItem {
   href: string;
   label: string;
+  /** v1.11: shows the Pending decision count next to the label. */
+  badge?: "decisions";
   children?: { href: string; label: string }[];
 }
 
@@ -14,6 +16,7 @@ export function navFor(admin: boolean, t: Messages): NavItem[] {
     { href: "/meetings", label: t.nav.meetings },
     { href: "/calendar", label: t.nav.calendar },
     { href: "/conflicts", label: t.nav.conflicts },
+    { href: "/decisions", label: t.nav.decisions, badge: "decisions" },
     { href: "/reports", label: t.nav.reports },
     { href: "/profile", label: t.nav.profile },
   ];

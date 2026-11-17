@@ -207,3 +207,59 @@ export function saveBlob({ blob, filename }: DownloadedFile): void {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
+
+/**
+ * v1.11: POST multipart form data with upload progress (fetch has no upload progress, so this uses
+ * XMLHttpRequest). Same rules as api(): cookies, language headers, one refresh + retry on 401,
+ * errors as ApiError with the backend's message.
+ */
+export async function apiUpload<T>(
+  path: string,
+  form: FormData,
+  options: { onProgress?: (fraction: number) => void; signal?: AbortSignal } = {},
+): Promise<T> {
+  const attempt = () =>
+    new Promise<{ status: number; body: unknown; requestId?: string }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_BASE}${path}`);
+      xhr.withCredentials = true;
+      xhr.setRequestHeader("Accept", "application/json");
+      xhr.setRequestHeader("Accept-Language", currentLocale());
+      xhr.setRequestHeader("X-Lang", currentLocale());
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) options.onProgress?.(e.loaded / e.total);
+      };
+      xhr.onload = () => {
+        let body: unknown = undefined;
+        try {
+          body = xhr.responseText ? JSON.parse(xhr.responseText) : undefined;
+        } catch {
+          body = undefined;
+        }
+        resolve({
+          status: xhr.status,
+          body,
+          requestId: xhr.getResponseHeader("x-request-id") ?? undefined,
+        });
+      };
+      xhr.onerror = () => reject(new ApiError(0, messagesFor(currentLocale()).errors.network));
+      xhr.onabort = () => reject(new DOMException("Aborted", "AbortError"));
+      options.signal?.addEventListener("abort", () => xhr.abort(), { once: true });
+      xhr.send(form);
+    });
+
+  let res = await attempt();
+  if (res.status === 401) {
+    if (await refreshSession()) res = await attempt();
+    if (res.status === 401) sessionListeners.forEach((l) => l());
+  }
+  if (res.status < 200 || res.status >= 300) {
+    const fake = new Response(null, {
+      status: res.status,
+      headers: res.requestId ? { "x-request-id": res.requestId } : {},
+    });
+    throw toApiError(fake, res.body);
+  }
+  options.onProgress?.(1);
+  return res.body as T;
+}

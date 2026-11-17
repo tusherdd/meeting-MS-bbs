@@ -76,6 +76,7 @@ backend/
 │       ├── auth/                login, tokens, password reset / set-password links
 │       ├── users/  profile/  designations/  wings/  change-requests/
 │       ├── meetings/            includes the conflict engine (conflict-engine.service.ts + meeting-rules.ts)
+│       ├── decisions/           meeting decision files "সভা সিদ্ধান্ত" (v1.11, §6.9)
 │       ├── notifications/       NotificationsService.notify + channels (in-app, e-mail)
 │       ├── mail/                outbox entity, worker, templates, admin outbox API
 │       ├── reports/             summaries + PDF (Puppeteer)
@@ -332,6 +333,38 @@ lazy `PdfService` (`reports/pdf/pdf.module.ts`, one browser for reports and noti
 - Tests: `bangla-calendar.spec.ts`, `notice-template.spec.ts`, `meeting-notice.service.spec.ts`,
   `test/meetings-v110.e2e-spec.ts`, `frontend/e2e/v110.spec.ts`.
 
+### 6.9 Meeting decisions "সভা সিদ্ধান্ত" (v1.11, owner decisions 2026-11-17)
+The decisions (minutes, signed resolutions) of a meeting are uploaded as files. Module `modules/decisions/`:
+pure rules in `decision-rules.ts` and `decision-file.ts` (unit-tested), `decisions.service.ts`,
+`decision-storage.service.ts`.
+- **Status (derived, never stored):** **Complete** = at least one file; **Pending** = the meeting has started (or
+  is completed), is not cancelled and has no file; cancelled meetings and meetings that have not started have
+  **no** decision status (null). Deleting the last file makes it Pending again. `MeetingSummaryDto` carries
+  `decisionFileCount` and `decisionStatus`; report rows carry `decisionFileCount`.
+- **Storage:** table `meeting_decision_files` (§7) + the bytes on disk under **`DECISION_UPLOAD_DIR`** (default
+  `./storage/uploads`, git-ignored), a folder per meeting, random names (`<uuid>.pdf|.jpg|.png`), folders 0700, files
+  0600. A separate variable from `UPLOAD_DIR` (owner decision 2026-11-17), because `UPLOAD_DIR` is served
+  statically at `/uploads` for profile photos; decision files are **never** served statically and the API refuses to
+  start when one folder lies inside the other. A hard delete of a meeting removes its folder.
+- **Files:** PDF, JPEG and PNG only, decided by the **bytes** (magic bytes; a PDF must also end with `%%EOF`;
+  images must decode as the same format), never by the extension or the client's type. At most **10 MB** per file
+  and **10 files** per meeting. Images are re-encoded without metadata (EXIF/GPS removed, orientation applied).
+  The original name is sanitized (last path segment, no control / bidi / reserved characters, max 150 + extension of
+  the detected type); SHA-256 is stored. Uploads are rate-limited (30 requests per user per hour). Refusals have a
+  clear message in the request language (`DECISION_*` codes, e.g. a fake PDF → 400 `DECISION_FILE_BAD_TYPE`).
+- **Permissions:** upload, view and download — the organizer, the internal chair and the members (officers);
+  admins may view and download but **not upload**; guests have no login. Anyone else **403**; unknown meeting 404.
+  Upload only **after the start time** (409 `DECISION_NOT_STARTED`) and never for cancelled meetings (409
+  `DECISION_CANCELLED`). **Delete:** the uploader, the organizer or the chair (others 403).
+- **Download:** through the authenticated endpoint only, `Content-Disposition` with an ASCII fallback and the UTF-8
+  name, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`; `?inline=true` opens images and PDFs
+  in a new browser tab.
+- **Audit:** `MEETING_DECISION_UPLOADED` (per file: name, type, size, hash) and `MEETING_DECISION_DELETED`.
+- **Notification:** after an upload the organizer and the chair (never the uploader) get a **bell** notice (no mail,
+  `MEETING_DECISION_UPLOADED`): `"[শিরোনাম]" সভার সিদ্ধান্ত আপলোড করা হয়েছে।`, linking to the decision page.
+- Tests: `decision-file.spec.ts`, `decision-rules.spec.ts`, `decisions.service.spec.ts`, `test/decisions.e2e-spec.ts`,
+  `frontend/e2e/v111.spec.ts`.
+
 ## 7. Data model (TypeORM entities)
 
 All tables have `id` (uuid), `createdAt`, `updatedAt`.
@@ -355,6 +388,8 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
 - **meeting_participants**: meetingId, userId, role (`ORGANIZER` | `CHAIR` | `MEMBER`) — unique (meetingId, userId)
 - **meeting_guests** (v1.5): meetingId (→ meetings, CASCADE), name, designation, email (lowercased), isChair —
   unique (meetingId, lower(email)); one guest chair per meeting; never together with `meetings.chairId`
+- **meeting_decision_files** (v1.11): meetingId (→ meetings, CASCADE, indexed), uploadedById (→ users, RESTRICT),
+  originalName (sanitized), storedName (random), mime, size, sha256 — §6.9
 - **meeting_conflicts**: higherMeetingId, lowerMeetingId, userId (shared officer), status
   (`PENDING` | `RESOLVED`), resolvedAt
 - **notifications**: userId, type, title, body, link, readAt
@@ -442,6 +477,16 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | POST | `/meetings/:id/complete` | 👤 | Mark completed, save notes/minutes |
 | DELETE | `/meetings/:id` | 🛡 | Hard delete (admin only) |
 
+### Meeting decisions (v1.11, §6.9)
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/decisions/summary` | 👤 | Pending / Complete counts of meetings I organize or chair (+ `leads`) |
+| GET | `/decisions?as=lead\|member&status=PENDING\|COMPLETE` | 👤 | Meetings by decision status (members: Pending only) |
+| GET | `/meetings/:id/decision` | 👤 | Status, files, what I may do (its people and admins; others 403) |
+| POST | `/meetings/:id/decision/files` | 👤 | Upload (multipart `files`; organizer, chair, members; after the start; not cancelled) |
+| GET | `/meetings/:id/decision/files/:fileId` | 👤 | Download (`?inline=true` to open) |
+| DELETE | `/meetings/:id/decision/files/:fileId` | 👤 | Delete (uploader, organizer or chair) |
+
 ### Conflicts
 | Method | Path | Access | Purpose |
 |---|---|---|---|
@@ -501,12 +546,15 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
    required everywhere and must meet the password rule; it is allowed in production (owner decision
    2026-11-09), where startup logs one warning line "Default officer password is enabled" (never the value).
 9. Uploads: size limit, mime + magic-byte check, random file names, stored outside `src/`, served read-only.
+   Meeting decision files (v1.11, §6.9): magic bytes only, image metadata stripped, private folder
+   (`DECISION_UPLOAD_DIR`, never static), only through the authenticated download with `nosniff`.
 10. Authorization checked in services (organizer, internal chair or admin for meeting edit/cancel; organizer/admin
     for complete; SUPER_ADMIN protected).
 11. Only parameterized queries (TypeORM query builder / repositories). No string-built SQL.
 12. All tokens in links (reset, verify) are random 32 bytes, stored hashed, single-use, expiring.
 13. Audit log for: login, user create/update/role/status, change-request decisions, meeting create/update/cancel/delete,
-    meeting notice export (`MEETING_NOTICE_EXPORTED`, v1.10), designation priority changes.
+    meeting notice export (`MEETING_NOTICE_EXPORTED`, v1.10), decision file upload / delete
+    (`MEETING_DECISION_UPLOADED` / `_DELETED`, v1.11), designation priority changes.
 14. Swagger enabled only when `SWAGGER_ENABLED=true` (off by default); in production only behind HTTP basic auth
     (`SWAGGER_USER`, `SWAGGER_PASSWORD`).
 15. Errors never leak stack traces or SQL in production. Every response has an `X-Request-Id` (also in error bodies
@@ -547,6 +595,7 @@ MAIL_DRY_RUN=true            # true = log mails instead of sending (development)
 
 UPLOAD_DIR=./uploads
 MAX_UPLOAD_MB=2
+DECISION_UPLOAD_DIR=./storage/uploads   # v1.11: private decision files (never static; persistent, backed up)
 SWAGGER_ENABLED=true
 SCHEDULER_ENABLED=true          # cron jobs (mail worker, cleanups); false in e2e tests
 SWAGGER_USER=                   # production: basic auth for /api/docs (required if SWAGGER_ENABLED=true)
@@ -562,7 +611,7 @@ DEFAULT_OFFICER_PASSWORD=        # required: the one default officer password (l
 
 e2e tests additionally read `backend/.env.test` (copy of the committed `.env.test.example`):
 `DB_NAME_TEST=bbs_meeting_test`, `NODE_ENV=test`, `SCHEDULER_ENABLED=false`, `MAIL_DRY_RUN=true`,
-`UPLOAD_DIR=./tmp/test-uploads`. One-time SQL: `CREATE DATABASE bbs_meeting_test OWNER bbs_meeting;`
+`UPLOAD_DIR=./tmp/test-uploads`, `DECISION_UPLOAD_DIR=./tmp/test-decisions`. One-time SQL: `CREATE DATABASE bbs_meeting_test OWNER bbs_meeting;`
 
 ## 11. Seed data
 
@@ -611,6 +660,8 @@ Release **v1.10** (2026-11-17, tag `v1.10`, part 2 of 3): (A) the three-dot row 
 and edit/cancel for the internal chair (§6.3); (B) the meeting notice PDF "সভার নোটিশ" (§6.8); (C) the admin
 office report page shows the organizer as the wing (§13.17), e2e test for completing a meeting without a venue.
 
+Release **v1.11** (2026-11-17, tag `v1.11`, part 3 of 3): meeting decisions "সভা সিদ্ধান্ত" (§6.9, §13.19).
+
 ## 13. Frontend (`frontend/`)
 
 ### 13.1 Stack
@@ -652,6 +703,7 @@ frontend/
 | `/meetings` (filters, admin "সকল সভা"), `/meetings/new?start=&end=`, `/meetings/:id`, `/meetings/:id/edit` | app | F2 |
 | `/calendar` (week 08–18 grid / month / phone day list), `/conflicts` (pending, resolved, admin all), `/notifications` | app | F2 |
 | `/reports?period=&date=&page=` | app | F3 |
+| `/decisions`, `/meetings/:id/decision` (meeting decisions) | app | v1.11 |
 | `/profile` | app | F3 |
 | `/admin`, `/admin/users` (+ `/new`, `/:id`), `/admin/designations`, `/admin/wings`, `/admin/change-requests`, `/admin/meetings`, `/admin/conflicts`, `/admin/reports`, `/admin/email-outbox`, `/admin/audit-logs` | app, ADMIN/SUPER_ADMIN only (others see the 404 page) | F3 |
 
@@ -861,7 +913,8 @@ English (Latin script); everything else stays Bangla.
 - Names stored in the database (for example the seeded account name "সুপার অ্যাডমিন") are data, not labels.
 - **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
   and statuses stay as in v1.2.**
-  - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, ডুপ্লিকেট সভা, রিপোর্ট, প্রোফাইল, অ্যাডমিন.
+  - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, ডুপ্লিকেট সভা, সভা সিদ্ধান্ত (v1.11; en "Meeting decisions"),
+    রিপোর্ট, প্রোফাইল, অ্যাডমিন.
   - Admin menu: সারসংক্ষেপ, কর্মকর্তা, পদবি, উইং, পরিবর্তনের অনুরোধ, সকল সভা, সকল ডুপ্লিকেট সভা, অফিস রিপোর্ট, ইমেইল সারি, অডিট লগ.
 - **v1.5 (owner decision 2026-11-16):** the old Bangla word for "conflict" is gone everywhere (UI, mails,
   notifications, PDFs, backend messages, Swagger, tests). The time clash is "সময় কনফ্লিক্ট"; everything else
@@ -1109,5 +1162,29 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   ORGANIZER / CHAIR, or `organizedByMe` / `chairedByMe` on duplicate meetings cards), with the usual status rules
   (edit: scheduled and not ended; cancel: scheduled; Cancel opens the usual reason dialog). Admins keep their
   rights on the detail page.
+- v1.11: "Upload decision" (opens `/meetings/:id/decision`) for the meeting's people (organizer, internal chair,
+  members; not admins as such), only while an upload is allowed (started or completed, not cancelled, fewer than
+  10 files; `decisionFileCount` on summaries and report rows).
 - API support: `ConflictMeetingRefDto.chairedByMe`; office report rows carry the admin viewer's own `myRole`.
 - Tests: `tests/unit/row-actions.test.ts`, `e2e/v110.spec.ts`, `e2e/no-icons.spec.ts` (the glyph only inside its button).
+
+### 13.19 Meeting decisions UI (v1.11, owner decisions 2026-11-17)
+- **Sidebar:** "সভা সিদ্ধান্ত" / "Meeting decisions" between "ডুপ্লিকেট সভা" and "রিপোর্ট", with a small amber count of
+  Pending decisions of the meetings I organize or chair (`GET /decisions/summary`; Bangla digits in Bangla; hidden
+  when 0; screen readers hear "৩টি Pending সিদ্ধান্ত").
+- **`/decisions`** ("সভা সিদ্ধান্ত"): tabs "Pending (n)" and "Complete (n)" with the meetings I organize or chair (meeting
+  rows with the three-dot menu, paginated); below, the section "আমি সদস্য" / "As member": meetings where I am only a
+  member and the decision is Pending (no counts for members), so members can upload.
+- **Dashboard:** for users who organize or chair any meeting (`leads`), a card "সভা সিদ্ধান্ত" with the Pending and
+  Complete counts and a link to `/decisions`.
+- **`/meetings/:id/decision`:** meeting summary (title, date and time, venue, organizer as the wing), status badge
+  (Pending amber / Complete green; a note instead when the meeting has not started or is cancelled), the upload form
+  (only when allowed: a labelled native file input with `multiple`, no icons; client pre-check of type, size and
+  count; one request per file with a progress bar and per-file errors from the backend), and the file list (name,
+  uploader, time, size via `formatFileSize`, buttons View — opens in a new tab —, Download, Delete with confirmation
+  when allowed). Upload progress uses `apiUpload()` in `lib/api.ts` (XMLHttpRequest, same refresh and error rules).
+- All texts in `messages/en.ts` / `bn.ts` (`decisions.*`, `rowMenu.upload`, `nav.decisions`). After an upload or
+  delete every "decisions" query is refreshed with the meeting data (`lib/invalidate.ts`).
+- Deployment (README §4.4 / §4.7 / §4.8): `DECISION_UPLOAD_DIR` on persistent storage, in the backups, writable only by
+  the app user; nginx `client_max_body_size` at least `12m`.
+- Tests: `tests/unit/row-actions.test.ts`, `tests/unit/format.test.ts`, `e2e/v111.spec.ts`, `e2e/no-icons.spec.ts` (`/decisions`).

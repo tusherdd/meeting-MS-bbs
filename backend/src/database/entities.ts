@@ -6,6 +6,7 @@ import { AuditLog } from '../modules/audit/entities/audit-log.entity';
 import { PasswordResetToken } from '../modules/auth/entities/password-reset-token.entity';
 import { RefreshToken } from '../modules/auth/entities/refresh-token.entity';
 import { ChangeRequest } from '../modules/change-requests/entities/change-request.entity';
+import { MeetingDecisionFile } from '../modules/decisions/entities/meeting-decision-file.entity';
 import { Designation } from '../modules/designations/entities/designation.entity';
 import { EmailOutbox } from '../modules/mail/entities/email-outbox.entity';
 import { MeetingGuest } from '../modules/meetings/entities/meeting-guest.entity';
@@ -29,6 +30,7 @@ export const ENTITIES = [
   MeetingParticipant,
   MeetingConflict,
   MeetingGuest,
+  MeetingDecisionFile,
   Notification,
   EmailOutbox,
   AuditLog,

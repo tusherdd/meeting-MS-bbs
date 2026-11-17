@@ -136,6 +136,7 @@ test("no icons in the app layout, header, sidebar, menus and pages", async ({ br
     "/meetings/new",
     "/calendar",
     "/conflicts",
+    "/decisions",
     "/notifications",
     "/change-password",
     "/reports",

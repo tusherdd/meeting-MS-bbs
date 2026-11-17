@@ -3,6 +3,7 @@ import { WingRefDto } from '../../users/dto/user-response.dto';
 import { ConflictStatus } from '../enums/conflict-status.enum';
 import { MeetingStatus } from '../enums/meeting-status.enum';
 import { ParticipantRole } from '../enums/participant-role.enum';
+import { DecisionStatus } from '../../decisions/decision-rules';
 
 export class DesignationBriefDto {
   @ApiProperty({ example: 'উপপরিচালক' })
@@ -97,6 +98,21 @@ export class MeetingSummaryDto {
     description: 'My role in this meeting (null = admin view)',
   })
   myRole!: ParticipantRole | null;
+
+  @ApiProperty({
+    example: 0,
+    description: 'v1.11: number of decision files ("সভা সিদ্ধান্ত")',
+  })
+  decisionFileCount!: number;
+
+  @ApiProperty({
+    enum: DecisionStatus,
+    enumName: 'DecisionStatus',
+    nullable: true,
+    description:
+      'v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started',
+  })
+  decisionStatus!: DecisionStatus | null;
 }
 
 export class ConflictMeetingRefDto {

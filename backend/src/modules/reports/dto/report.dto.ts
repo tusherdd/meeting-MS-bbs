@@ -170,6 +170,11 @@ export class ReportMeetingDto {
     description: 'Guest officers (listed only, never counted)',
   })
   guests!: ReportGuestDto[];
+  @ApiProperty({
+    example: 0,
+    description: 'v1.11: number of decision files ("সভা সিদ্ধান্ত")',
+  })
+  decisionFileCount!: number;
 }
 
 export class ReportMeetingPageDto {

@@ -94,6 +94,12 @@ export type PageMeta = S["PaginatedResponseDto"];
 export type Paginated<T> = PageMeta & { items: T[] };
 export type PeriodDto = S["PeriodDto"];
 export type ReportMeeting = S["ReportMeetingDto"];
+
+// Meeting decisions (v1.11) ----------------------------------------------------------------------
+export type DecisionStatus = S["DecisionStatus"];
+export type DecisionDetail = S["DecisionDetailDto"];
+export type DecisionFile = S["DecisionFileDto"];
+export type DecisionSummary = S["DecisionSummaryDto"];
 export type DayCount = S["DayCountDto"];
 export type StatusCounts = S["StatusCountsDto"];
 export type OfficeSummary = S["OfficeSummaryDto"];

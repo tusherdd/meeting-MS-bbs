@@ -505,6 +505,62 @@ export const MESSAGE_CATALOG = {
     bn: '{email} ঠিকানাটি কর্মকর্তা {nameBn}-এর। তাঁকে অতিথি কর্মকর্তা হিসেবে না দিয়ে অংশগ্রহণকারী তালিকা থেকে নির্বাচন করুন।',
     en: 'The address {email} belongs to the officer {nameBn}. Select them from the participant list instead of adding them as a guest officer.',
   },
+  DECISION_FORBIDDEN: {
+    bn: 'শুধু সভার সংশ্লিষ্ট কর্মকর্তা অথবা প্রশাসক সভা সিদ্ধান্ত দেখতে পারেন।',
+    en: 'Only the officers of this meeting or an administrator can see its decisions.',
+  },
+  DECISION_UPLOAD_FORBIDDEN: {
+    bn: 'শুধু সভার আয়োজক, সভাপতি ও সদস্য সভা সিদ্ধান্ত Upload করতে পারেন।',
+    en: 'Only the organizer, the president and the members of the meeting can upload decisions.',
+  },
+  DECISION_NOT_STARTED: {
+    bn: 'সভা শুরু হওয়ার আগে সিদ্ধান্ত Upload করা যাবে না।',
+    en: 'Decisions cannot be uploaded before the meeting starts.',
+  },
+  DECISION_CANCELLED: {
+    bn: 'বাতিল সভার সিদ্ধান্ত Upload করা যাবে না।',
+    en: 'Decisions cannot be uploaded for a cancelled meeting.',
+  },
+  DECISION_FILE_MISSING: {
+    bn: 'অন্তত একটি ফাইল নির্বাচন করুন (ফিল্ডের নাম: files)।',
+    en: 'Select at least one file (field name: files).',
+  },
+  DECISION_FILE_BAD_TYPE: {
+    bn: '"{name}" ফাইলটি গ্রহণ করা যায়নি: শুধু PDF, JPEG অথবা PNG ফাইল Upload করা যাবে।',
+    en: 'The file "{name}" was not accepted: only PDF, JPEG or PNG files can be uploaded.',
+  },
+  DECISION_FILE_UNREADABLE: {
+    bn: '"{name}" ফাইলটি পড়া যায়নি: ফাইলটি নষ্ট অথবা আসল PDF বা ছবি নয়।',
+    en: 'The file "{name}" could not be read: it is damaged or not a real PDF or image.',
+  },
+  DECISION_FILE_TOO_LARGE: {
+    bn: 'প্রতিটি ফাইল সর্বোচ্চ ১০ MB হতে পারে।',
+    en: 'Each file can be at most 10 MB.',
+  },
+  DECISION_TOO_MANY_FILES: {
+    bn: 'একটি সভায় সর্বোচ্চ ১০টি সিদ্ধান্ত ফাইল রাখা যায়।',
+    en: 'A meeting can have at most 10 decision files.',
+  },
+  DECISION_FILE_NOT_FOUND: {
+    bn: 'সিদ্ধান্ত ফাইলটি পাওয়া যায়নি।',
+    en: 'The decision file was not found.',
+  },
+  DECISION_DELETE_FORBIDDEN: {
+    bn: 'শুধু ফাইলটি যিনি Upload করেছেন, সভার আয়োজক অথবা সভাপতি এটি মুছতে পারেন।',
+    en: 'Only the person who uploaded the file, the organizer or the president of the meeting can delete it.',
+  },
+  DECISION_STATUS_INVALID: {
+    bn: 'status PENDING অথবা COMPLETE হতে হবে।',
+    en: 'status must be PENDING or COMPLETE.',
+  },
+  DECISION_AS_INVALID: {
+    bn: 'as lead অথবা member হতে হবে।',
+    en: 'as must be lead or member.',
+  },
+  INLINE_INVALID: {
+    bn: 'inline true অথবা false হতে হবে।',
+    en: 'inline must be true or false.',
+  },
   NOTIFICATION_NOT_FOUND: {
     bn: 'Notification-টি পাওয়া যায়নি।',
     en: 'Notification not found.',

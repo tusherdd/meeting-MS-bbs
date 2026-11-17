@@ -9,6 +9,7 @@ import {
   type Relation,
 } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
+import { MeetingDecisionFile } from '../../decisions/entities/meeting-decision-file.entity';
 import { User } from '../../users/entities/user.entity';
 import { MeetingStatus } from '../enums/meeting-status.enum';
 import { MeetingGuest } from './meeting-guest.entity';
@@ -84,4 +85,11 @@ export class Meeting extends BaseEntity {
 
   @OneToMany(() => MeetingGuest, (guest) => guest.meeting)
   guests!: Relation<MeetingGuest>[];
+
+  /** v1.11: decision files (SPEC.md §6.9); counted for the decision status. */
+  @OneToMany(() => MeetingDecisionFile, (file) => file.meeting)
+  decisionFiles!: Relation<MeetingDecisionFile>[];
+
+  /** Not a column: filled by loadRelationCountAndMap where a query asks for it. */
+  decisionFileCount?: number;
 }

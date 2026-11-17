@@ -170,6 +170,7 @@ cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
 | `MAIL_DRY_RUN` | `false` (mail is really sent; must be set explicitly in production) |
 | `SCHEDULER_ENABLED` | `true` (mail worker, cleanups, auto-complete) |
 | `UPLOAD_DIR` | `/opt/bbs-meeting/uploads` (outside the code folder; create it, owned by `bbsmeeting`) |
+| `DECISION_UPLOAD_DIR` | `/opt/bbs-meeting/decisions` (v1.11, meeting decision files; see below) |
 | `TRUST_PROXY` | `true` behind nginx (or `1` = one proxy hop) so rate limits and the audit log see the real client IP |
 | `THROTTLE_LIMIT`, `THROTTLE_USER_LIMIT` | defaults 100 per IP / 300 per logged-in user per minute |
 | `SWAGGER_ENABLED` | `false` (or `true` with `SWAGGER_USER` / `SWAGGER_PASSWORD`) |
@@ -178,6 +179,16 @@ cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
 
 The API refuses to start with unsafe production settings (weak secrets, http URLs, localhost in CORS,
 `MAIL_DRY_RUN` not set, Swagger without basic auth).
+
+**Meeting decision files (v1.11, `DECISION_UPLOAD_DIR`).** Private files (PDF, JPEG, PNG): they are only
+sent through the logged-in API, never by nginx or as static files.
+- Put the folder on **persistent storage** (not a temporary or container-only disk) and **include it in the
+  backups** (§4.8). It must not be inside `UPLOAD_DIR` (the API refuses to start otherwise).
+- Make it **writable only by the app user**:
+  `sudo install -d -o bbsmeeting -g bbsmeeting -m 700 /opt/bbs-meeting/decisions` (the API also creates
+  folders with mode 700 and files with mode 600).
+- nginx `client_max_body_size` must be **at least `12m`** (one file of up to 10 MB per request, plus form
+  overhead; §4.7).
 
 ### 4.5 Migrations and seed
 
@@ -249,7 +260,7 @@ server {
     server_name meeting.bbs.gov.bd;
     # certbot fills in ssl_certificate / ssl_certificate_key
 
-    client_max_body_size 3m;               # photo uploads (MAX_UPLOAD_MB=2) + form overhead
+    client_max_body_size 12m;              # v1.11: decision files (10 MB each, one per request) + overhead
 
     location /api/v1/ {
         proxy_pass http://127.0.0.1:4000;
@@ -288,7 +299,7 @@ headers from `next.config.ts`.
 
 ```cron
 30 2 * * * postgres pg_dump -Fc bbs_meeting > /var/backups/bbs-meeting/bbs_meeting-$(date +\%F).dump && find /var/backups/bbs-meeting -name '*.dump' -mtime +30 -delete
-45 2 * * * root tar -czf /var/backups/bbs-meeting/uploads-$(date +\%F).tar.gz -C /opt/bbs-meeting uploads && find /var/backups/bbs-meeting -name 'uploads-*.tar.gz' -mtime +30 -delete
+45 2 * * * root tar -czf /var/backups/bbs-meeting/uploads-$(date +\%F).tar.gz -C /opt/bbs-meeting uploads decisions && find /var/backups/bbs-meeting -name 'uploads-*.tar.gz' -mtime +30 -delete
 ```
 
 ```bash

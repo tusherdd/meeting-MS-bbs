@@ -18,4 +18,7 @@ export enum NotificationType {
   MEETING_CONFLICT = 'MEETING_CONFLICT',
   /** v1.5: an officer became chair, the meeting took their designation priority. */
   MEETING_CHAIR_ASSIGNED = 'MEETING_CHAIR_ASSIGNED',
+  // bell only
+  /** v1.11: a decision file was uploaded (organizer and chair, never the uploader; no e-mail). */
+  MEETING_DECISION_UPLOADED = 'MEETING_DECISION_UPLOADED',
 }
