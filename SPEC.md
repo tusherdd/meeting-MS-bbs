@@ -897,6 +897,10 @@ Checked with fonttools, HarfBuzz and screenshots in Chromium and Firefox (the PD
   already in the right language (`<html lang>` follows it). Switching keeps the session and unsaved form input.
 - **UI texts** live in `frontend/messages/en.ts` and `frontend/messages/bn.ts` with exactly the same keys
   (unit test). `en.ts` contains no Bangla characters (unit test + `wording.spec.ts`).
+- **English wording (owner decision 2026-11-17).** In English UI texts and English API messages the chair is
+  "President" ("Presided by" where a phrase is needed; "No president selected") and the agenda is "Description"
+  (form label "Description of the meeting"; "No description given."). Bangla stays সভাপতি and আলোচ্যসূচি.
+  Code, API fields, keys and enums keep their names (`chair`, `chairId`, `CHAIR`, `agenda`).
 - **Numbers and dates** still come only from `lib/format.ts`: Bangla digits and month names in Bangla (§13.11),
   Latin digits and English names in English; always on the Asia/Dhaka clock. User text is shown as typed.
 - **API messages.** `lib/api.ts` sends `Accept-Language: en | bn` and `X-Lang: en | bn` from the cookie on every

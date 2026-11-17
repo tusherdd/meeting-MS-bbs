@@ -342,11 +342,11 @@ export const MESSAGE_CATALOG = {
   },
   AGENDA_NOT_STRING: {
     bn: 'আলোচ্যসূচি লেখা হতে হবে।',
-    en: 'The agenda must be text.',
+    en: 'The description must be text.',
   },
   AGENDA_TOO_LONG: {
     bn: 'আলোচ্যসূচি সর্বোচ্চ ৫০০০ অক্ষরের হতে পারে।',
-    en: 'The agenda can have at most 5000 characters.',
+    en: 'The description can have at most 5000 characters.',
   },
   ROOM_NOT_STRING: {
     bn: 'কক্ষের নাম লেখা হতে হবে।',
@@ -366,7 +366,7 @@ export const MESSAGE_CATALOG = {
   },
   CHAIR_INVALID: {
     bn: 'সঠিক সভাপতি নির্বাচন করুন।',
-    en: 'Select a valid chair.',
+    en: 'Select a valid president.',
   },
   PARTICIPANTS_NOT_ARRAY: {
     bn: 'অংশগ্রহণকারীদের তালিকা দিন।',
@@ -482,7 +482,7 @@ export const MESSAGE_CATALOG = {
   },
   ONE_CHAIR: {
     bn: 'সভাপতি একজনই হতে পারেন: একজন কর্মকর্তা অথবা একজন অতিথি কর্মকর্তা।',
-    en: 'A meeting can have only one chair: one officer or one guest officer.',
+    en: 'A meeting can have only one president: one officer or one guest officer.',
   },
   GUEST_DUPLICATE_EMAIL: {
     bn: 'একই Email ({email}) একাধিক অতিথি কর্মকর্তার জন্য দেওয়া যাবে না।',

@@ -235,13 +235,13 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | `IS_CHAIR_BOOLEAN` | isChair must be true or false. | isChair true অথবা false হতে হবে। |
 | `MEETING_TITLE_REQUIRED` | Enter the meeting title. | সভার শিরোনাম দিন। |
 | `MEETING_TITLE_LENGTH` | The title must be 3 to 200 characters long. | শিরোনাম ৩ থেকে ২০০ অক্ষরের হতে হবে। |
-| `AGENDA_NOT_STRING` | The agenda must be text. | আলোচ্যসূচি লেখা হতে হবে। |
-| `AGENDA_TOO_LONG` | The agenda can have at most 5000 characters. | আলোচ্যসূচি সর্বোচ্চ ৫০০০ অক্ষরের হতে পারে। |
+| `AGENDA_NOT_STRING` | The description must be text. | আলোচ্যসূচি লেখা হতে হবে। |
+| `AGENDA_TOO_LONG` | The description can have at most 5000 characters. | আলোচ্যসূচি সর্বোচ্চ ৫০০০ অক্ষরের হতে পারে। |
 | `ROOM_NOT_STRING` | The room name must be text. | কক্ষের নাম লেখা হতে হবে। |
 | `ROOM_TOO_LONG` | The room name can have at most 100 characters. | কক্ষের নাম সর্বোচ্চ ১০০ অক্ষরের হতে পারে। |
 | `ONLINE_LINK_INVALID` | The online link must be a valid address starting with https://. | Online Link https:// দিয়ে শুরু হওয়া সঠিক ঠিকানা হতে হবে। |
 | `LINK_TOO_LONG` | The link is too long. | Link খুব দীর্ঘ। |
-| `CHAIR_INVALID` | Select a valid chair. | সঠিক সভাপতি নির্বাচন করুন। |
+| `CHAIR_INVALID` | Select a valid president. | সঠিক সভাপতি নির্বাচন করুন। |
 | `PARTICIPANTS_NOT_ARRAY` | Give the list of participants. | অংশগ্রহণকারীদের তালিকা দিন। |
 | `PARTICIPANTS_DUPLICATE` | The same participant cannot be given more than once. | একই অংশগ্রহণকারী একাধিকবার দেওয়া যাবে না। |
 | `PARTICIPANTS_MAX` | At most 200 participants are allowed. | সর্বোচ্চ ২০০ জন অংশগ্রহণকারী দেওয়া যাবে। |
@@ -270,7 +270,7 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | `MEETING_CANCELLED_CANNOT_COMPLETE` | A cancelled meeting cannot be marked as completed. | বাতিল সভা সম্পন্ন হিসেবে চিহ্নিত করা যাবে না। |
 | `TIME_CONFLICT_BLOCKING` | At the selected time, one or more officers have a meeting with the same or a higher priority. Change the time or the participants. | নির্বাচিত সময়ে এক বা একাধিক কর্মকর্তার সমান বা উচ্চতর অগ্রাধিকারের সভা আছে। সময় বা অংশগ্রহণকারী পরিবর্তন করুন। |
 | `SCOPE_ALL_ADMIN_ONLY` | Only administrators may view all meetings. | সব সভা দেখার অনুমতি শুধু প্রশাসকের আছে। |
-| `ONE_CHAIR` | A meeting can have only one chair: one officer or one guest officer. | সভাপতি একজনই হতে পারেন: একজন কর্মকর্তা অথবা একজন অতিথি কর্মকর্তা। |
+| `ONE_CHAIR` | A meeting can have only one president: one officer or one guest officer. | সভাপতি একজনই হতে পারেন: একজন কর্মকর্তা অথবা একজন অতিথি কর্মকর্তা। |
 | `GUEST_DUPLICATE_EMAIL` | The same email ({email}) cannot be used for more than one guest officer. | একই Email ({email}) একাধিক অতিথি কর্মকর্তার জন্য দেওয়া যাবে না। |
 | `GUEST_IS_OFFICER` | The address {email} belongs to the officer {nameBn}. Select them from the participant list instead of adding them as a guest officer. | {email} ঠিকানাটি কর্মকর্তা {nameBn}-এর। তাঁকে অতিথি কর্মকর্তা হিসেবে না দিয়ে অংশগ্রহণকারী তালিকা থেকে নির্বাচন করুন। |
 | `NOTIFICATION_NOT_FOUND` | Notification not found. | Notification-টি পাওয়া যায়নি। |
