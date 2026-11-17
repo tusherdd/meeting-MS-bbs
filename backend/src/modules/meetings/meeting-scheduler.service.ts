@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { DataSource } from 'typeorm';
+import { ScheduledJob } from '../../common/scheduling/scheduled-job';
 import { EnvVars } from '../../config/env.validation';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/enums/audit-action.enum';
@@ -18,6 +19,8 @@ export const AUTO_COMPLETE_AFTER_MS = 60 * 60_000;
 @Injectable()
 export class MeetingSchedulerService {
   private readonly logger = new Logger(MeetingSchedulerService.name);
+  /** Never throws; a temporary DB outage is one WARN and is retried on the next tick. */
+  private readonly job = new ScheduledJob('Meeting auto-complete', this.logger);
 
   constructor(
     private readonly dataSource: DataSource,
@@ -29,14 +32,10 @@ export class MeetingSchedulerService {
   @Cron('*/15 * * * *', { name: 'meeting-auto-complete' })
   async tick(): Promise<void> {
     if (!this.config.get('SCHEDULER_ENABLED', { infer: true })) return;
-    try {
+    await this.job.run(async () => {
       const done = await this.autoComplete();
       if (done > 0) this.logger.log(`Auto-completed ${done} meeting(s)`);
-    } catch (err) {
-      this.logger.error(
-        `Auto-complete failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
+    });
   }
 
   async autoComplete(now = new Date()): Promise<number> {

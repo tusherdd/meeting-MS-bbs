@@ -21,6 +21,12 @@ export interface EnvVars {
   DB_NAME: string;
   /** e2e tests only (.env.test): must differ from DB_NAME. */
   DB_NAME_TEST?: string;
+  /** Max connections in the pg pool (default 10 in production, 5 otherwise). */
+  DB_POOL_MAX: number;
+  /** How long to wait for a free / new connection before failing (ms). */
+  DB_CONNECTION_TIMEOUT_MS: number;
+  /** An idle pooled connection is closed after this long (ms). */
+  DB_IDLE_TIMEOUT_MS: number;
 
   JWT_ACCESS_SECRET: string;
   JWT_REFRESH_SECRET: string;
@@ -124,6 +130,25 @@ export const envSchema = Joi.object<EnvVars>({
   DB_NAME_TEST: Joi.string().optional().invalid(Joi.ref('DB_NAME')).messages({
     'any.invalid': '"DB_NAME_TEST" must be different from DB_NAME',
   }),
+  // Small pool in development (saves memory on a laptop), 10 (the pg default) in production.
+  DB_POOL_MAX: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .default((env: { NODE_ENV?: string }) =>
+      env.NODE_ENV === 'production' ? 10 : 5,
+    ),
+  // 10 s: long enough for a busy machine, short enough that a dead DB fails fast.
+  DB_CONNECTION_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(60_000)
+    .default(10_000),
+  DB_IDLE_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(600_000)
+    .default(30_000),
 
   JWT_ACCESS_SECRET: Joi.string().min(MIN_SECRET_LENGTH).required(),
   // Must differ from the access secret, otherwise an access token could be replayed as a refresh token.

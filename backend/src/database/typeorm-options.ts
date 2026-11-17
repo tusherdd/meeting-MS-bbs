@@ -6,7 +6,15 @@ import { ENTITIES } from './entities';
 
 type DbEnv = Pick<
   EnvVars,
-  'NODE_ENV' | 'DB_HOST' | 'DB_PORT' | 'DB_USER' | 'DB_PASSWORD' | 'DB_NAME'
+  | 'NODE_ENV'
+  | 'DB_HOST'
+  | 'DB_PORT'
+  | 'DB_USER'
+  | 'DB_PASSWORD'
+  | 'DB_NAME'
+  | 'DB_POOL_MAX'
+  | 'DB_CONNECTION_TIMEOUT_MS'
+  | 'DB_IDLE_TIMEOUT_MS'
 >;
 
 /**
@@ -35,9 +43,12 @@ export function buildDataSourceOptions(env: DbEnv): DataSourceOptions {
     logging: ['error', 'warn', 'migration'],
     logger: new SafeTypeOrmLogger(),
     maxQueryExecutionTime: 2000, // slow-query warning (SQL text only)
+    // node-postgres pool settings (DB_POOL_* env, safe defaults in env.validation.ts).
     extra: {
-      // Fail fast instead of hanging when the DB is unreachable.
-      connectionTimeoutMillis: 5000,
+      max: env.DB_POOL_MAX,
+      // Fail instead of hanging when the DB is unreachable or every connection is busy.
+      connectionTimeoutMillis: env.DB_CONNECTION_TIMEOUT_MS,
+      idleTimeoutMillis: env.DB_IDLE_TIMEOUT_MS,
     },
   };
 }

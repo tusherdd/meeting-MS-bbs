@@ -72,7 +72,8 @@ cp .env.example .env              # fill in DB_PASSWORD, JWT secrets, SEED_SUPER
 cp .env.test.example .env.test    # DEFAULT_OFFICER_PASSWORD (see backend/README.md §1.3)
 npm run migration:run
 npm run seed                      # designations, wings, super admin, officers from the git-ignored CSV
-npm run start:dev                 # http://localhost:4000/api/v1, Swagger at /api/docs
+npm run start:dev                 # http://localhost:4000/api/v1, Swagger at /api/docs (SWC, no type check)
+npm run typecheck:watch           # optional, own terminal: TypeScript errors while you work
 
 # 3. Frontend (second terminal)
 cd frontend
@@ -80,6 +81,14 @@ npm install
 cp .env.example .env.local        # BACKEND_URL=http://localhost:4000
 npm run dev                       # http://localhost:3000
 ```
+
+Dev mode on a small machine (8 GB RAM):
+- The backend dev server compiles with SWC and does **not** type-check; run `npm run typecheck` (once) or
+  `npm run typecheck:watch` (own terminal) to see TypeScript errors. `npm run build` stays on `tsc` with type checks.
+- `next dev` needs about 1–2 GB once every page has been opened. When you only work on the backend, stop it and,
+  if you need the UI, run `npm run preview` in `frontend/` instead: one production build, then a small server
+  (about 150 MB) on http://localhost:3000. It does not reload on frontend changes.
+- The PDF browser (Chromium) starts only on the first PDF and closes after 5 minutes without a PDF.
 
 First login: `admin@bbs.gov.bd` with `SEED_SUPER_ADMIN_PASSWORD`; the app then asks for a new password.
 Officers log in with their official email and the office default password (`DEFAULT_OFFICER_PASSWORD`).
@@ -89,6 +98,7 @@ Officers log in with their official email and the office default password (`DEFA
 | Where | Command | What |
 |---|---|---|
 | backend | `npm run lint` | ESLint + Prettier |
+| backend | `npm run typecheck` / `npm run typecheck:watch` | TypeScript check of src + tests, once / in watch mode (the dev server does not type-check) |
 | backend | `npm run test` | unit tests (Jest, mocks) |
 | backend | `npm run test:e2e` | API end-to-end tests on the separate `bbs_meeting_test` database |
 | frontend | `npm run lint` / `npm run typecheck` | ESLint / route types + TypeScript |

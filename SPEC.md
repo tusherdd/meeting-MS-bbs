@@ -42,7 +42,7 @@ There is no separate database project: TypeORM entities, migrations and seeds ar
 | Auth | JWT access + refresh tokens, passwords hashed with argon2id |
 | API docs | Swagger (OpenAPI) at `/api/docs` |
 | Mail | Nodemailer over SMTP (settings in `.env`), sent through a DB outbox |
-| Scheduling | `@nestjs/schedule` (outbox worker every minute, daily outbox cleanup, meeting auto-complete every 15 min); off when `SCHEDULER_ENABLED=false` |
+| Scheduling | `@nestjs/schedule` (outbox worker every minute, daily outbox cleanup, meeting auto-complete every 15 min); off when `SCHEDULER_ENABLED=false`. A job never crashes the app or blocks other jobs; a temporary DB connection error is logged once as a short WARN and retried on the next tick (`common/scheduling/scheduled-job.ts`) |
 | Tests | Jest unit tests (mocks) + e2e tests on a separate database `DB_NAME_TEST` (`backend/.env.test`) |
 | PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly; fonts embedded from `backend/assets/fonts/`: **NikoshBAN** for Bangla, **Tinos** for English (no internet fonts, §13.10) |
 | Frontend | Next.js (App Router), TypeScript, Tailwind CSS |
@@ -481,6 +481,9 @@ DB_PORT=5432
 DB_USER=bbs_meeting
 DB_PASSWORD=change_me
 DB_NAME=bbs_meeting
+# DB_POOL_MAX=10                 # optional: pg pool size (default 5 in development/test, 10 in production)
+# DB_CONNECTION_TIMEOUT_MS=10000 # optional: wait for a DB connection at most this long, then fail (cron jobs retry next tick)
+# DB_IDLE_TIMEOUT_MS=30000     # optional: close idle pooled connections after this long
 
 JWT_ACCESS_SECRET=at_least_32_random_characters
 JWT_REFRESH_SECRET=another_32_random_characters

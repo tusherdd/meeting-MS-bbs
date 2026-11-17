@@ -49,6 +49,11 @@ import { testHooksEnabled } from './modules/test-hooks/test-hooks.guard';
           DB_USER: config.get('DB_USER', { infer: true }),
           DB_PASSWORD: config.get('DB_PASSWORD', { infer: true }),
           DB_NAME: config.get('DB_NAME', { infer: true }),
+          DB_POOL_MAX: config.get('DB_POOL_MAX', { infer: true }),
+          DB_CONNECTION_TIMEOUT_MS: config.get('DB_CONNECTION_TIMEOUT_MS', {
+            infer: true,
+          }),
+          DB_IDLE_TIMEOUT_MS: config.get('DB_IDLE_TIMEOUT_MS', { infer: true }),
         }),
     }),
 

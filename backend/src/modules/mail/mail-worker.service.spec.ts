@@ -53,6 +53,7 @@ function setup(options: { dryRun: boolean; rows?: EmailOutbox[] }) {
     MAIL_DRY_RUN: options.dryRun,
     SMTP_USER: 'bbs.mailer@gmail.com',
     SMTP_PASSWORD: 's3cretPass!',
+    SCHEDULER_ENABLED: true,
   };
   const worker = new MailWorkerService(
     dataSource as unknown as DataSource,
@@ -199,5 +200,75 @@ describe('MailWorkerService.cleanup', () => {
     ];
     expect(where.status).toBe(EmailStatus.SENT);
     expect(NOW.getTime() - where.sentAt.value.getTime()).toBe(30 * 86_400_000);
+  });
+});
+
+describe('MailWorkerService scheduled ticks (resilient to DB outages)', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  const spyLogger = () => ({
+    warn: jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined),
+    error: jest
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined),
+    log: jest
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => undefined),
+  });
+
+  it('a DB connection timeout is one short WARN, never throws, and the next tick retries', async () => {
+    const { worker, query } = setup({ dryRun: true });
+    const logs = spyLogger();
+    query.getMany.mockRejectedValue(
+      new Error('Connection terminated due to connection timeout'),
+    );
+
+    await expect(worker.sendDueMail()).resolves.toBeUndefined();
+    await expect(worker.sendDueMail()).resolves.toBeUndefined();
+
+    expect(logs.warn).toHaveBeenCalledTimes(1);
+    expect(String(logs.warn.mock.calls[0][0])).toBe(
+      'Mail batch: database not reachable (Connection terminated due to connection timeout); retrying on the next run',
+    );
+    expect(logs.error).not.toHaveBeenCalled();
+
+    // DB back: the next tick sends the mail and says so once.
+    query.getMany.mockResolvedValue([outboxRow()]);
+    await worker.sendDueMail();
+    const lines = logs.log.mock.calls.map((c) => String(c[0]));
+    expect(lines).toContain('Mail batch: database reachable again');
+    expect(lines).toContain('Mail batch: 1 sent, 0 will retry, 0 failed');
+  });
+
+  it('other errors are one ERROR line without SMTP credentials', async () => {
+    const { worker, query } = setup({ dryRun: true });
+    const logs = spyLogger();
+    query.getMany.mockRejectedValue(
+      new Error('bad state for bbs.mailer@gmail.com / s3cretPass!'),
+    );
+    await expect(worker.sendDueMail()).resolves.toBeUndefined();
+    expect(logs.error).toHaveBeenCalledTimes(1);
+    const line = String(logs.error.mock.calls[0][0]);
+    expect(line.startsWith('Mail batch failed: ')).toBe(true);
+    expect(line).not.toContain('s3cretPass!');
+    expect(line).not.toContain('bbs.mailer@gmail.com');
+  });
+
+  it('daily cleanup: a DB outage is a WARN, never a crash', async () => {
+    const { worker, repo } = setup({ dryRun: true });
+    const logs = spyLogger();
+    repo.delete.mockRejectedValue(
+      Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:5432'), {
+        code: 'ECONNREFUSED',
+      }),
+    );
+    await expect(worker.dailyCleanup()).resolves.toBeUndefined();
+    expect(logs.warn).toHaveBeenCalledTimes(1);
+    expect(String(logs.warn.mock.calls[0][0])).toContain(
+      'Mail outbox cleanup: database not reachable',
+    );
+    expect(logs.error).not.toHaveBeenCalled();
   });
 });

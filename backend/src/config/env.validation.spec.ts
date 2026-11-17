@@ -174,6 +174,52 @@ describe('validateEnv', () => {
     ).toThrow(/THROTTLE_USER_LIMIT/);
   });
 
+  describe('DB pool settings', () => {
+    const production = () => ({
+      ...validEnv(),
+      NODE_ENV: 'production',
+      APP_URL: 'https://api.meeting.bbs.gov.bd',
+      FRONTEND_URL: 'https://meeting.bbs.gov.bd',
+      CORS_ORIGINS: 'https://meeting.bbs.gov.bd',
+      SWAGGER_ENABLED: 'false',
+    });
+
+    it('defaults: pool 5 in development, 10 s connect timeout, 30 s idle timeout', () => {
+      const env = validateEnv(validEnv());
+      expect(env.DB_POOL_MAX).toBe(5);
+      expect(env.DB_CONNECTION_TIMEOUT_MS).toBe(10_000);
+      expect(env.DB_IDLE_TIMEOUT_MS).toBe(30_000);
+    });
+
+    it('defaults to a pool of 10 in production', () => {
+      expect(validateEnv(production()).DB_POOL_MAX).toBe(10);
+    });
+
+    it('accepts explicit values', () => {
+      const env = validateEnv({
+        ...production(),
+        DB_POOL_MAX: '20',
+        DB_CONNECTION_TIMEOUT_MS: '15000',
+        DB_IDLE_TIMEOUT_MS: '60000',
+      });
+      expect(env.DB_POOL_MAX).toBe(20);
+      expect(env.DB_CONNECTION_TIMEOUT_MS).toBe(15_000);
+      expect(env.DB_IDLE_TIMEOUT_MS).toBe(60_000);
+    });
+
+    it.each([
+      ['DB_POOL_MAX', '0'],
+      ['DB_POOL_MAX', '500'],
+      ['DB_CONNECTION_TIMEOUT_MS', '100'],
+      ['DB_CONNECTION_TIMEOUT_MS', '120000'],
+      ['DB_IDLE_TIMEOUT_MS', '10'],
+    ])('rejects %s=%s', (key, value) => {
+      expect(() => validateEnv({ ...validEnv(), [key]: value })).toThrow(
+        new RegExp(key),
+      );
+    });
+  });
+
   it('THROTTLE_LIMIT defaults to 100 and must stay between 10 and 10000', () => {
     expect(validateEnv(validEnv()).THROTTLE_LIMIT).toBe(100);
     expect(

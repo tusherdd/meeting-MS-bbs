@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "preview": "next build && cp -R public .next/standalone/ && cp -R .next/static .next/standalone/.next/ && HOSTNAME=localhost node .next/standalone/server.js",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",

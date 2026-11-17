@@ -4,6 +4,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { mkdir, readdir, stat, unlink, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { DataSource, EntityManager, LessThan } from 'typeorm';
+import { ScheduledJob } from '../../common/scheduling/scheduled-job';
 import { EnvVars } from '../../config/env.validation';
 import { EmailOutbox } from './entities/email-outbox.entity';
 import { EmailStatus } from './enums/email-status.enum';
@@ -43,6 +44,8 @@ export class MailWorkerService {
   private readonly secrets: string[];
   private readonly previewDir = resolve(process.cwd(), MAIL_PREVIEW_DIR);
   private running = false;
+  private readonly batchJob: ScheduledJob;
+  private readonly cleanupJob: ScheduledJob;
 
   constructor(
     private readonly dataSource: DataSource,
@@ -56,31 +59,36 @@ export class MailWorkerService {
       config.get('SMTP_PASSWORD', { infer: true }),
       config.get('SMTP_USER', { infer: true }),
     ];
+    // Errors in a tick are logged without SMTP credentials and never crash the app;
+    // a temporary DB outage is one WARN and the work is retried on the next tick.
+    const describeError = (err: unknown) => safeErrorText(err, this.secrets);
+    this.batchJob = new ScheduledJob('Mail batch', this.logger, {
+      describeError,
+    });
+    this.cleanupJob = new ScheduledJob('Mail outbox cleanup', this.logger, {
+      describeError,
+    });
   }
 
   @Cron(CronExpression.EVERY_MINUTE, { name: 'mail-outbox' })
   async sendDueMail(): Promise<void> {
     // Off in e2e tests (SCHEDULER_ENABLED=false); a test calls processBatch() itself.
     if (!this.config.get('SCHEDULER_ENABLED', { infer: true })) return;
-    try {
+    await this.batchJob.run(async () => {
       const result = await this.processBatch();
       if (result.sent + result.retried + result.failed > 0) {
         this.logger.log(
           `Mail batch: ${result.sent} sent, ${result.retried} will retry, ${result.failed} failed`,
         );
       }
-    } catch (err) {
-      this.logger.error(
-        `Mail batch crashed: ${safeErrorText(err, this.secrets)}`,
-      );
-    }
+    });
   }
 
   /** Daily 03:00 Dhaka time: delete SENT rows older than 30 days (and old dev previews). */
   @Cron('0 3 * * *', { name: 'mail-outbox-cleanup', timeZone: 'Asia/Dhaka' })
   async dailyCleanup(): Promise<void> {
     if (!this.config.get('SCHEDULER_ENABLED', { infer: true })) return;
-    await this.cleanup();
+    await this.cleanupJob.run(() => this.cleanup());
   }
 
   async cleanup(now = new Date()): Promise<number> {

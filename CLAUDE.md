@@ -28,7 +28,8 @@ Default officer password (owner decision 2026-11-09): only in `DEFAULT_OFFICER_P
 docs, logs, mails or test files; no forced change and no reminder for officers (SPEC.md §6.2).
 
 ## Commands (backend)
-- `npm run start:dev` — run API with watch mode (http://localhost:4000, Swagger at /api/docs)
+- `npm run start:dev` — run API with watch mode (http://localhost:4000, Swagger at /api/docs); SWC, no type check
+- `npm run typecheck` / `npm run typecheck:watch` — TypeScript check once / in watch mode (run before committing)
 - `npm run migration:generate -- src/database/migrations/<Name>` — create migration from entity changes
 - `npm run migration:run` — apply migrations
 - `npm run seed` — run seeds
@@ -36,6 +37,7 @@ docs, logs, mails or test files; no forced change and no reminder for officers (
 
 ## Commands (frontend, in `frontend/`)
 - `npm run dev` — Next.js on http://localhost:3000 (backend must run; `/api/v1/*` is proxied to `BACKEND_URL`)
+- `npm run preview` — production build + standalone server on :3000 (~150 MB, no reload), for backend-only work
 - `npm run lint` / `npm run typecheck` / `npm run build`
 - `npm run gen:api` — regenerate `lib/api-schema.ts` from `docs/openapi.json` (after backend API changes)
 - `npm run test:e2e` — Playwright (backend running with `MAIL_DRY_RUN=true`; admin login in `frontend/.env.e2e`)
