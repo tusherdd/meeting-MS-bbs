@@ -1,235 +1,334 @@
+import { DateTime } from 'luxon';
+import { DHAKA_TZ } from '../../../common/utils/time';
 import { MeetingStatus } from '../../meetings/enums/meeting-status.enum';
-import { ParticipantRole } from '../../meetings/enums/participant-role.enum';
-import { REPORT_TITLE_BN, dayRows, renderReportHtml } from './report-template';
+import type { ReportMeeting } from '../report-math';
+import {
+  MEASURE_ATTR,
+  PAGE_CONTENT_HEIGHT_PX,
+  renderScheduleHtml,
+  type ScheduleHeader,
+} from './report-template';
+import { buildSchedulePdf, type PdfRenderer } from './schedule-pdf';
+import {
+  headerDesignationBn,
+  scheduleTitleBn,
+  toScheduleRows,
+  withJanab,
+} from './schedule-format';
 
 const evil = '<img src=x onerror=alert(1)>';
+const dhaka = (iso: string) =>
+  DateTime.fromISO(iso, { zone: DHAKA_TZ }).toJSDate();
 
-function html() {
-  return renderReportHtml({
-    header: {
-      subjectLines: [['কর্মকর্তা', evil]],
-      periodLabelBn: 'ডিসেম্বর ২০২৬',
-      generatedAtBn: 'প্রস্তুত: ১ ডিসেম্বর ২০২৬, ১০:০০',
-    },
-    summary: [{ label: 'মোট সভা', value: 12 }],
-    extraTables: [{ title: 'উইং', headers: ['উইং', 'সভা'], rows: [[evil, 3]] }],
-    meetings: [
-      {
-        id: 'm1',
-        title: evil,
-        startAt: new Date('2026-12-01T04:00:00Z'),
-        endAt: new Date('2026-12-01T05:00:00Z'),
-        room: '"><script>x</script>',
-        status: MeetingStatus.SCHEDULED,
-        organizerId: 'o',
-        organizerNameBn: 'আয়োজক',
-        organizerNameEn: 'EN_ONLY organizer',
-        organizerDesignationId: null,
-        organizerDesignationBn: 'সচিব',
-        organizerDesignationEn: 'EN_ONLY designation',
-        organizerDesignationPriority: 1,
-        organizerWingId: null,
-        organizerWingBn: null,
-        organizerWingEn: 'EN_ONLY wing',
-        myRole: ParticipantRole.ORGANIZER,
-        chairNameBn: evil,
-        chairNameEn: 'EN_ONLY chair',
-        guests: [{ name: evil, designation: evil }],
-      },
-    ],
-    showMyRole: true,
-    totalMeetings: 1,
-  });
+let seq = 0;
+function meeting(over: Partial<ReportMeeting> = {}): ReportMeeting {
+  const startAt = over.startAt ?? dhaka('2026-11-14T10:00');
+  return {
+    id: `m${++seq}`,
+    title: 'সভা',
+    startAt,
+    endAt: new Date(startAt.getTime() + 3_600_000),
+    room: 'বিবিএস সম্মেলন কক্ষ',
+    status: MeetingStatus.SCHEDULED,
+    organizerId: 'o',
+    organizerNameBn: 'আয়োজক ব্যক্তি',
+    organizerNameEn: 'EN_ONLY organizer',
+    organizerDesignationId: 'd',
+    organizerDesignationBn: 'উপপরিচালক',
+    organizerDesignationEn: 'EN_ONLY designation',
+    organizerDesignationPriority: 1,
+    organizerWingId: 'w',
+    organizerWingBn: 'কম্পিউটার উইং',
+    organizerWingEn: 'EN_ONLY wing',
+    myRole: null,
+    chairNameBn: 'মোঃ কামরুল হাসান',
+    chairNameEn: 'EN_ONLY chair',
+    chairDesignationBn: 'মহাপরিচালক',
+    guests: [],
+    ...over,
+  };
 }
 
-describe('report PDF template', () => {
+function header(over: Partial<ScheduleHeader> = {}): ScheduleHeader {
+  return {
+    titleBn: scheduleTitleBn('week'),
+    officerBn: withJanab('মোঃ আরিফুল হক'),
+    designationBn: headerDesignationBn('প্রোগ্রামার', 6),
+    periodLabelBn: '১৫ নভেম্বর – ২১ নভেম্বর ২০২৬ (সপ্তাহ)',
+    generatedAtBn: '১৯ নভেম্বর ২০২৬, ২২:১৫',
+    ...over,
+  };
+}
+
+/** Three meetings on the 14th, one on the 15th, one cancelled on the 14th. */
+const week = () => [
+  meeting({ title: 'A', startAt: dhaka('2026-11-14T10:00') }),
+  meeting({ title: 'B', startAt: dhaka('2026-11-14T15:30') }),
+  meeting({
+    title: 'CANCELLED_ONE',
+    status: MeetingStatus.CANCELLED,
+    startAt: dhaka('2026-11-14T12:00'),
+  }),
+  meeting({ title: 'C', startAt: dhaka('2026-11-14T18:00') }),
+  meeting({ title: 'D', startAt: dhaka('2026-11-15T12:00') }),
+];
+
+const count = (html: string, part: string) => html.split(part).length - 1;
+
+describe('report PDF template "কর্মসূচি" (v1.14)', () => {
+  it('A4 landscape, embedded NikoshBAN + Tinos, page numbers "১/২", nothing fetched', () => {
+    const out = renderScheduleHtml({ header: header(), rows: [] });
+    expect(out).toContain('<html lang="bn">');
+    expect(out).toContain('size: A4 landscape;');
+    expect(out).toContain(
+      'content: counter(page, bengali) "/" counter(pages, bengali);',
+    );
+    expect(out).not.toContain('পৃষ্ঠা');
+    expect(out).toContain("@font-face{font-family:'NikoshBAN';font-weight:400");
+    expect(out).toContain('unicode-range:U+0980-09FF,U+0964-0965,U+200C-200D');
+    expect(out).toContain("@font-face{font-family:'Tinos';font-weight:700");
+    expect(out.match(/src:url\(data:font\/ttf;base64,/g)).toHaveLength(3);
+    expect(out).not.toMatch(/https?:\/\//);
+    expect(out).not.toContain('<img'); // no logo
+  });
+
+  it('header: green title, then label : value lines and a green rule; old title and Summary gone', () => {
+    const out = renderScheduleHtml({ header: header(), rows: [] });
+    expect(out).toContain(
+      '<h1 class="rt">বাংলাদেশ পরিসংখ্যান ব্যুরো — সাপ্তাহিক কর্মসূচি</h1>',
+    );
+    expect(out).toContain(
+      '<tr><td>কর্মকর্তা</td><td class="c">:</td><td>জনাব মোঃ আরিফুল হক</td></tr>',
+    );
+    expect(out).toContain(
+      '<tr><td>পদবি</td><td class="c">:</td><td>প্রোগ্রামার</td></tr>',
+    );
+    expect(out).toContain(
+      '<tr><td>সময়কাল</td><td class="c">:</td><td>১৫ নভেম্বর – ২১ নভেম্বর ২০২৬ (সপ্তাহ)</td></tr>',
+    );
+    expect(out).toContain(
+      '<tr><td>প্রস্তুতের সময়</td><td class="c">:</td><td>১৯ নভেম্বর ২০২৬, ২২:১৫</td></tr>',
+    );
+    expect(out).toContain('<hr class="rule">');
+    expect(out).toContain('#016B4F');
+    expect(out).not.toContain('সভা প্রতিবেদন');
+    expect(out).not.toContain('Summary');
+  });
+
+  it('empty state: the message and no table', () => {
+    const out = renderScheduleHtml({
+      header: header(),
+      rows: toScheduleRows([meeting({ status: MeetingStatus.CANCELLED })]),
+    });
+    expect(out).toContain('<p class="empty">এই সময়ে কোনো সভা নেই।</p>');
+    expect(out).not.toContain('<table class="sched');
+  });
+
+  it('one table with the six columns; cancelled meetings excluded', () => {
+    const out = renderScheduleHtml({
+      header: header(),
+      rows: toScheduleRows(week()),
+    });
+    expect(count(out, '<table class="sched')).toBe(1);
+    expect(out).toContain(
+      '<th>তারিখ<br>ও দিন</th><th>সময়</th><th>বিষয়</th><th>সভাপতি/ প্রধান অতিথি</th><th>আয়োজক</th><th>স্থান</th>',
+    );
+    expect(out).not.toContain('CANCELLED_ONE');
+    expect(count(out, '<td class="subject">')).toBe(4);
+  });
+
+  it('same date → one date cell with rowspan; the next date its own cell', () => {
+    const out = renderScheduleHtml({
+      header: header(),
+      rows: toScheduleRows(week()),
+    });
+    expect(out).toContain(
+      '<tr><td class="date" rowspan="3">১৪/১১/২০২৬<br>শনিবার</td><td>সকাল<br>১০.০০</td><td class="subject">A</td>',
+    );
+    expect(out).toContain(
+      '<tr><td>বিকাল<br>০৩.৩০</td><td class="subject">B</td>',
+    );
+    expect(out).toContain(
+      '<tr><td>সন্ধ্যা<br>০৬.০০</td><td class="subject">C</td>',
+    );
+    expect(out).toContain(
+      '<tr><td class="date">১৫/১১/২০২৬<br>রবিবার</td><td>দুপুর<br>১২.০০</td><td class="subject">D</td>',
+    );
+    expect(count(out, '১৪/১১/২০২৬')).toBe(1);
+  });
+
+  it('a date group crossing a page break repeats the date cell and the table header', () => {
+    const out = renderScheduleHtml({
+      header: header(),
+      rows: toScheduleRows(week()),
+      pages: [
+        [0, 1],
+        [2, 3],
+      ],
+    });
+    expect(count(out, '<table class="sched')).toBe(2);
+    expect(count(out, '<table class="sched next">')).toBe(1);
+    expect(count(out, '<th>তারিখ<br>ও দিন</th>')).toBe(2);
+    expect(count(out, '১৪/১১/২০২৬<br>শনিবার')).toBe(2);
+    expect(out).toContain(
+      '<td class="date" rowspan="2">১৪/১১/২০২৬<br>শনিবার</td>',
+    );
+    expect(out).toContain(
+      '<td class="date">১৪/১১/২০২৬<br>শনিবার</td><td>সন্ধ্যা<br>০৬.০০</td>',
+    );
+    expect(out).toContain('break-before: page');
+    expect(out).toContain('page-break-inside: avoid');
+    expect(out).toContain('display: table-header-group');
+  });
+
+  it('chair cell: "জনাব" + name, designation on the next line; guest chair; no chair "—"; never "মহোদয়" in the table', () => {
+    const out = renderScheduleHtml({
+      header: header(),
+      rows: toScheduleRows([
+        meeting({
+          chairNameBn: 'জনাব শামীম আহমেদ',
+          chairDesignationBn: 'সচিব',
+        }),
+        meeting({
+          startAt: dhaka('2026-11-14T11:00'),
+          chairNameBn: 'Dr. Jane Guest',
+          chairDesignationBn: 'Consultant, UNFPA',
+        }),
+        meeting({
+          startAt: dhaka('2026-11-14T12:00'),
+          chairNameBn: null,
+          chairDesignationBn: null,
+        }),
+      ]),
+    });
+    expect(out).toContain('<td>জনাব শামীম আহমেদ<br>সচিব</td>');
+    expect(out).not.toContain('জনাব জনাব');
+    expect(out).toContain('<td>জনাব Dr. Jane Guest<br>Consultant, UNFPA</td>');
+    expect(out).toContain('<td>—</td>');
+    expect(out).not.toContain('মহোদয়');
+  });
+
+  it('"মহোদয়" only in the header, for priority 1–3', () => {
+    const rows = toScheduleRows([meeting()]);
+    const dg = renderScheduleHtml({
+      header: header({ designationBn: headerDesignationBn('মহাপরিচালক', 2) }),
+      rows,
+    });
+    expect(dg).toContain(
+      '<td>পদবি</td><td class="c">:</td><td>মহাপরিচালক মহোদয়</td>',
+    );
+    expect(count(dg, 'মহোদয়')).toBe(1);
+    expect(dg).toContain('<td>জনাব মোঃ কামরুল হাসান<br>মহাপরিচালক</td>');
+    const director = renderScheduleHtml({
+      header: header({ designationBn: headerDesignationBn('পরিচালক', 4) }),
+      rows,
+    });
+    expect(director).not.toContain('মহোদয়');
+  });
+
+  it('organizer as the Bangla wing, venue or "স্থান উল্লেখ নেই"; user text as typed; Bangla only', () => {
+    const out = renderScheduleHtml({
+      header: header(),
+      rows: toScheduleRows([
+        meeting({
+          title: 'SDG Tracker v2.1 (Room 501)',
+          room: 'Conference Room 501',
+        }),
+        meeting({
+          startAt: dhaka('2026-11-14T11:00'),
+          room: null,
+          organizerWingBn: null,
+        }),
+      ]),
+    });
+    expect(out).toContain(
+      '<td class="subject">SDG Tracker v2.1 (Room 501)</td>',
+    );
+    expect(out).toContain('<td>Conference Room 501</td>');
+    expect(out).toContain('<td>কম্পিউটার উইং</td>');
+    expect(out).toContain('<td>উপপরিচালক</td>');
+    expect(out).toContain('<td>স্থান উল্লেখ নেই</td>');
+    expect(out).not.toContain('আয়োজক ব্যক্তি');
+    expect(out).not.toContain('EN_ONLY');
+  });
+
   it('HTML-escapes every value from the database', () => {
-    const out = html();
+    const out = renderScheduleHtml({
+      header: header({ officerBn: withJanab(evil), designationBn: evil }),
+      rows: toScheduleRows([
+        meeting({
+          title: evil,
+          room: '"><script>x</script>',
+          chairNameBn: evil,
+          chairDesignationBn: evil,
+          organizerWingBn: evil,
+        }),
+      ]),
+    });
     expect(out).not.toContain(evil);
     expect(out).not.toContain('<script>x</script>');
     expect(out).toContain('&lt;img src=x onerror=alert(1)&gt;');
   });
 
-  it('v1.7: prints the Bangla names only, never the English ones', () => {
-    const out = html();
-    expect(out).toContain('সচিব'); // organizerDesignationBn
-    expect(out).not.toContain('EN_ONLY');
-  });
-
-  it('has the BBS header, Bangla digits, the embedded font and Bangla page numbers', () => {
-    const out = html();
-    expect(out).toContain(REPORT_TITLE_BN);
-    expect(out).toContain('১২'); // 12 in Bangla digits
-    // Owner decisions 2026-11-14/15: Bangla in NikoshBAN, English in Tinos, both embedded from
-    // backend/assets/fonts with the same unicode-range split as the web pages.
-    expect(out).toContain("@font-face{font-family:'NikoshBAN';font-weight:400");
-    expect(out).toContain('unicode-range:U+0980-09FF,U+0964-0965,U+200C-200D');
-    expect(out).toContain("@font-face{font-family:'Tinos';font-weight:400");
-    expect(out).toContain("@font-face{font-family:'Tinos';font-weight:700");
-    expect(out.match(/src:url\(data:font\/ttf;base64,/g)).toHaveLength(3);
-    expect(out).toContain("font-family: 'NikoshBAN', 'Tinos', serif");
-    expect(out).not.toContain('Noto');
-    expect(out).toContain('counter(page, bengali)');
-    expect(out).not.toMatch(/https?:\/\//); // nothing to fetch from the internet
-  });
-
-  // SPEC.md §13.11: only system-generated numbers get Bangla digits; user text stays as typed.
-  it('keeps user text exactly as typed and shows system numbers in Bangla digits', () => {
-    const out = renderReportHtml({
-      header: {
-        subjectLines: [['কর্মকর্তা', 'Md. Rahim 2 — Unit 7']],
-        periodLabelBn: 'ডিসেম্বর ২০২৬',
-        generatedAtBn: 'প্রস্তুত: ১ ডিসেম্বর ২০২৬, ১০:০০',
-      },
-      summary: [{ label: 'মোট সভা', value: 12 }],
-      extraTables: [
-        { title: 'উইং', headers: ['উইং', 'সভা'], rows: [['Wing 7 (ICT)', 34]] },
-        {
-          title: 'দিন',
-          headers: ['তারিখ', 'সভা', 'ঘণ্টা'],
-          rows: dayRows([{ date: '2026-12-01', meetings: 5, hours: 1.5 }]),
-        },
-      ],
-      meetings: [
-        {
-          id: 'm1',
-          title: 'সভা: Joint Coordination Meeting 2026 (SDG Tracker v2.1)',
-          startAt: new Date('2026-12-01T04:00:00Z'),
-          endAt: new Date('2026-12-01T05:00:00Z'),
-          room: 'Conference Room 501',
-          status: MeetingStatus.SCHEDULED,
-          organizerId: 'o',
-          organizerNameBn: 'Officer 3',
-          organizerNameEn: 'EN_ONLY organizer',
-          organizerDesignationId: null,
-          organizerDesignationBn: 'পরিচালক (Grade 4)',
-          organizerDesignationEn: 'EN_ONLY designation',
-          organizerDesignationPriority: 4,
-          organizerWingId: null,
-          organizerWingBn: null,
-          organizerWingEn: 'EN_ONLY wing',
-          myRole: ParticipantRole.ORGANIZER,
-          chairNameBn: 'ড. ফারহানা ইসলাম',
-          chairNameEn: 'EN_ONLY chair',
-          guests: [
-            { name: 'ড. ফারহানা ইসলাম', designation: 'যুগ্মসচিব (Planning)' },
-            { name: 'Mr. John Doe', designation: 'Consultant, UNFPA' },
-          ],
-        },
-      ],
-      showMyRole: true,
-      totalMeetings: 1,
+  it('measure mode: every row has its own date cell and the measure attribute', () => {
+    const out = renderScheduleHtml({
+      header: header(),
+      rows: toScheduleRows(week()),
+      mode: 'measure',
     });
-    // User text: unchanged.
-    expect(out).toContain(
-      'সভা: Joint Coordination Meeting 2026 (SDG Tracker v2.1)',
-    );
-    expect(out).toContain('<td>Conference Room 501</td>');
-    // v1.9: the organizer is shown as the wing; this one has none → the designation, no name.
-    expect(out).toContain('<td>পরিচালক (Grade 4)</td>');
-    expect(out).not.toContain('Officer 3');
-    expect(out).toContain('<td>Wing 7 (ICT)</td>');
-    expect(out).toContain('Md. Rahim 2 — Unit 7');
-    expect(out).not.toContain('v২.১');
-    expect(out).not.toContain('Room ৫০১');
-    // System numbers: Bangla digits (counts, hours, dates, the time range).
-    expect(out).toContain('<td>১২</td>');
-    expect(out).toContain('<td>৩৪</td>');
-    expect(out).toContain('<td>২০২৬-১২-০১</td><td>৫</td><td>১.৫</td>');
-    expect(out).toContain('১ ডিসেম্বর ২০২৬');
-    expect(out).not.toContain('<td>2026-12-01</td>');
-    // v1.5: chair column and the guest officers under the meeting, typed text unchanged.
-    expect(out).toContain('<th>সভাপতি</th>');
-    expect(out).toContain('<td>ড. ফারহানা ইসলাম</td>');
-    expect(out).toContain(
-      '<b>অতিথি কর্মকর্তা:</b> ড. ফারহানা ইসলাম — যুগ্মসচিব (Planning); Mr. John Doe — Consultant, UNFPA',
-    );
+    // header block + table header row + 4 rows
+    expect(count(out, ` ${MEASURE_ATTR}>`)).toBe(6);
+    expect(out).not.toContain('rowspan');
+    expect(count(out, '১৪/১১/২০২৬<br>শনিবার')).toBe(3);
   });
+});
 
-  it('adds no guest row for a meeting without guest officers', () => {
-    const out = renderReportHtml({
-      header: {
-        subjectLines: [],
-        periodLabelBn: 'ডিসেম্বর ২০২৬',
-        generatedAtBn: 'প্রস্তুত',
+describe('buildSchedulePdf (two passes)', () => {
+  function fakeRenderer(heights: (rows: number) => number[]) {
+    const rendered: string[] = [];
+    const measured: string[] = [];
+    const pdf: PdfRenderer = {
+      measure: (html) => {
+        measured.push(html);
+        // minus the table header row, which carries the attribute too
+        return Promise.resolve(
+          heights(count(html, `<tr ${MEASURE_ATTR}>`) - 1),
+        );
       },
-      summary: [],
-      extraTables: [],
-      meetings: [
-        {
-          id: 'm1',
-          title: 'সভা',
-          startAt: new Date('2026-12-01T04:00:00Z'),
-          endAt: new Date('2026-12-01T05:00:00Z'),
-          room: null,
-          status: MeetingStatus.SCHEDULED,
-          organizerId: 'o',
-          organizerNameBn: 'আয়োজক',
-          organizerNameEn: 'EN_ONLY organizer',
-          organizerDesignationId: null,
-          organizerDesignationBn: null,
-          organizerDesignationEn: 'EN_ONLY designation',
-          organizerDesignationPriority: null,
-          organizerWingId: null,
-          organizerWingBn: null,
-          organizerWingEn: 'EN_ONLY wing',
-          myRole: null,
-          chairNameBn: null,
-          chairNameEn: 'EN_ONLY chair',
-          guests: [],
-        },
-      ],
-      showMyRole: false,
-      totalMeetings: 1,
-    });
-    expect(out).not.toContain('class="guests"');
-    expect(out).not.toContain('অতিথি কর্মকর্তা:');
-  });
-
-  it('v1.9: organizer column shows the Bangla wing; a meeting without a venue says so', () => {
-    const base = {
-      id: 'm1',
-      title: 'সভা',
-      startAt: new Date('2026-12-01T04:00:00Z'),
-      endAt: new Date('2026-12-01T05:00:00Z'),
-      status: MeetingStatus.SCHEDULED,
-      organizerId: 'o',
-      organizerNameBn: 'মোঃ রহিম উদ্দিন',
-      organizerNameEn: 'EN_ONLY organizer',
-      organizerDesignationId: 'd',
-      organizerDesignationBn: 'উপপরিচালক',
-      organizerDesignationEn: 'EN_ONLY designation',
-      organizerDesignationPriority: 6,
-      organizerWingId: 'w',
-      organizerWingBn: 'কম্পিউটার উইং',
-      organizerWingEn: 'EN_ONLY wing',
-      myRole: null,
-      chairNameBn: null,
-      chairNameEn: null,
-      guests: [],
+      render: (html) => {
+        rendered.push(html);
+        return Promise.resolve(Buffer.from('%PDF-'));
+      },
     };
-    const out = renderReportHtml({
-      header: {
-        subjectLines: [],
-        periodLabelBn: 'ডিসেম্বর ২০২৬',
-        generatedAtBn: 'প্রস্তুত',
-      },
-      summary: [],
-      extraTables: [],
-      meetings: [
-        { ...base, room: null },
-        { ...base, id: 'm2', room: 'অনলাইন', organizerWingBn: null },
-      ],
-      showMyRole: false,
-      totalMeetings: 2,
-    });
-    expect(out).toContain('<th>স্থান</th>');
-    expect(out).toContain('<th>আয়োজক</th>');
-    expect(out).toContain('<td>কম্পিউটার উইং</td>');
-    expect(out).toContain('<td>উপপরিচালক</td>'); // no wing → designation
-    expect(out).toContain('<td>স্থান উল্লেখ নেই</td>');
-    expect(out).toContain('<td>অনলাইন</td>');
-    expect(out).not.toContain('মোঃ রহিম উদ্দিন');
-    expect(out).not.toContain('EN_ONLY');
+    return { pdf, rendered, measured };
+  }
+
+  it('splits rows into pages by the measured heights and repeats the date cell', async () => {
+    const rowHeight = Math.floor(PAGE_CONTENT_HEIGHT_PX / 3);
+    const { pdf, rendered, measured } = fakeRenderer((n) => [
+      200,
+      40,
+      ...Array<number>(n).fill(rowHeight),
+    ]);
+    const out = await buildSchedulePdf(pdf, header(), toScheduleRows(week()));
+    expect(out.toString()).toBe('%PDF-');
+    expect(measured).toHaveLength(1);
+    expect(rendered).toHaveLength(1);
+    // page 1 fits 1 row (after the header block), later pages 2 rows each → 3 tables.
+    expect(count(rendered[0], '<table class="sched')).toBe(3);
+    expect(count(rendered[0], '১৪/১১/২০২৬<br>শনিবার')).toBe(2);
+  });
+
+  it('no meetings → no measuring, the empty message', async () => {
+    const { pdf, rendered, measured } = fakeRenderer(() => []);
+    await buildSchedulePdf(pdf, header(), []);
+    expect(measured).toHaveLength(0);
+    expect(rendered[0]).toContain('এই সময়ে কোনো সভা নেই।');
+  });
+
+  it('an unexpected measure result falls back to one table', async () => {
+    const { pdf, rendered } = fakeRenderer(() => [1, 2]);
+    await buildSchedulePdf(pdf, header(), toScheduleRows(week()));
+    expect(count(rendered[0], '<table class="sched')).toBe(1);
   });
 });

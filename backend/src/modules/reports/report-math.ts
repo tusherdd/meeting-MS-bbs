@@ -34,6 +34,11 @@ export interface ReportMeeting {
   /** English name of the internal chair; a guest chair's name as typed (v1.7). */
   chairNameEn: string | null;
   /**
+   * v1.14: Bangla designation of the chair for the report PDF: the internal chair's designation,
+   * else the guest chair's designation as typed; null = no chair.
+   */
+  chairDesignationBn?: string | null;
+  /**
    * Guest officers (v1.5): listed under the meeting, never counted in any statistic
    * (the counts only use organizer and participant rows).
    */

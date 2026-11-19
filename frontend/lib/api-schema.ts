@@ -952,7 +952,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** My report as PDF */
+        /**
+         * My report as PDF ("কর্মসূচি", A4 landscape, Bangla)
+         * @description Schedule of my meetings in the period without cancelled ones: date, time, subject, chair, organizer (wing), venue.
+         */
         get: operations["ReportsController_mePdf"];
         put?: never;
         post?: never;
@@ -986,7 +989,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Office report as PDF (ADMIN) */
+        /**
+         * Office report as PDF ("কর্মসূচি", ADMIN)
+         * @description Schedule of the office meetings in the period (wing / designation filters) without cancelled ones; the header names the downloading admin.
+         */
         get: operations["ReportsController_officePdf"];
         put?: never;
         post?: never;
@@ -5187,7 +5193,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description A4 PDF (Bangla), downloaded as an attachment */
+            /** @description A4 landscape PDF (Bangla), downloaded as an attachment */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5262,7 +5268,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description A4 PDF (Bangla), downloaded as an attachment */
+            /** @description A4 landscape PDF (Bangla), downloaded as an attachment */
             200: {
                 headers: {
                     [name: string]: unknown;

@@ -28,7 +28,7 @@ import { ReportsService, type PdfFile } from './reports.service';
 const PDF_THROTTLE = { default: { limit: 10, ttl: minutes(1) } };
 
 const PDF_RESPONSE = {
-  description: 'A4 PDF (Bangla), downloaded as an attachment',
+  description: 'A4 landscape PDF (Bangla), downloaded as an attachment',
   content: {
     'application/pdf': { schema: { type: 'string', format: 'binary' } },
   },
@@ -68,7 +68,11 @@ export class ReportsController {
 
   @Throttle(PDF_THROTTLE)
   @Get('me/pdf')
-  @ApiOperation({ summary: 'My report as PDF' })
+  @ApiOperation({
+    summary: 'My report as PDF ("কর্মসূচি", A4 landscape, Bangla)',
+    description:
+      'Schedule of my meetings in the period without cancelled ones: date, time, subject, chair, organizer (wing), venue.',
+  })
   @ApiProduces('application/pdf')
   @ApiOkResponse(PDF_RESPONSE)
   @ApiServiceUnavailableResponse({
@@ -109,7 +113,11 @@ export class ReportsController {
   @Roles(UserRole.ADMIN)
   @Throttle(PDF_THROTTLE)
   @Get('office/pdf')
-  @ApiOperation({ summary: 'Office report as PDF (ADMIN)' })
+  @ApiOperation({
+    summary: 'Office report as PDF ("কর্মসূচি", ADMIN)',
+    description:
+      'Schedule of the office meetings in the period (wing / designation filters) without cancelled ones; the header names the downloading admin.',
+  })
   @ApiProduces('application/pdf')
   @ApiOkResponse(PDF_RESPONSE)
   @ApiForbiddenResponse({ description: 'Not an admin' })
@@ -117,12 +125,13 @@ export class ReportsController {
     description: 'PDF rendering took longer than 30 s',
   })
   async officePdf(
+    @CurrentUser() user: AuthUser,
     @Query() query: OfficeFilterDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     return sendPdf(
       res,
-      await this.reports.officePdf(query.period, query.date, {
+      await this.reports.officePdf(user, query.period, query.date, {
         wingId: query.wingId,
         designationId: query.designationId,
       }),

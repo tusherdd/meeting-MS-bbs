@@ -1,34 +1,25 @@
 /**
- * Self-contained HTML for report PDFs (rendered by PdfService). Rules:
+ * Self-contained HTML for the report PDFs "কর্মসূচি" (v1.14, SPEC.md §6.6; layout of
+ * docs/samples/report-schedule-sample.html). Rendered by PdfService. Rules:
  * - every value from the database is HTML-escaped (escapeHtml) — no raw interpolation;
  * - fonts are embedded as base64 data: URLs from backend/assets/fonts (NikoshBAN for Bangla, Tinos
- *   for English; owner decisions 2026-11-14 and 2026-11-15), no internet fonts; numbers use Bangla digits;
- * - page size, margins and the footer "পৃষ্ঠা X / Y" come from CSS @page (margin boxes with
- *   Bangla counters), so no JavaScript is needed.
+ *   for English; owner decisions 2026-11-14 and 2026-11-15), no internet fonts;
+ * - system numbers (dates, times, page numbers) in Bangla digits, user text exactly as typed;
+ * - A4 landscape; page size, margins and the footer "১/২" come from CSS @page (margin box with
+ *   Bangla counters), so no JavaScript is needed;
+ * - rows never split; the table header repeats on every page and a date cell (rowspan) is
+ *   repeated on a new page: the service measures the rows first (mode "measure") and then
+ *   prints one table per page (`pages`, see paginateRows()).
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { escapeHtml } from '../../../common/utils/html';
 import { toBanglaDigits } from '../../../common/utils/digits';
 import {
-  formatDhakaRange,
-  NO_VENUE_BN,
-  organizerLabelBn,
-} from '../../meetings/meeting-format';
-import type { DayCount, ReportMeeting, StatusCounts } from '../report-math';
-
-export const REPORT_TITLE_BN = 'বাংলাদেশ পরিসংখ্যান ব্যুরো — সভা প্রতিবেদন';
-
-const STATUS_BN: Record<string, string> = {
-  SCHEDULED: 'নির্ধারিত',
-  COMPLETED: 'সম্পন্ন',
-  CANCELLED: 'বাতিল',
-};
-const ROLE_BN: Record<string, string> = {
-  ORGANIZER: 'আয়োজক',
-  CHAIR: 'সভাপতি',
-  MEMBER: 'সদস্য',
-};
+  groupByDate,
+  NO_MEETINGS_BN,
+  type ScheduleRow,
+} from './schedule-format';
 
 /** Bangla text (owner decisions 2026-11-14, NikoshBAN since 2026-11-15). */
 export const REPORT_FONT_FAMILY = 'NikoshBAN';
@@ -86,183 +77,180 @@ export function embeddedFontCss(): string {
   return fontCss;
 }
 
-const e = (v: string | number | null | undefined) =>
-  escapeHtml(v === null || v === undefined ? '—' : String(v));
-const num = (v: number) => escapeHtml(toBanglaDigits(v));
+const e = (v: string) => escapeHtml(v);
 
-/**
- * Digit rule (SPEC.md §13.11): only numbers the SYSTEM generates (counts, totals, dates, times,
- * page numbers) are shown in Bangla digits. Text typed by users (meeting title, room, names,
- * designation remarks, wing and designation names) is printed exactly as typed: "v2.1" stays
- * "v2.1".
- * - a `number` cell is system-generated → Bangla digits;
- * - `sys("2026-11-16")` marks system-generated text → Bangla digits;
- * - a plain `string` cell is user text → unchanged.
- */
-export interface SystemText {
-  readonly systemText: string;
-}
-export const sys = (text: string): SystemText => ({ systemText: text });
-export type Cell = string | number | SystemText;
+/** A4 landscape with the sample's margins (top, right, bottom, left in mm). */
+const PAGE_MM = { width: 297, height: 210 };
+const MARGIN_MM = { top: 14, right: 14, bottom: 16, left: 14 };
+const MM_TO_PX = 96 / 25.4;
 
-function cell(c: Cell): string {
-  if (typeof c === 'number') return num(c);
-  if (typeof c === 'string') return e(c);
-  return e(toBanglaDigits(c.systemText));
-}
+/** Printable area of one page in CSS px (used to measure and to split the rows into pages). */
+export const PAGE_CONTENT_WIDTH_PX = Math.floor(
+  (PAGE_MM.width - MARGIN_MM.left - MARGIN_MM.right) * MM_TO_PX,
+);
+/** A little less than the real height, so small differences in measuring never push a row over. */
+export const PAGE_CONTENT_HEIGHT_PX = Math.floor(
+  (PAGE_MM.height - MARGIN_MM.top - MARGIN_MM.bottom) * MM_TO_PX - 8,
+);
 
-export interface ReportHeader {
-  /** e.g. "মোঃ ফিরোজ সরকার — সচিব" or the office filters. */
-  subjectLines: Array<[label: string, value: string]>;
+/** Attribute on the elements whose height the measuring pass reads (in document order). */
+export const MEASURE_ATTR = 'data-m';
+
+export const TABLE_HEADERS_HTML = [
+  'তারিখ<br>ও দিন',
+  'সময়',
+  'বিষয়',
+  'সভাপতি/ প্রধান অতিথি',
+  'আয়োজক',
+  'স্থান',
+];
+
+export interface ScheduleHeader {
+  /** "বাংলাদেশ পরিসংখ্যান ব্যুরো — সাপ্তাহিক কর্মসূচি" */
+  titleBn: string;
+  /** "জনাব <name>" of the downloading user. */
+  officerBn: string;
+  /** Designation of the downloading user (with " মহোদয়" for priority 1–3). */
+  designationBn: string;
   periodLabelBn: string;
   generatedAtBn: string;
+  /** Optional line under the header (e.g. rows were capped). */
+  noteBn?: string;
 }
 
-export interface SummaryRow {
-  label: string;
-  value: Cell;
+export interface ScheduleInput {
+  header: ScheduleHeader;
+  rows: readonly ScheduleRow[];
+  /**
+   * "measure": one table, every row with its own date cell and the `data-m` attribute
+   * (header block, table header row, then each row). Default "print".
+   */
+  mode?: 'measure' | 'print';
+  /** Row indexes per page (from paginateRows). Without it all rows go into one table. */
+  pages?: readonly (readonly number[])[];
 }
 
-export interface ExtraTable {
-  title: string;
-  headers: string[];
-  rows: Cell[][];
+function dateCell(row: ScheduleRow, rowspan: number): string {
+  const span = rowspan > 1 ? ` rowspan="${rowspan}"` : '';
+  return `<td class="date"${span}>${e(row.dateBn)}<br>${e(row.weekdayBn)}</td>`;
 }
 
-interface MeetingRow {
-  cells: Cell[];
-  guests: ReadonlyArray<{ name: string; designation: string }>;
+function rowCells(row: ScheduleRow): string {
+  const chair = row.chair
+    ? `${e(row.chair.nameBn)}${row.chair.designationBn ? `<br>${e(row.chair.designationBn)}` : ''}`
+    : '—';
+  return (
+    `<td>${e(row.dayPartBn)}<br>${e(row.timeBn)}</td>` +
+    `<td class="subject">${e(row.title)}</td>` +
+    `<td>${chair}</td>` +
+    `<td>${e(row.organizerBn)}</td>` +
+    `<td>${e(row.venueBn)}</td>`
+  );
 }
 
-/** Guest officer label (v1.5, SPEC.md §6.7). */
-export const GUESTS_LABEL_BN = 'অতিথি কর্মকর্তা';
-
-/**
- * The meeting list: one row per meeting; a meeting with guest officers gets a second row under
- * it, across all columns: "অতিথি কর্মকর্তা: name — designation; …" (user text, unchanged).
- */
-function meetingTable(headers: string[], rows: MeetingRow[]): string {
-  if (rows.length === 0) return '<p class="empty">কোনো তথ্য নেই।</p>';
-  return `<table><thead><tr>${headers.map((h) => `<th>${e(h)}</th>`).join('')}</tr></thead><tbody>${rows
-    .map((r) => {
-      const main = `<tr>${r.cells.map((c) => `<td>${cell(c)}</td>`).join('')}</tr>`;
-      if (r.guests.length === 0) return main;
-      const list = r.guests
-        .map((g) => `${e(g.name)} — ${e(g.designation)}`)
-        .join('; ');
-      return `${main}<tr class="guests"><td colspan="${headers.length}"><b>${e(GUESTS_LABEL_BN)}:</b> ${list}</td></tr>`;
-    })
-    .join('')}</tbody></table>`;
+function tableHtml(body: string, measure: boolean, nextPage: boolean): string {
+  const m = measure ? ` ${MEASURE_ATTR}` : '';
+  return (
+    `<table class="sched${nextPage ? ' next' : ''}">` +
+    '<colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"><col class="c6"></colgroup>' +
+    `<thead><tr${m}>${TABLE_HEADERS_HTML.map((h) => `<th>${h}</th>`).join('')}</tr></thead>` +
+    `<tbody>${body}</tbody></table>`
+  );
 }
 
-function table(headers: string[], rows: Cell[][]): string {
-  if (rows.length === 0) return '<p class="empty">কোনো তথ্য নেই।</p>';
-  return `<table><thead><tr>${headers.map((h) => `<th>${e(h)}</th>`).join('')}</tr></thead><tbody>${rows
-    .map((r) => `<tr>${r.map((c) => `<td>${cell(c)}</td>`).join('')}</tr>`)
-    .join('')}</tbody></table>`;
+/** Rows of one page: same-day rows share one date cell (rowspan), starting fresh on each page. */
+function pageBody(rows: readonly ScheduleRow[]): string {
+  return groupByDate(rows)
+    .map((group) =>
+      group
+        .map(
+          (row, i) =>
+            `<tr>${i === 0 ? dateCell(row, group.length) : ''}${rowCells(row)}</tr>`,
+        )
+        .join(''),
+    )
+    .join('');
 }
 
-export function statusRows(byStatus: StatusCounts): SummaryRow[] {
-  return [
-    { label: 'নির্ধারিত', value: byStatus.SCHEDULED },
-    { label: 'সম্পন্ন', value: byStatus.COMPLETED },
-    { label: 'বাতিল', value: byStatus.CANCELLED },
-  ];
+function tablesHtml(input: ScheduleInput): string {
+  const { rows } = input;
+  if (rows.length === 0) return `<p class="empty">${e(NO_MEETINGS_BN)}</p>`;
+  if (input.mode === 'measure') {
+    const body = rows
+      .map(
+        (row) => `<tr ${MEASURE_ATTR}>${dateCell(row, 1)}${rowCells(row)}</tr>`,
+      )
+      .join('');
+    return tableHtml(body, true, false);
+  }
+  const pages = input.pages?.length ? input.pages : [rows.map((_, i) => i)];
+  return pages
+    .map((indexes, p) =>
+      tableHtml(
+        pageBody(indexes.map((i) => rows[i]).filter(Boolean)),
+        false,
+        p > 0,
+      ),
+    )
+    .join('\n');
 }
 
-export function dayRows(days: DayCount[]): Cell[][] {
-  // The date is system-generated ("2026-11-16") → Bangla digits.
-  return days.map((d) => [sys(d.date), d.meetings, d.hours]);
-}
-
-export function renderReportHtml(input: {
-  header: ReportHeader;
-  summary: SummaryRow[];
-  extraTables: ExtraTable[];
-  meetings: ReportMeeting[];
-  showMyRole: boolean;
-  /** Rows actually printed may be capped; total is still shown. */
-  totalMeetings: number;
-}): string {
+export function renderScheduleHtml(input: ScheduleInput): string {
   const { header } = input;
-  const meetingHeaders = [
-    'সময়',
-    'শিরোনাম',
-    'স্থান',
-    'আয়োজক',
-    'সভাপতি',
-    ...(input.showMyRole ? ['আমার ভূমিকা'] : []),
-    'অবস্থা',
-  ];
-  const meetingRows: MeetingRow[] = input.meetings.map((m) => ({
-    cells: [
-      // System-generated time range (already Bangla); title, room and names are user text.
-      sys(formatDhakaRange(m.startAt, m.endAt)),
-      m.title,
-      m.room ?? NO_VENUE_BN,
-      // v1.9: the organizer is shown as their current wing (no wing → designation).
-      organizerLabelBn(m.organizerWingBn, m.organizerDesignationBn),
-      m.chairNameBn ?? '—',
-      ...(input.showMyRole ? [m.myRole ? ROLE_BN[m.myRole] : '—'] : []),
-      STATUS_BN[m.status] ?? m.status,
-    ],
-    guests: m.guests,
-  }));
-  const capped =
-    input.meetings.length < input.totalMeetings
-      ? `<p class="note">প্রথম ${num(input.meetings.length)}টি সভা দেখানো হয়েছে (মোট ${num(input.totalMeetings)}টি)।</p>`
-      : '';
+  const m = input.mode === 'measure' ? ` ${MEASURE_ATTR}` : '';
+  const kv = (label: string, value: string) =>
+    `<tr><td>${e(label)}</td><td class="c">:</td><td>${e(value)}</td></tr>`;
+  const font = `'${REPORT_FONT_FAMILY}', '${REPORT_LATIN_FONT_FAMILY}', serif`;
 
   return `<!doctype html>
-<html lang="bn"><head><meta charset="utf-8"><title>${e(REPORT_TITLE_BN)}</title>
+<html lang="bn"><head><meta charset="utf-8"><title>${e(header.titleBn)}</title>
 <style>
 ${embeddedFontCss()}
 @page {
-  size: A4;
-  margin: 18mm 14mm 18mm 14mm;
+  size: A4 landscape;
+  margin: ${MARGIN_MM.top}mm ${MARGIN_MM.right}mm ${MARGIN_MM.bottom}mm ${MARGIN_MM.left}mm;
   @bottom-center {
-    content: "পৃষ্ঠা " counter(page, bengali) " / " counter(pages, bengali);
-    font-family: '${REPORT_FONT_FAMILY}', '${REPORT_LATIN_FONT_FAMILY}'; font-size: 10pt; color: #555;
-  }
-  @bottom-right {
-    content: "${e(header.generatedAtBn)}";
-    font-family: '${REPORT_FONT_FAMILY}', '${REPORT_LATIN_FONT_FAMILY}'; font-size: 9pt; color: #777;
+    content: counter(page, bengali) "/" counter(pages, bengali);
+    font-family: ${font}; font-size: 10pt; color: #000;
   }
 }
 * { box-sizing: border-box; }
-body { font-family: '${REPORT_FONT_FAMILY}', '${REPORT_LATIN_FONT_FAMILY}', serif; font-size: 11pt; color: #222; line-height: 1.5; margin: 0; }
-header { border-bottom: 2px solid #006a4e; padding-bottom: 6px; margin-bottom: 10px; }
-h1 { font-size: 17pt; color: #006a4e; margin: 0 0 4px; }
-h2 { font-size: 13pt; margin: 14px 0 6px; color: #006a4e; }
-.meta td { padding: 1px 10px 1px 0; border: none; }
-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; page-break-inside: auto; }
-thead { display: table-header-group; }
-tr { page-break-inside: avoid; }
-th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; vertical-align: top; }
-th { background: #eef6f2; font-weight: 700; }
-.summary td:last-child { text-align: right; font-weight: 700; width: 25%; }
-.empty, .note { color: #666; font-size: 10pt; }
-tr.guests td { font-size: 10pt; background: #fafafa; }
+body { font-family: ${font}; font-size: 12pt; color: #000; margin: 0; }
+.top { display: flow-root; }
+h1.rt { color: #016B4F; font-size: 17pt; font-weight: 700; margin: 0 0 8px; text-align: center; }
+table.kv { width: auto; border-collapse: collapse; margin: 0 auto 6px; }
+table.kv td { border: none; text-align: left; padding: 2px 0; }
+table.kv td:first-child { width: 120px; color: #333; text-align: right; padding-right: 6px; }
+table.kv td.c { width: 14px; text-align: center; }
+hr.rule { border: 0; border-top: 1.5px solid #016B4F; margin: 6px 0 12px; }
+p.note { text-align: center; font-size: 10pt; margin: 0 0 8px; }
+p.empty { text-align: center; margin: 16px 0; }
+table.sched { width: 100%; border-collapse: collapse; table-layout: fixed; }
+table.sched.next { break-before: page; }
+table.sched th, table.sched td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; text-align: center; line-height: 1.45; overflow-wrap: anywhere; }
+table.sched th { font-weight: 700; background: #f2f2f2; }
+table.sched thead { display: table-header-group; }
+table.sched tr { break-inside: avoid; page-break-inside: avoid; }
+table.sched td.subject { text-align: center; font-size: 12.5pt; }
+col.c1 { width: 11%; } col.c2 { width: 8%; } col.c3 { width: 34%; } col.c4 { width: 18%; } col.c5 { width: 14%; } col.c6 { width: 15%; }
 </style></head>
 <body>
-<header>
-  <h1>${e(REPORT_TITLE_BN)}</h1>
-  <table class="meta"><tbody>
-    ${header.subjectLines.map(([l, v]) => `<tr><td>${e(l)}</td><td><b>${e(v)}</b></td></tr>`).join('')}
-    <tr><td>সময়কাল</td><td><b>${e(header.periodLabelBn)}</b></td></tr>
-    <tr><td>প্রস্তুতের সময়</td><td>${e(header.generatedAtBn)}</td></tr>
+<div class="top"${m}>
+  <h1 class="rt">${e(header.titleBn)}</h1>
+  <table class="kv"><tbody>
+    ${kv('কর্মকর্তা', header.officerBn)}
+    ${kv('পদবি', header.designationBn)}
+    ${kv('সময়কাল', header.periodLabelBn)}
+    ${kv('প্রস্তুতের সময়', header.generatedAtBn)}
   </tbody></table>
-</header>
-
-<h2>Summary</h2>
-<table class="summary"><tbody>
-  ${input.summary.map((r) => `<tr><td>${e(r.label)}</td><td>${cell(r.value)}</td></tr>`).join('')}
-</tbody></table>
-
-${input.extraTables.map((t) => `<h2>${e(t.title)}</h2>${table(t.headers, t.rows)}`).join('\n')}
-
-<h2>সভার তালিকা</h2>
-${capped}
-${meetingTable(meetingHeaders, meetingRows)}
+  <hr class="rule">
+  ${header.noteBn ? `<p class="note">${e(header.noteBn)}</p>` : ''}
+</div>
+${tablesHtml(input)}
 </body></html>`;
+}
+
+/** "প্রথম ১০০০টি সভা দেখানো হয়েছে (মোট ১২০০টি)।" when the rows were capped. */
+export function cappedNoteBn(shown: number, total: number): string {
+  return `প্রথম ${toBanglaDigits(shown)}টি সভা দেখানো হয়েছে (মোট ${toBanglaDigits(total)}টি)।`;
 }

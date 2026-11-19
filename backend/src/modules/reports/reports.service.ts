@@ -25,12 +25,14 @@ import type {
   ReportMeetingDto,
 } from './dto/report.dto';
 import { PdfService } from './pdf/pdf.service';
+import { cappedNoteBn, type ScheduleHeader } from './pdf/report-template';
+import { buildSchedulePdf } from './pdf/schedule-pdf';
 import {
-  dayRows,
-  renderReportHtml,
-  statusRows,
-  type ReportHeader,
-} from './pdf/report-template';
+  headerDesignationBn,
+  scheduleTitleBn,
+  toScheduleRows,
+  withJanab,
+} from './pdf/schedule-format';
 import {
   officeBreakdown,
   personalSummary,
@@ -38,7 +40,7 @@ import {
 } from './report-math';
 import { resolvePeriod, type ResolvedPeriod } from './report-period';
 
-/** PDFs list at most this many meetings (the summary always covers all of them). */
+/** PDFs list at most this many meetings (a note says how many there are in total). */
 export const PDF_MAX_ROWS = 1000;
 
 export interface OfficeFilter {
@@ -92,49 +94,17 @@ export class ReportsService {
     };
   }
 
+  /** My report as the PDF "কর্মসূচি" (v1.14): my meetings of the period, without cancelled ones. */
   async personalPdf(
     actor: AuthUser,
     period: ReportPeriod,
     date?: string,
   ): Promise<PdfFile> {
     const p = resolvePeriod(period, date);
-    const [officer, meetings, conflicts] = await Promise.all([
-      this.officer(actor.id),
-      this.load(p.range, { personId: actor.id }),
-      this.personalConflicts(actor.id, p.range),
-    ]);
-    const s = personalSummary(meetings, actor.id, conflicts);
-    const html = renderReportHtml({
-      header: this.header(p, [
-        ['কর্মকর্তা', officer.nameBn],
-        ['পদবি', officer.designation?.nameBn ?? '—'],
-      ]),
-      summary: [
-        { label: 'মোট সভা', value: s.totalMeetings },
-        { label: 'আমার আয়োজিত', value: s.organized },
-        { label: 'অংশগ্রহণ (অন্যের আয়োজিত)', value: s.attended },
-        ...statusRows(s.byStatus),
-        { label: 'মোট সময় (ঘণ্টা, বাতিল ছাড়া)', value: s.totalHours },
-        {
-          label: 'আমার সভার বিপরীতে ডুপ্লিকেট সভা',
-          value: s.conflictsRaisedAgainstMyMeetings,
-        },
-        { label: 'আমার সভার কারণে ডুপ্লিকেট সভা', value: s.conflictsIRaised },
-      ],
-      extraTables: [
-        {
-          title: 'দিনভিত্তিক হিসাব',
-          headers: ['তারিখ', 'সভা', 'ঘণ্টা'],
-          rows: dayRows(s.byDay),
-        },
-      ],
-      meetings: meetings.slice(0, PDF_MAX_ROWS),
-      showMyRole: true,
-      totalMeetings: meetings.length,
-    });
+    const meetings = await this.load(p.range, { personId: actor.id });
     return {
       filename: `meeting-report-${p.fileKey}.pdf`,
-      content: await this.pdf.render(html),
+      content: await this.schedulePdf(actor, p, meetings),
     };
   }
 
@@ -165,67 +135,53 @@ export class ReportsService {
     };
   }
 
+  /**
+   * Office report as the PDF "কর্মসূচি" (v1.14): the office meetings of the period (same wing and
+   * designation filters), without cancelled ones; the header names the downloading admin.
+   */
   async officePdf(
+    actor: AuthUser,
     period: ReportPeriod,
     date: string | undefined,
     filter: OfficeFilter,
   ): Promise<PdfFile> {
     const p = resolvePeriod(period, date);
-    const [meetings, filters] = await Promise.all([
-      this.load(p.range, { office: filter }),
-      this.filterNames(filter),
-    ]);
-    const conflicts = await this.officeConflicts(meetings.map((m) => m.id));
-    const o = officeBreakdown(meetings);
-    const html = renderReportHtml({
-      header: this.header(p, [
-        ['প্রতিবেদন', 'অফিসভিত্তিক'],
-        ['উইং', filters.wingBn ?? 'সব উইং'],
-        ['পদবি', filters.designationBn ?? 'সব পদবি'],
-      ]),
-      summary: [
-        { label: 'মোট সভা', value: o.totalMeetings },
-        ...statusRows(o.byStatus),
-        { label: 'মোট সময় (ঘণ্টা, বাতিল ছাড়া)', value: o.totalHours },
-        { label: 'Pending ডুপ্লিকেট সভা', value: conflicts.pending },
-        { label: 'Resolved ডুপ্লিকেট সভা', value: conflicts.resolved },
-      ],
-      extraTables: [
-        {
-          title: 'উইংভিত্তিক (আয়োজকের উইং)',
-          headers: ['উইং', 'সভা', 'ঘণ্টা'],
-          rows: o.byWing.map((w) => [w.nameBn, w.meetings, w.hours]),
-        },
-        {
-          title: 'পদবিভিত্তিক (আয়োজকের পদবি)',
-          // No priority column: priority numbers are shown only on the admin designations page (v1.5).
-          headers: ['পদবি', 'সভা', 'ঘণ্টা'],
-          rows: o.byDesignation.map((d) => [d.nameBn, d.meetings, d.hours]),
-        },
-        {
-          title: 'সর্বাধিক সভা আয়োজনকারী (শীর্ষ ১০)',
-          headers: ['নাম', 'পদবি', 'সভা', 'ঘণ্টা'],
-          rows: o.topOrganizers.map((t) => [
-            t.nameBn,
-            t.designationBn ?? '—',
-            t.meetings,
-            t.hours,
-          ]),
-        },
-        {
-          title: 'সবচেয়ে ব্যস্ত দিন',
-          headers: ['তারিখ', 'সভা', 'ঘণ্টা'],
-          rows: dayRows(o.busiestDays),
-        },
-      ],
-      meetings: meetings.slice(0, PDF_MAX_ROWS),
-      showMyRole: false,
-      totalMeetings: meetings.length,
-    });
+    const meetings = await this.load(p.range, { office: filter });
     return {
       filename: `office-meeting-report-${p.fileKey}.pdf`,
-      content: await this.pdf.render(html),
+      content: await this.schedulePdf(actor, p, meetings),
     };
+  }
+
+  // ---------------------------------------------------------------- PDF
+
+  /** Header of the downloading user + the rows; rendered in two passes (buildSchedulePdf). */
+  private async schedulePdf(
+    actor: AuthUser,
+    p: ResolvedPeriod,
+    meetings: ReportMeeting[],
+  ): Promise<Buffer> {
+    const viewer = await this.officer(actor.id);
+    const allRows = toScheduleRows(meetings);
+    const rows = allRows.slice(0, PDF_MAX_ROWS);
+    const header: ScheduleHeader = {
+      titleBn: scheduleTitleBn(p.period),
+      officerBn: withJanab(viewer.nameBn),
+      designationBn: headerDesignationBn(
+        viewer.designation?.nameBn,
+        viewer.designation?.priority,
+      ),
+      periodLabelBn: p.labelBn,
+      generatedAtBn: DateTime.now()
+        .setZone(DHAKA_TZ)
+        .setLocale('bn')
+        .toFormat('d MMMM yyyy, HH:mm'),
+      noteBn:
+        rows.length < allRows.length
+          ? cappedNoteBn(rows.length, allRows.length)
+          : undefined,
+    };
+    return buildSchedulePdf(this.pdf, header, rows);
   }
 
   // ---------------------------------------------------------------- loading
@@ -244,6 +200,7 @@ export class ReportsService {
       .leftJoinAndSelect('o.designation', 'd')
       .leftJoinAndSelect('o.wing', 'w')
       .leftJoinAndSelect('m.chair', 'ch')
+      .leftJoinAndSelect('ch.designation', 'chd')
       .leftJoinAndSelect('m.guests', 'g')
       .loadRelationCountAndMap('m.decisionFileCount', 'm.decisionFiles')
       .loadRelationCountAndMap('m.noticeFileCount', 'm.noticeFiles')
@@ -308,6 +265,9 @@ export class ReportsService {
         m.chair?.nameBn ?? m.guests.find((g) => g.isChair)?.name ?? null,
       chairNameEn:
         m.chair?.nameEn ?? m.guests.find((g) => g.isChair)?.name ?? null,
+      chairDesignationBn: m.chair
+        ? (m.chair.designation?.nameBn ?? null)
+        : (m.guests.find((g) => g.isChair)?.designation ?? null),
       guests: m.guests.map((g) => ({
         name: g.name,
         designation: g.designation,
@@ -389,21 +349,6 @@ export class ReportsService {
       labelBn: p.labelBn,
       from: p.range.start,
       to: p.range.end,
-    };
-  }
-
-  private header(
-    p: ResolvedPeriod,
-    subjectLines: Array<[string, string]>,
-  ): ReportHeader {
-    const generated = DateTime.now()
-      .setZone(DHAKA_TZ)
-      .setLocale('bn')
-      .toFormat('d MMMM yyyy, HH:mm');
-    return {
-      subjectLines,
-      periodLabelBn: p.labelBn,
-      generatedAtBn: `প্রস্তুত: ${generated}`,
     };
   }
 }

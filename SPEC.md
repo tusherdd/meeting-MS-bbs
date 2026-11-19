@@ -273,10 +273,10 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
 - Periods: `day`, `week` (Sunday–Saturday), `month`, `year` (Jan–Dec), `fiscal-year` (July–June). All in Asia/Dhaka.
 - Officer report: meetings I organized / attended, counts by status, total hours, conflicts raised against my meetings.
 - Admin report: same, across the office, filterable by wing and designation.
-- PDF download for every report, Bangla text, BBS header, generated date.
-- Guest officers (v1.5): every meeting row of the day/week/month/year/fiscal-year reports (web and PDF) shows
+- PDF download for every report: the schedule "কর্মসূচি" (v1.14, below).
+- Guest officers (v1.5): every meeting row of the day/week/month/year/fiscal-year reports (web pages) shows
   its chair (`chairNameBn`: the internal chair, else the guest chair's name) and, under the meeting, its
-  guests as "অতিথি কর্মকর্তা: নাম — পদবি; …". Guests are never counted in any total or statistic and have
+  guests as "অতিথি কর্মকর্তা: নাম — পদবি; …" (the PDF shows only a guest **chair**, v1.14). Guests are never counted in any total or statistic and have
   no dashboard or report of their own.
 - The dashboard opens on **today's meetings** by default.
 - A meeting belongs to a period when its **start** lies in the Asia/Dhaka range `[start, end)` from
@@ -286,10 +286,36 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
   conflictsIRaised, byDay, plus a paginated meeting list with my role.
 - Office report: same totals plus byWing, byDesignation (the **organizer's** wing/designation), top 10
   organizers, pending/resolved conflicts and the 5 busiest days; filters `wingId`, `designationId`.
-- PDF: A4, header "বাংলাদেশ পরিসংখ্যান ব্যুরো — সভা প্রতিবেদন", officer or filters, period in Bangla, generation
-  time (Asia/Dhaka), summary and meeting tables, footer "পৃষ্ঠা X / Y", Bangla digits. One shared browser,
-  max 2 renders at once, 30 s timeout, JavaScript off and all network requests blocked; file name like
-  `meeting-report-2026-11.pdf`.
+- **PDF "কর্মসূচি" (v1.14, owner decision 2026-11-19; layout `docs/samples/report-schedule-sample.html` and
+  `docs/samples/saptahik-kormosuchi-nomuna.pdf`).** The same for "my report" (`/reports/me/pdf`) and the office report
+  (`/reports/office/pdf`); the web report pages are unchanged. Code: `reports/pdf/schedule-format.ts` (pure rules),
+  `report-template.ts` (HTML), `schedule-pdf.ts` (two passes), `PdfService.measure()`.
+  - **Page:** A4 landscape, margins 14/14/16/14 mm, always Bangla (whatever the UI language), NikoshBAN for Bangla and
+    Tinos for Latin (embedded, §13.10), Bangla digits for system numbers, user text as typed (§13.11), no logo. Footer:
+    page numbers only, centered, "১/২".
+  - **Header (centered):** green (`#016B4F`) bold title "বাংলাদেশ পরিসংখ্যান ব্যুরো — [type]": দৈনিক কর্মসূচি (day),
+    সাপ্তাহিক কর্মসূচি (week), মাসিক কর্মসূচি (month), বার্ষিক কর্মসূচি (year **and fiscal year**, owner decision
+    2026-11-19). The old title "সভা প্রতিবেদন" is gone. Then label : value lines aligned on the colon:
+    কর্মকর্তা = "জনাব " + the **downloading user's** Bangla name (for the office report: the admin, not the filters);
+    পদবি = their Bangla designation + " মহোদয়" **only** when its priority is 1, 2 or 3 (no designation → "—"; the number
+    itself is never shown, §6.1); সময়কাল = the period label; প্রস্তুতের সময় = "d MMMM yyyy, HH:mm" (Asia/Dhaka). Then a green rule.
+  - **One table** (no summary or other tables), columns: "তারিখ ও দিন" (dd/mm/yyyy, the Bangla weekday on the next
+    line; one cell with rowspan per day) · "সময়" (day part + start time "hh.mm", 12-hour clock, two-digit hour: সকাল
+    before 12:00, দুপুর 12:00–14:59, বিকাল 15:00–17:59, সন্ধ্যা 18:00–19:59, রাত from 20:00) · "বিষয়" (the title as typed,
+    centered) · "সভাপতি/ প্রধান অতিথি" ("জনাব [name]" and the designation on the next line: the internal chair, or the
+    guest chair's name and designation; no chair "—"; never "মহোদয়" in the table) · "আয়োজক" (the organizer's Bangla
+    wing, else designation, §13.17) · "স্থান" (the venue or "স্থান উল্লেখ নেই").
+  - **Rows:** the meetings of the report's scope and period **without cancelled ones**, sorted by start time; at most
+    1000 rows (then a note "প্রথম …টি সভা দেখানো হয়েছে (মোট …টি)।"). No meetings: "এই সময়ে কোনো সভা নেই।".
+  - "জনাব" is put before every person's name (header and table), never twice (a name already starting with "জনাব").
+  - **Pages:** rows never split, the table header repeats on every page, and a day whose rows continue on a new page
+    gets its date cell again there. Chromium does not repeat a rowspan cell, so the PDF is made in two passes: the
+    header block, the table header and every row are measured in the same browser (print media, page width; page
+    JavaScript stays off, DevTools reads the heights), `paginateRows()` splits the rows, and one table per page is printed.
+  - One shared browser, max 2 renders/measurements at once, 30 s timeout, JavaScript off and all network requests
+    blocked; file names unchanged (`meeting-report-2026-11.pdf`, `office-meeting-report-2026-11.pdf`).
+  - Sample with fictional data: `npm run pdf:sample` → `backend/tmp/report-samples/schedule-sample.pdf` (git-ignored).
+  - Tests: `schedule-format.spec.ts`, `report-template.spec.ts`, `test/reports-admin.e2e-spec.ts`, `test/language.e2e-spec.ts`.
 
 ### 6.7 Guest officers — "অতিথি কর্মকর্তা" (v1.5, owner decision 2026-11-16)
 People invited to a meeting who are not in the database. They never log in.
@@ -683,6 +709,9 @@ Release **v1.13** (2026-11-19, tag `v1.13`, part B of 3): (A) the generated noti
 notice "সভার নোটিশ" (§6.8, §13.6, §13.18); (C) "সভা সিদ্ধান্ত" → "সভা কার্যবিবরণী" / "Meeting minutes", minutes accept DOCX
 (§6.9, §13.19); (D) the lead rule also checks the internal chair, on every time or chair change (§6.4).
 
+Release **v1.14** (2026-11-20, tag `v1.14`, part C of 3): the report PDFs (my report and the office report) became the
+schedule "কর্মসূচি" (A4 landscape, one table, §6.6); the web report pages are unchanged.
+
 ## 13. Frontend (`frontend/`)
 
 ### 13.1 Stack
@@ -892,7 +921,7 @@ The files under `frontend/app/fonts/` and `backend/assets/fonts/` **must be depl
     Bengali 115% (measured to match NikoshBAN). Body text line height 1.6, headings 1.3.
   - NikoshBAN has one weight (400). Bangla headings use the browser's synthesised bold.
 - **PDF reports:** `report-template.ts` embeds NikoshBAN (same `unicode-range`, `size-adjust: 112%`) and Tinos
-  regular + bold as base64 `data:` URLs; base size 11 pt; nothing is fetched. `nest build` copies `assets/fonts`
+  regular + bold as base64 `data:` URLs; base size 12 pt (v1.14); nothing is fetched. `nest build` copies `assets/fonts`
   to `dist/assets/fonts` (`nest-cli.json`); in development the files are read from `backend/assets/fonts`.
 - **Mail:** mail clients only use installed fonts and know no `unicode-range`. The template's `font-family` is
   `'Times New Roman',Times,'NikoshBAN','Nikosh','SolaimanLipi','Kalpurush','Noto Sans Bengali','Vrinda',serif`:
@@ -911,8 +940,8 @@ The files under `frontend/app/fonts/` and `backend/assets/fonts/` **must be depl
 - Where it is implemented:
   - frontend: only `lib/format.ts` produces Bangla digits (`formatNumber`, the date and time helpers); user
     text is rendered without any conversion;
-  - PDF: `report-template.ts` cells are typed: a `number` or `sys("…")` (system text such as a date) gets Bangla
-    digits, a plain string is user text and is printed unchanged;
+  - PDF (v1.14): `schedule-format.ts` builds the dates and times in Bangla digits, page numbers use the CSS
+    `bengali` counter; titles, names, designations, wings and venues are printed unchanged;
   - mail and bell notifications: dates come from `meeting-format.ts` (Bangla locale); titles and other user text
     are inserted unchanged.
 - Tests: `report-template.spec.ts`, `mail-templates.spec.ts`, `frontend/e2e/digits.spec.ts`.
@@ -937,7 +966,7 @@ English (Latin script); everything else stays Bangla.
   phrases start with one capital ("Mark all as read").
 - **One term per concept** everywhere: web pages, PDF reports, mails, bell notifications and backend messages.
 - **Stay Bangla:** the meeting statuses নির্ধারিত / সম্পন্ন / বাতিল (and the meeting action "সভা বাতিল করুন"), লোড হচ্ছে…,
-  আবার চেষ্টা করুন, বন্ধ করুন, দেখুন / লুকান, হ্যাঁ / না, সব. The PDF heading keeps "সভা প্রতিবেদন".
+  আবার চেষ্টা করুন, বন্ধ করুন, দেখুন / লুকান, হ্যাঁ / না, সব. The PDF title is "বাংলাদেশ পরিসংখ্যান ব্যুরো — … কর্মসূচি" (v1.14; before: "সভা প্রতিবেদন").
 - Names stored in the database (for example the seeded account name "সুপার অ্যাডমিন") are data, not labels.
 - **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
   and statuses stay as in v1.2.**

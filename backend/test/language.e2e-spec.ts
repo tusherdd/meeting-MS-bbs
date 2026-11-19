@@ -278,10 +278,10 @@ describe('v1.6: API language (e2e)', () => {
         expect(spy).toHaveBeenCalledTimes(1);
         const html = spy.mock.calls[0][0];
         expect(html).toContain('<html lang="bn">');
-        expect(html).toContain('মোট সভা');
+        expect(html).toContain('দৈনিক কর্মসূচি');
         expect(html).not.toMatch(/Total meetings|Meeting report/i);
         // v1.7: the PDF prints the Bangla officer name and designation only.
-        expect(html).toContain('ভাষা officer');
+        expect(html).toContain('জনাব ভাষা officer');
         expect(html).not.toContain('E2EL');
       } finally {
         spy.mockRestore();

@@ -125,9 +125,9 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | Method | Path | Access | Purpose | Main request fields | Responses |
 |---|---|---|---|---|---|
 | GET | `/reports/me` | 👤 | My report: summary + meeting list for a period | `page` (query), `limit` (query), `period` (query), `date` (query) | 200 |
-| GET | `/reports/me/pdf` | 👤 | My report as PDF | `period` (query), `date` (query) | 200, 503 |
+| GET | `/reports/me/pdf` | 👤 | My report as PDF ("কর্মসূচি", A4 landscape, Bangla) | `period` (query), `date` (query) | 200, 503 |
 | GET | `/reports/office` | 🛡 | Office-wide report (ADMIN), filterable by the organizer’s wing and designation | `page` (query), `limit` (query), `period` (query), `date` (query), `wingId` (query), `designationId` (query) | 200, 403 |
-| GET | `/reports/office/pdf` | 🛡 | Office report as PDF (ADMIN) | `period` (query), `date` (query), `wingId` (query), `designationId` (query) | 200, 403, 503 |
+| GET | `/reports/office/pdf` | 🛡 | Office report as PDF ("কর্মসূচি", ADMIN) | `period` (query), `date` (query), `wingId` (query), `designationId` (query) | 200, 403, 503 |
 
 ## Admin
 

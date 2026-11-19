@@ -14,6 +14,7 @@ import { hashPassword } from '../src/common/utils/password';
 import { AuditLog } from '../src/modules/audit/entities/audit-log.entity';
 import { AuditAction } from '../src/modules/audit/enums/audit-action.enum';
 import { Designation } from '../src/modules/designations/entities/designation.entity';
+import { PdfService } from '../src/modules/reports/pdf/pdf.service';
 import { User } from '../src/modules/users/entities/user.entity';
 import { UserRole } from '../src/modules/users/enums/user-role.enum';
 import { Wing } from '../src/modules/wings/entities/wing.entity';
@@ -174,6 +175,7 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
     });
 
     it('GET /reports/me/pdf returns a real PDF attachment with a safe file name', async () => {
+      const spy = jest.spyOn(app.get(PdfService), 'render');
       const res = await http()
         .get(`${API}/reports/me/pdf`)
         .query({ period: 'day', date: dateParam })
@@ -181,6 +183,19 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
         .buffer(true)
         .parse(binary)
         .expect(200);
+      // v1.14 "কর্মসূচি": title per period, the downloading officer with "জনাব", no "মহোদয়"
+      // for priority 5, cancelled meetings left out, one table, titles escaped.
+      const html = spy.mock.calls[0][0];
+      spy.mockRestore();
+      expect(html).toContain('বাংলাদেশ পরিসংখ্যান ব্যুরো — দৈনিক কর্মসূচি');
+      expect(html).toContain('<td>জনাব রিপোর্ট officer</td>');
+      expect(html).toContain('<td>রিপোর্ট পদবি</td>');
+      expect(html).not.toContain('মহোদয়');
+      expect(html).toContain('&lt;b&gt;রিপোর্ট&lt;/b&gt; সভা এক');
+      expect(html).toContain('সহকর্মীর সভা');
+      expect(html).not.toContain('বাতিল হবে');
+      expect(html).toContain('<td class="date" rowspan="2">');
+      expect(html).not.toContain('সভা প্রতিবেদন');
       expect(res.headers['content-type']).toBe('application/pdf');
       expect(res.headers['content-disposition']).toBe(
         `attachment; filename="meeting-report-${dateParam}.pdf"`,
@@ -226,6 +241,7 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
       ).summary.topOrganizers;
       expect(top[0]).toMatchObject({ userId: ids.officer, meetings: 2 });
 
+      const spy = jest.spyOn(app.get(PdfService), 'render');
       const pdf = await http()
         .get(`${API}/reports/office/pdf`)
         .query({ period: 'month', date: dateParam })
@@ -233,7 +249,15 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
         .buffer(true)
         .parse(binary)
         .expect(200);
-      expect((pdf.body as Buffer).subarray(0, 4).toString()).toBe('%PDF');
+      expect(pdf.headers['content-type']).toBe('application/pdf');
+      expect((pdf.body as Buffer).subarray(0, 5).toString()).toBe('%PDF-');
+      // v1.14: the header names the downloading admin, not the office filters.
+      const html = spy.mock.calls[0][0];
+      spy.mockRestore();
+      expect(html).toContain('বাংলাদেশ পরিসংখ্যান ব্যুরো — মাসিক কর্মসূচি');
+      expect(html).toContain('<td>জনাব রিপোর্ট admin</td>');
+      expect(html).toContain('সহকর্মীর সভা');
+      expect(html).not.toContain('বাতিল হবে');
       expect(pdf.headers['content-disposition']).toMatch(
         /^attachment; filename="office-meeting-report-\d{4}-\d{2}\.pdf"$/,
       );

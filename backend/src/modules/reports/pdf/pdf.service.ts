@@ -61,7 +61,54 @@ export class PdfService implements OnApplicationShutdown {
     }
   }
 
-  private async renderNow(html: string): Promise<Buffer> {
+  /**
+   * Heights (CSS px) of every element carrying `attr`, in document order, laid out like print
+   * at the given content width. Same browser, limits and safety settings as render(): the page's
+   * own JavaScript stays off (the measuring runs through DevTools), every request is blocked.
+   * Used to split report rows into pages before rendering (v1.14).
+   */
+  async measure(
+    html: string,
+    widthPx: number,
+    attr: string,
+  ): Promise<number[]> {
+    if (!/^[a-z][a-z0-9-]*$/.test(attr)) throw new Error('Bad attribute name');
+    this.activeRenders++;
+    this.clearIdleTimer();
+    try {
+      return await this.slots.run(() =>
+        this.withTimeout(this.measureNow(html, widthPx, attr)),
+      );
+    } finally {
+      this.activeRenders--;
+      if (this.activeRenders === 0) this.scheduleIdleClose();
+    }
+  }
+
+  private async measureNow(
+    html: string,
+    widthPx: number,
+    attr: string,
+  ): Promise<number[]> {
+    const page = await this.openPage(html, widthPx);
+    try {
+      const heights: unknown = await page.evaluate(
+        `Array.from(document.querySelectorAll('[${attr}]'), (el) => el.getBoundingClientRect().height)`,
+      );
+      if (
+        !Array.isArray(heights) ||
+        !heights.every((h): h is number => typeof h === 'number')
+      ) {
+        throw new Error('Unexpected measure result');
+      }
+      return heights;
+    } finally {
+      await page.close().catch(() => undefined);
+    }
+  }
+
+  /** A new page with JavaScript off, all requests except data: URLs blocked, and the HTML loaded. */
+  private async openPage(html: string, widthPx?: number) {
     const browser = await this.getBrowser();
     const page = await browser.newPage();
     try {
@@ -71,10 +118,24 @@ export class PdfService implements OnApplicationShutdown {
         if (req.url().startsWith('data:')) void req.continue();
         else void req.abort();
       });
+      if (widthPx) {
+        await page.setViewport({ width: widthPx, height: 800 });
+        await page.emulateMediaType('print');
+      }
       await page.setContent(html, {
         waitUntil: 'load',
         timeout: RENDER_TIMEOUT_MS,
       });
+      return page;
+    } catch (err) {
+      await page.close().catch(() => undefined);
+      throw err;
+    }
+  }
+
+  private async renderNow(html: string): Promise<Buffer> {
+    const page = await this.openPage(html);
+    try {
       const pdf = await page.pdf({
         preferCSSPageSize: true, // size, margins and the "পৃষ্ঠা X / Y" footer come from @page CSS
         printBackground: true,

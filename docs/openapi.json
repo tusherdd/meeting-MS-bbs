@@ -4335,6 +4335,7 @@
     },
     "/api/v1/reports/me/pdf": {
       "get": {
+        "description": "Schedule of my meetings in the period without cancelled ones: date, time, subject, chair, organizer (wing), venue.",
         "operationId": "ReportsController_mePdf",
         "parameters": [
           {
@@ -4381,7 +4382,7 @@
         ],
         "responses": {
           "200": {
-            "description": "A4 PDF (Bangla), downloaded as an attachment",
+            "description": "A4 landscape PDF (Bangla), downloaded as an attachment",
             "content": {
               "application/pdf": {
                 "schema": {
@@ -4400,7 +4401,7 @@
             "bearer": []
           }
         ],
-        "summary": "My report as PDF",
+        "summary": "My report as PDF (\"কর্মসূচি\", A4 landscape, Bangla)",
         "tags": [
           "Reports"
         ]
@@ -4520,6 +4521,7 @@
     },
     "/api/v1/reports/office/pdf": {
       "get": {
+        "description": "Schedule of the office meetings in the period (wing / designation filters) without cancelled ones; the header names the downloading admin.",
         "operationId": "ReportsController_officePdf",
         "parameters": [
           {
@@ -4586,7 +4588,7 @@
         ],
         "responses": {
           "200": {
-            "description": "A4 PDF (Bangla), downloaded as an attachment",
+            "description": "A4 landscape PDF (Bangla), downloaded as an attachment",
             "content": {
               "application/pdf": {
                 "schema": {
@@ -4608,7 +4610,7 @@
             "bearer": []
           }
         ],
-        "summary": "Office report as PDF (ADMIN)",
+        "summary": "Office report as PDF (\"কর্মসূচি\", ADMIN)",
         "tags": [
           "Reports"
         ],
