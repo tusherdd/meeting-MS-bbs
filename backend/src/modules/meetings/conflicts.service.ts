@@ -30,7 +30,8 @@ export class ConflictsService {
   ) {}
 
   /**
-   * Conflicts where I organize the lower meeting or I am the shared officer.
+   * Conflicts where I organize the lower meeting (either meeting on equal priority, v1.12)
+   * or I am the shared officer.
    * PENDING by default; RESOLVED for the history tab (newest first).
    */
   async mine(
@@ -44,7 +45,11 @@ export class ConflictsService {
         new Brackets((b) =>
           b
             .where('l.organizerId = :me', { me: actor.id })
-            .orWhere('c.userId = :me', { me: actor.id }),
+            .orWhere('c.userId = :me', { me: actor.id })
+            // v1.12: on equal priority both organizers are informed, so both see the record.
+            .orWhere('(h.organizerId = :me AND h.priority = l.priority)', {
+              me: actor.id,
+            }),
         ),
       )
       .orderBy(

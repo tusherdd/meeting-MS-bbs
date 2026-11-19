@@ -45,6 +45,8 @@ function loaded(
     endAt: new Date('2030-01-01T05:00:00Z'),
     title: `meeting ${id}`,
     organizerId: `${id}-organizer`,
+    chairId: null,
+    leadDesignationBn: 'উপপরিচালক',
     organizerNameBn: 'আয়োজক',
     organizerNameEn: 'Organizer',
     organizerDesignationBn: 'উপপরিচালক',
@@ -55,7 +57,7 @@ function loaded(
 }
 
 function setup(classification: {
-  allowed: Clash<LoadedMeeting>[];
+  warnings: Clash<LoadedMeeting>[];
   blocking: Clash<LoadedMeeting>[];
 }) {
   const user = (id: string, nameBn: string, nameEn: string, priority: number) =>
@@ -170,10 +172,10 @@ const dto = {
   chairId: 'chair' as string | null,
   participantIds: ['shared', 'secretary'],
 };
-const noClash = { allowed: [], blocking: [] };
+const noClash = { warnings: [], blocking: [] };
 
 describe('MeetingsService.create', () => {
-  it('higher priority → saved, conflict rows per shared officer, notifications', async () => {
+  it('higher priority → saved (warning), conflict rows per shared officer, notifications', async () => {
     const lower = loaded('E', 7, ['E-organizer', 'shared']);
     const {
       service,
@@ -183,7 +185,7 @@ describe('MeetingsService.create', () => {
       conflictRepo,
       notifier,
     } = setup({
-      allowed: [{ meeting: lower, sharedPeopleIds: ['shared'] }],
+      warnings: [{ meeting: lower, sharedPeopleIds: ['shared'] }],
       blocking: [],
     });
 
@@ -199,6 +201,7 @@ describe('MeetingsService.create', () => {
       expect.anything(),
       expect.objectContaining({
         priority: 4, // v1.5: the internal chair's priority (Director), not the organizer's
+        organizerId: 'secretary',
         peopleIds: ['secretary', 'chair', 'shared'],
       }),
     );
@@ -235,14 +238,17 @@ describe('MeetingsService.create', () => {
       }),
     ]);
     // E's organizer + the shared officer are informed (v1.5: not a cancel request)
+    // E's (lower) organizer + the shared officer are informed (v1.5: not a cancel request)
+    expect(notifier.conflict).toHaveBeenCalledTimes(1);
     expect(notifier.conflict).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         id: 'new-meeting',
+        organizerId: 'secretary',
         leadDesignationBn: 'পরিচালক', // the chair's designation
+        peopleIds: new Set(['secretary', 'chair', 'shared']),
       }),
-      new Set(['secretary', 'chair', 'shared']),
-      lower,
+      expect.objectContaining({ id: 'E', organizerId: 'E-organizer' }),
       [{ id: 'shared', nameBn: 'নাম shared' }],
       ['E-organizer', 'shared'],
     );
@@ -253,10 +259,10 @@ describe('MeetingsService.create', () => {
     );
   });
 
-  it('mixed case (one allowed + one blocking) → 409 and NOTHING is saved', async () => {
+  it('mixed case (one warning + one organizer clash) → 409 and NOTHING is saved', async () => {
     const { service, meetingRepo, participantRepo, conflictRepo, notifier } =
       setup({
-        allowed: [
+        warnings: [
           {
             meeting: loaded('LOWER', 7, ['shared']),
             sharedPeopleIds: ['shared'],
@@ -295,7 +301,7 @@ describe('MeetingsService.create', () => {
 
   it('no clash → saved without conflict rows', async () => {
     const { service, conflictRepo, meetingRepo } = setup({
-      allowed: [],
+      warnings: [],
       blocking: [],
     });
     await service.create(secretary, dto, null);
@@ -305,7 +311,7 @@ describe('MeetingsService.create', () => {
 
   it('SUPER_ADMIN cannot organize', async () => {
     const { service, userRepo, meetingRepo } = setup({
-      allowed: [],
+      warnings: [],
       blocking: [],
     });
     userRepo.findOneOrFail.mockResolvedValue(
@@ -319,6 +325,104 @@ describe('MeetingsService.create', () => {
       new ForbiddenException(MEETING_MESSAGES.superAdminOrganize),
     );
     expect(meetingRepo.save).not.toHaveBeenCalled();
+  });
+});
+
+describe('MeetingsService.create: v1.12 warn, do not block (SPEC.md §6.4)', () => {
+  /** N is led by the chair (Director, priority 4). */
+  const clashWith = (priority: number, shared = ['shared']) => ({
+    meeting: loaded('E', priority, ['E-organizer', ...shared]),
+    sharedPeopleIds: shared,
+  });
+
+  it('organizer rule: 409 with the new message (organizer-organizer / organizer-chair)', async () => {
+    const own = loaded('OWN', 9, ['secretary']);
+    const { service, meetingRepo, notifier } = setup({
+      warnings: [],
+      blocking: [{ meeting: own, sharedPeopleIds: ['secretary'] }],
+    });
+    const err = await service
+      .create(secretary, dto, null)
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ConflictException);
+    expect((err as ConflictException).getResponse()).toMatchObject({
+      message: 'আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।',
+      blocking: [expect.objectContaining({ meetingId: 'OWN' })],
+    });
+    expect(meetingRepo.save).not.toHaveBeenCalled();
+    expect(notifier.conflict).not.toHaveBeenCalled();
+  });
+
+  it.each([1, 4, 9])(
+    'officer overlap with an E of priority %i → saved, PENDING record',
+    async (ePriority) => {
+      const { service, meetingRepo, conflictRepo } = setup({
+        warnings: [clashWith(ePriority)],
+        blocking: [],
+      });
+      await service.create(secretary, dto, null);
+      expect(meetingRepo.save).toHaveBeenCalled();
+      expect(conflictRepo.insert).toHaveBeenCalledWith([
+        expect.objectContaining({ userId: 'shared', status: 'PENDING' }),
+      ]);
+    },
+  );
+
+  it('N lower (4 vs 1) → record N lower; only N organizer + shared officer notified', async () => {
+    const { service, conflictRepo, notifier } = setup({
+      warnings: [clashWith(1)],
+      blocking: [],
+    });
+    await service.create(secretary, dto, null);
+    expect(conflictRepo.insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        higherMeetingId: 'E',
+        lowerMeetingId: 'new-meeting',
+      }),
+    ]);
+    expect(notifier.conflict).toHaveBeenCalledTimes(1);
+    expect(notifier.conflict).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ id: 'E' }), // higher
+      expect.objectContaining({ id: 'new-meeting' }), // lower (their meeting)
+      expect.anything(),
+      ['secretary', 'shared'],
+    );
+  });
+
+  it('equal priority (4 vs 4) → BOTH organizers notified, each about their own meeting', async () => {
+    const { service, conflictRepo, notifier } = setup({
+      warnings: [clashWith(4)],
+      blocking: [],
+    });
+    await service.create(secretary, dto, null);
+    expect(conflictRepo.insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        higherMeetingId: 'E',
+        lowerMeetingId: 'new-meeting',
+      }),
+    ]);
+    const calls = notifier.conflict.mock.calls as Array<
+      [unknown, { id: string }, { id: string }, unknown, string[]]
+    >;
+    expect(calls).toHaveLength(2);
+    const byLower = new Map(calls.map((c) => [c[2].id, c[4]]));
+    expect(byLower.get('E')).toEqual(['E-organizer']);
+    expect(byLower.get('new-meeting')).toEqual(['secretary', 'shared']);
+  });
+
+  it('shared officer with several roles is notified once (E organizer is also shared)', async () => {
+    const { service, notifier } = setup({
+      warnings: [clashWith(9, ['E-organizer', 'shared'])],
+      blocking: [],
+    });
+    await service.create(secretary, dto, null);
+    const recipients = (
+      notifier.conflict.mock.calls as Array<
+        [unknown, unknown, unknown, unknown, string[]]
+      >
+    ).flatMap((c) => c[4]);
+    expect(recipients.sort()).toEqual(['E-organizer', 'shared']);
   });
 });
 

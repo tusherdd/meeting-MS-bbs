@@ -286,12 +286,12 @@ export const en: Messages = {
     idle: "Enter the date, time and participants to check for duplicate meetings here.",
     checking: "Checking for duplicate meetings…",
     okBody: "Nobody selected has another meeting at this time.",
-    warnTitle: "There are lower-priority duplicate meetings",
+    warnTitle: "Some selected officers have another meeting at this time",
     warnBody:
-      "If this meeting is created, the organizers and shared officers of the meetings below will be informed. They may cancel their meetings or decide otherwise.",
-    blockedTitle: "A meeting cannot be created at this time",
+      "You can still save. The shared officers and the organizer of the lower-priority meeting (both organizers when the priority is the same) will be informed.",
+    blockedTitle: "The meeting cannot be saved at this time",
     blockedBody:
-      "The meetings below have the same or a higher priority than yours. Change the time or remove the highlighted people.",
+      "The organizer is already the organizer or chair of another meeting at this time. Change the time.",
     takenMeanwhile: "Someone else has scheduled a meeting at this time in the meantime.",
     organizer: "Organizer:",
     shared: "Officers with a duplicate meeting:",

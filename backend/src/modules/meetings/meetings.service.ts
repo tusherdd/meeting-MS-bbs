@@ -52,10 +52,13 @@ import { ParticipantRole } from './enums/participant-role.enum';
 import { formatDhakaRange } from './meeting-format';
 import {
   MeetingNotifierService,
+  type ConflictNoticeMeeting,
   type MeetingChange,
   type MeetingInfo,
 } from './meeting-notifier.service';
 import {
+  candidateIsLower,
+  conflictNoticeRecipients,
   meetingPeople,
   meetingPriority,
   timeProblems,
@@ -69,6 +72,25 @@ const TIME_MESSAGES: Record<TimeProblem, string> = {
   tooLong: MSG.tooLong,
   inPast: MSG.inPast,
 };
+
+/** The saved meeting N as one side of a conflict notice (v1.12). */
+function noticeSide(
+  info: MeetingInfo,
+  organizerId: string,
+  people: readonly string[],
+  priority: number,
+): ConflictNoticeMeeting & { priority: number } {
+  return {
+    id: info.id,
+    title: info.title,
+    startAt: info.startAt,
+    endAt: info.endAt,
+    organizerId,
+    leadDesignationBn: info.leadDesignationBn,
+    peopleIds: new Set(people),
+    priority,
+  };
+}
 
 export function isAdmin(actor: Pick<AuthUser, 'role'>): boolean {
   return actor.role === UserRole.ADMIN || actor.role === UserRole.SUPER_ADMIN;
@@ -145,10 +167,12 @@ export class MeetingsService {
         chairId,
       );
       await this.engine.lockPeople(manager, people);
-      const { allowed, blocking } = await this.engine.evaluate(manager, {
+      // SPEC.md §6.4 (v1.12): only the organizer rule blocks; everything else is a warning.
+      const { warnings, blocking } = await this.engine.evaluate(manager, {
         startAt,
         endAt,
         priority,
+        organizerId: actor.id,
         peopleIds: people,
       });
       if (blocking.length > 0)
@@ -211,9 +235,8 @@ export class MeetingsService {
         manager,
         actor,
         ip,
-        info,
-        new Set(people),
-        allowed,
+        noticeSide(info, actor.id, people, priority),
+        warnings,
       );
       await this.notifier.invited(manager, info, invitees);
       if (chairNotice)
@@ -316,20 +339,26 @@ export class MeetingsService {
       const priorityChanged = priority !== meeting.priority;
 
       // SPEC.md §6.4: the engine re-runs when the time, the people or the priority change.
-      let allowed: Clash<LoadedMeeting>[] = [];
+      // v1.12: the organizer rule blocks only when the edit moves the meeting to a new time.
+      let warnings: Clash<LoadedMeeting>[] = [];
       if (timeChanged || peopleChanged || priorityChanged) {
         await this.engine.lockPeople(manager, [...oldPeople, ...newPeople]);
-        const result = await this.engine.evaluate(manager, {
-          id: meeting.id,
-          startAt,
-          endAt,
-          priority,
-          peopleIds: newPeople,
-        });
+        const result = await this.engine.evaluate(
+          manager,
+          {
+            id: meeting.id,
+            startAt,
+            endAt,
+            priority,
+            organizerId: meeting.organizerId,
+            peopleIds: newPeople,
+          },
+          timeChanged,
+        );
         if (result.blocking.length > 0) {
           throw await this.blockingError(manager, actor, result.blocking);
         }
-        allowed = result.allowed;
+        warnings = result.warnings;
       }
 
       const before = this.snapshot(meeting, oldPeople, oldGuests);
@@ -377,8 +406,14 @@ export class MeetingsService {
       await this.engine.resolveStale(manager, [meeting.id], actor.id, ip);
       const updated = await this.lockMeeting(manager, meeting.id);
       const info = await this.meetingInfo(manager, updated);
-      if (allowed.length > 0) {
-        await this.createConflicts(manager, actor, ip, info, newSet, allowed);
+      if (warnings.length > 0) {
+        await this.createConflicts(
+          manager,
+          actor,
+          ip,
+          noticeSide(info, meeting.organizerId, newPeople, priority),
+          warnings,
+        );
       }
 
       await this.audit.log(
@@ -631,17 +666,22 @@ export class MeetingsService {
         ? storedChair.priority
         : await this.priorityFor(manager, organizerPriority, chairId);
 
-    const { allowed, blocking } = await this.engine.evaluate(manager, {
-      id: dto.meetingId,
-      startAt,
-      endAt,
-      priority,
-      peopleIds: people,
-    });
+    const { warnings, blocking } = await this.engine.evaluate(
+      manager,
+      {
+        id: dto.meetingId,
+        startAt,
+        endAt,
+        priority,
+        organizerId,
+        peopleIds: people,
+      },
+      moved,
+    );
     return {
       allowed: blocking.length === 0,
       blocking: await this.clashDtos(manager, actor, blocking),
-      willNotify: await this.clashDtos(manager, actor, allowed),
+      warnings: await this.clashDtos(manager, actor, warnings),
     };
   }
 
@@ -1004,28 +1044,41 @@ export class MeetingsService {
   }
 
   /**
-   * One PENDING conflict per (higher N, lower E, shared officer) — existing ones are not
-   * duplicated. Notifies E's organizer and the newly affected shared officers.
+   * Duplicate-meeting records (SPEC.md §6.4, v1.12): one PENDING row per (meeting pair, shared
+   * officer), whatever the priorities; an existing PENDING row for the pair (either
+   * orientation) is kept, never duplicated. The smaller priority number is "higher"; on equal
+   * priority the existing meeting stays "higher". Newly affected shared officers and the
+   * lower meeting's organizer (both organizers on equal priority) get one notice each.
    */
   private async createConflicts(
     manager: EntityManager,
     actor: AuthUser,
     ip: string | null,
-    higher: MeetingInfo,
-    higherPeople: ReadonlySet<string>,
+    candidate: ConflictNoticeMeeting & { priority: number },
     clashes: Clash<LoadedMeeting>[],
   ): Promise<void> {
     if (clashes.length === 0) return;
+    const otherIds = clashes.map((c) => c.meeting.id);
     const existing = await manager.getRepository(MeetingConflict).find({
-      select: { lowerMeetingId: true, userId: true },
-      where: {
-        higherMeetingId: higher.id,
-        status: ConflictStatus.PENDING,
-        lowerMeetingId: In(clashes.map((c) => c.meeting.id)),
-      },
+      select: { higherMeetingId: true, lowerMeetingId: true, userId: true },
+      where: [
+        {
+          higherMeetingId: candidate.id,
+          lowerMeetingId: In(otherIds),
+          status: ConflictStatus.PENDING,
+        },
+        {
+          lowerMeetingId: candidate.id,
+          higherMeetingId: In(otherIds),
+          status: ConflictStatus.PENDING,
+        },
+      ],
     });
     const have = new Set(
-      existing.map((c) => `${c.lowerMeetingId}:${c.userId}`),
+      existing.map(
+        (c) =>
+          `${c.higherMeetingId === candidate.id ? c.lowerMeetingId : c.higherMeetingId}:${c.userId}`,
+      ),
     );
     const names = await this.namesOf(
       manager,
@@ -1033,14 +1086,18 @@ export class MeetingsService {
     );
 
     for (const clash of clashes) {
+      const other = clash.meeting;
       const fresh = clash.sharedPeopleIds.filter(
-        (u) => !have.has(`${clash.meeting.id}:${u}`),
+        (u) => !have.has(`${other.id}:${u}`),
       );
       if (fresh.length === 0) continue;
+      const nLower = candidateIsLower(candidate.priority, other.priority);
+      const higherMeetingId = nLower ? other.id : candidate.id;
+      const lowerMeetingId = nLower ? candidate.id : other.id;
       const result = await manager.getRepository(MeetingConflict).insert(
         fresh.map((userId) => ({
-          higherMeetingId: higher.id,
-          lowerMeetingId: clash.meeting.id,
+          higherMeetingId,
+          lowerMeetingId,
           userId,
           status: ConflictStatus.PENDING,
         })),
@@ -1052,27 +1109,57 @@ export class MeetingsService {
             action: AuditAction.CONFLICT_CREATED,
             entityType: 'meeting_conflict',
             entityId: (identifier as { id: string }).id,
-            after: {
-              higherMeetingId: higher.id,
-              lowerMeetingId: clash.meeting.id,
-              userId: fresh[i],
-            },
+            after: { higherMeetingId, lowerMeetingId, userId: fresh[i] },
             ip,
           },
           manager,
         );
       }
-      await this.notifier.conflict(
-        manager,
-        higher,
-        higherPeople,
-        clash.meeting,
-        clash.sharedPeopleIds.map((u) => ({
-          id: u,
-          nameBn: names.get(u)?.bn ?? '—',
-        })),
-        [...new Set([clash.meeting.organizerId, ...fresh])],
-      );
+
+      const otherSide: ConflictNoticeMeeting = {
+        id: other.id,
+        title: other.title,
+        startAt: other.startAt,
+        endAt: other.endAt,
+        organizerId: other.organizerId,
+        leadDesignationBn: other.leadDesignationBn,
+        peopleIds: new Set(other.peopleIds),
+      };
+      const shared = clash.sharedPeopleIds.map((u) => ({
+        id: u,
+        nameBn: names.get(u)?.bn ?? '—',
+      }));
+      const recipients = conflictNoticeRecipients({
+        candidatePriority: candidate.priority,
+        candidateOrganizerId: candidate.organizerId,
+        existingPriority: other.priority,
+        existingOrganizerId: other.organizerId,
+        freshSharedIds: fresh,
+      });
+      const aboutOther = recipients
+        .filter((r) => r.side === 'EXISTING')
+        .map((r) => r.userId);
+      const aboutCandidate = recipients
+        .filter((r) => r.side === 'CANDIDATE')
+        .map((r) => r.userId);
+      if (aboutOther.length > 0) {
+        await this.notifier.conflict(
+          manager,
+          candidate,
+          otherSide,
+          shared,
+          aboutOther,
+        );
+      }
+      if (aboutCandidate.length > 0) {
+        await this.notifier.conflict(
+          manager,
+          otherSide,
+          candidate,
+          shared,
+          aboutCandidate,
+        );
+      }
     }
   }
 

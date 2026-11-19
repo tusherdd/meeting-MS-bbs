@@ -59,9 +59,12 @@ import { MeetingNoticeService } from './notice/meeting-notice.service';
 const PDF_THROTTLE = { default: { limit: 10, ttl: minutes(1) } };
 
 const RULE =
-  'Conflict rule: for every overlapping SCHEDULED meeting that shares a person (organizer, chair or participant): ' +
-  "if this meeting has a SMALLER priority number (higher rank) it is saved and the other meeting's people are asked " +
-  'to cancel/reschedule; equal or larger number → 409 and nothing is saved. Touching times (11:00–12:00 after 10:00–11:00) do not clash.';
+  'Conflict rule (v1.12): the ONLY blocking clash is the organizer rule: the organizer is, at an overlapping time, ' +
+  'the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (on edit only when the time changes; ' +
+  'priority plays no role). Every other overlap that shares an officer (chair, members, the organizer as a member elsewhere) ' +
+  'is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, ' +
+  'and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. ' +
+  'Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.';
 
 @ApiTags('Meetings')
 @ApiBearerAuth()
@@ -184,7 +187,8 @@ export class MeetingsController {
   })
   @ApiConflictResponse({
     type: MeetingConflictErrorDto,
-    description: 'Blocked by an equal/higher-priority meeting',
+    description:
+      'The organizer is already the organizer or chair of another meeting at this time',
   })
   create(
     @CurrentUser() user: AuthUser,
@@ -205,7 +209,8 @@ export class MeetingsController {
   @ApiNotFoundResponse({ description: 'Not found or not visible' })
   @ApiConflictResponse({
     type: MeetingConflictErrorDto,
-    description: 'Blocked, cancelled/completed, or already ended',
+    description:
+      'Organizer rule (organizer or chair of another meeting at the new time), cancelled/completed, or already ended',
   })
   update(
     @CurrentUser() user: AuthUser,

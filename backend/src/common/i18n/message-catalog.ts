@@ -486,8 +486,8 @@ export const MESSAGE_CATALOG = {
     en: 'A cancelled meeting cannot be marked as completed.',
   },
   TIME_CONFLICT_BLOCKING: {
-    bn: 'নির্বাচিত সময়ে এক বা একাধিক কর্মকর্তার সমান বা উচ্চতর অগ্রাধিকারের সভা আছে। সময় বা অংশগ্রহণকারী পরিবর্তন করুন।',
-    en: 'At the selected time, one or more officers have a meeting with the same or a higher priority. Change the time or the participants.',
+    bn: 'আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।',
+    en: 'The organizer is already the organizer or chair of another meeting at this time.',
   },
   SCOPE_ALL_ADMIN_ONLY: {
     bn: 'সব সভা দেখার অনুমতি শুধু প্রশাসকের আছে।',

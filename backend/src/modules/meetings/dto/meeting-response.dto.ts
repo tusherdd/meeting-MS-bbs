@@ -360,21 +360,26 @@ export class ClashDto {
   sharedOfficers!: OfficerRefDto[];
 }
 
-/** 409 body of POST/PATCH /meetings when a clash is blocking. */
+/** 409 body of POST/PATCH /meetings when the organizer rule blocks (v1.12, SPEC.md §6.4). */
 export class MeetingConflictErrorDto {
   @ApiProperty({ example: 409 })
   statusCode!: number;
 
   @ApiProperty({
-    example:
-      'নির্বাচিত সময়ে এক বা একাধিক কর্মকর্তার সমান বা উচ্চতর অগ্রাধিকারের সভা আছে। সময় বা অংশগ্রহণকারী পরিবর্তন করুন।',
+    example: 'আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।',
+    description:
+      'Bangla by default; English with Accept-Language: en ("The organizer is already the organizer or chair of another meeting at this time.")',
   })
   message!: string;
 
   @ApiProperty({ example: 'Conflict' })
   error!: string;
 
-  @ApiProperty({ type: [ClashDto] })
+  @ApiProperty({
+    type: [ClashDto],
+    description:
+      'Meetings where the organizer is already the organizer or internal chair at this time',
+  })
   blocking!: ClashDto[];
 
   @ApiProperty({
@@ -388,15 +393,19 @@ export class CheckConflictsResponseDto {
   @ApiProperty({ example: false, description: 'false = saving would give 409' })
   allowed!: boolean;
 
-  @ApiProperty({ type: [ClashDto] })
+  @ApiProperty({
+    type: [ClashDto],
+    description:
+      'Blocking clashes (v1.12): the organizer is the organizer or internal chair of these overlapping meetings. Saving gives 409.',
+  })
   blocking!: ClashDto[];
 
   @ApiProperty({
     type: [ClashDto],
     description:
-      'Lower meetings whose people would be asked to cancel/reschedule',
+      'Warnings (v1.12): overlapping meetings that share an officer, whatever the priorities. Saving works; duplicate-meeting records are kept and the people concerned are informed.',
   })
-  willNotify!: ClashDto[];
+  warnings!: ClashDto[];
 }
 
 export class ConflictListItemDto {

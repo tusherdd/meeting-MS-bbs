@@ -70,6 +70,8 @@ export interface CandidateMeeting extends TimeRange {
   /** Set on update: the meeting never clashes with itself. */
   id?: string;
   priority: number;
+  /** N's organizer: the only person whose own schedule can block N (v1.12). */
+  organizerId: string;
   peopleIds: readonly string[];
 }
 
@@ -78,6 +80,9 @@ export interface ExistingMeeting extends TimeRange {
   id: string;
   status: MeetingStatus;
   priority: number;
+  organizerId: string;
+  /** Internal chair (an officer); null when the chair is a guest officer or there is none. */
+  chairId: string | null;
   peopleIds: readonly string[];
 }
 
@@ -109,26 +114,102 @@ export function findClashes<M extends ExistingMeeting>(
   return clashes;
 }
 
+/**
+ * The organizer rule (SPEC.md §6.4, v1.12): N's organizer is the ORGANIZER or the INTERNAL
+ * CHAIR of the overlapping meeting E. Priority plays no role. Being only a member of E is not
+ * blocking.
+ */
+export function organizerIsBusy(
+  candidateOrganizerId: string,
+  meeting: Pick<ExistingMeeting, 'organizerId' | 'chairId'>,
+): boolean {
+  return (
+    meeting.organizerId === candidateOrganizerId ||
+    meeting.chairId === candidateOrganizerId
+  );
+}
+
 export interface Classification<M extends ExistingMeeting> {
-  /** N has strictly higher priority (smaller number): N may be saved, E gets a conflict. */
-  allowed: Clash<M>[];
-  /** Equal or lower priority: N must not be saved. */
+  /** Never blocked, whatever the priorities: N is saved, a duplicate-meeting record is kept. */
+  warnings: Clash<M>[];
+  /** The organizer rule: N must not be saved (409). */
   blocking: Clash<M>[];
 }
 
-/** SPEC.md §6.4: N.priority < E.priority → allowed; N.priority >= E.priority → blocking. */
+/**
+ * SPEC.md §6.4 (v1.12): the ONLY blocking clash is the organizer rule (`organizerIsBusy`),
+ * checked on create and when an edit moves the meeting (`checkOrganizer`). Every other clash
+ * (shared officers, chair, members, the organizer as a member elsewhere) is a warning.
+ */
 export function classifyClashes<M extends ExistingMeeting>(
-  candidatePriority: number,
+  candidateOrganizerId: string,
   clashes: readonly Clash<M>[],
+  checkOrganizer = true,
 ): Classification<M> {
-  const allowed: Clash<M>[] = [];
+  const warnings: Clash<M>[] = [];
   const blocking: Clash<M>[] = [];
   for (const clash of clashes) {
-    (candidatePriority < clash.meeting.priority ? allowed : blocking).push(
-      clash,
-    );
+    const busy =
+      checkOrganizer && organizerIsBusy(candidateOrganizerId, clash.meeting);
+    (busy ? blocking : warnings).push(clash);
   }
-  return { allowed, blocking };
+  return { warnings, blocking };
+}
+
+/**
+ * Orientation of a duplicate-meeting record (v1.12): the meeting with the smaller priority
+ * number is "higher". On equal priority the existing meeting E stays "higher" and the new or
+ * moved meeting N is "lower".
+ */
+export function candidateIsLower(
+  candidatePriority: number,
+  existingPriority: number,
+): boolean {
+  return candidatePriority >= existingPriority;
+}
+
+/** Which meeting a conflict notice treats as the recipient's ("lower") meeting. */
+export type NoticeSide = 'CANDIDATE' | 'EXISTING';
+
+export interface ConflictNoticeInput {
+  candidatePriority: number;
+  candidateOrganizerId: string;
+  existingPriority: number;
+  existingOrganizerId: string;
+  /** Shared officers whose duplicate-meeting record is new (already-informed ones are skipped). */
+  freshSharedIds: readonly string[];
+}
+
+/**
+ * Recipients of the informational conflict notice for one clash (SPEC.md §6.4, v1.12), each
+ * exactly once (someone with several roles gets one notice):
+ * - the organizer of the lower-priority meeting; on equal priority BOTH organizers;
+ * - every newly affected shared officer.
+ * `side` is the meeting the notice is about for that person: an organizer always reads about
+ * their own meeting; a shared officer reads about the record's lower meeting.
+ */
+export function conflictNoticeRecipients(
+  input: ConflictNoticeInput,
+): Array<{ userId: string; side: NoticeSide }> {
+  const {
+    candidatePriority: n,
+    existingPriority: e,
+    candidateOrganizerId,
+    existingOrganizerId,
+  } = input;
+  const result = new Map<string, NoticeSide>();
+  if (n < e || n === e) result.set(existingOrganizerId, 'EXISTING');
+  if (n > e || n === e) {
+    if (!result.has(candidateOrganizerId))
+      result.set(candidateOrganizerId, 'CANDIDATE');
+  }
+  const recordLower: NoticeSide = candidateIsLower(n, e)
+    ? 'CANDIDATE'
+    : 'EXISTING';
+  for (const id of input.freshSharedIds) {
+    if (!result.has(id)) result.set(id, recordLower);
+  }
+  return [...result].map(([userId, side]) => ({ userId, side }));
 }
 
 /** Advisory-lock order: sorted, so two transactions never wait on each other in a cycle. */

@@ -17,7 +17,8 @@ import {
 /** An existing meeting with what the engine and its messages need. */
 export interface LoadedMeeting extends ExistingMeeting {
   title: string;
-  organizerId: string;
+  /** The designation the meeting is led by: the internal chair's, else the organizer's (§6.4). */
+  leadDesignationBn: string | null;
   organizerNameBn: string;
   organizerNameEn: string;
   organizerDesignationBn: string | null;
@@ -60,15 +61,20 @@ export class ConflictEngineService {
     }
   }
 
-  /** Clashes of the candidate with existing meetings, split into allowed and blocking. */
+  /**
+   * Clashes of the candidate with existing meetings, split into blocking (the organizer rule,
+   * only when `checkOrganizer`: create, or an edit that moves the meeting) and warnings.
+   */
   async evaluate(
     manager: EntityManager,
     candidate: CandidateMeeting,
+    checkOrganizer = true,
   ): Promise<Classification<LoadedMeeting>> {
     const existing = await this.loadCandidates(manager, candidate);
     return classifyClashes(
-      candidate.priority,
+      candidate.organizerId,
       findClashes(candidate, existing),
+      checkOrganizer,
     );
   }
 
@@ -105,6 +111,7 @@ export class ConflictEngineService {
       relations: {
         participants: true,
         organizer: { designation: true, wing: true },
+        chair: { designation: true },
       },
     });
     return meetings.map((m) => ({
@@ -116,6 +123,11 @@ export class ConflictEngineService {
       peopleIds: m.participants.map((p) => p.userId),
       title: m.title,
       organizerId: m.organizerId,
+      chairId: m.chairId,
+      leadDesignationBn:
+        (m.chairId ? m.chair?.designation?.nameBn : null) ??
+        m.organizer.designation?.nameBn ??
+        null,
       organizerNameBn: m.organizer.nameBn,
       organizerNameEn: m.organizer.nameEn,
       organizerDesignationBn: m.organizer.designation?.nameBn ?? null,
@@ -128,8 +140,9 @@ export class ConflictEngineService {
   /**
    * Auto-resolve (SPEC.md §6.4): every PENDING conflict touching these meetings that is no
    * longer real becomes RESOLVED — a meeting is no longer SCHEDULED, the times no longer
-   * overlap, the officer is no longer in both meetings, or (v1.5, chair change) the higher
-   * meeting no longer has a strictly higher priority. One atomic UPDATE; each resolved
+   * overlap, the officer is no longer in both meetings, or (after a chair change) the record's
+   * orientation is wrong (the "higher" meeting now has a larger priority number; the engine then
+   * records the clash again the right way round). Equal priority is valid (v1.12). One atomic UPDATE; each resolved
    * row is audited (CONFLICT_RESOLVED). Returns the resolved rows.
    */
   async resolveStale(
@@ -152,7 +165,7 @@ export class ConflictEngineService {
           AND NOT (
                 h.status = $4 AND l.status = $4
             AND h."startAt" < l."endAt" AND l."startAt" < h."endAt"
-            AND h.priority < l.priority
+            AND h.priority <= l.priority
             AND EXISTS (SELECT 1 FROM meeting_participants p
                          WHERE p."meetingId" = h.id AND p."userId" = c."userId")
             AND EXISTS (SELECT 1 FROM meeting_participants p

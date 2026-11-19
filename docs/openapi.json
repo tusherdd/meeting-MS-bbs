@@ -3004,7 +3004,7 @@
         ]
       },
       "post": {
-        "description": "Conflict rule: for every overlapping SCHEDULED meeting that shares a person (organizer, chair or participant): if this meeting has a SMALLER priority number (higher rank) it is saved and the other meeting's people are asked to cancel/reschedule; equal or larger number → 409 and nothing is saved. Touching times (11:00–12:00 after 10:00–11:00) do not clash.",
+        "description": "Conflict rule (v1.12): the ONLY blocking clash is the organizer rule: the organizer is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (on edit only when the time changes; priority plays no role). Every other overlap that shares an officer (chair, members, the organizer as a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.",
         "operationId": "MeetingsController_create",
         "parameters": [
           {
@@ -3050,7 +3050,7 @@
             "description": "SUPER_ADMIN (system account) cannot organize"
           },
           "409": {
-            "description": "Blocked by an equal/higher-priority meeting",
+            "description": "The organizer is already the organizer or chair of another meeting at this time",
             "content": {
               "application/json": {
                 "schema": {
@@ -3073,7 +3073,7 @@
     },
     "/api/v1/meetings/check-conflicts": {
       "post": {
-        "description": "Conflict rule: for every overlapping SCHEDULED meeting that shares a person (organizer, chair or participant): if this meeting has a SMALLER priority number (higher rank) it is saved and the other meeting's people are asked to cancel/reschedule; equal or larger number → 409 and nothing is saved. Touching times (11:00–12:00 after 10:00–11:00) do not clash. When editing, send `meetingId`.",
+        "description": "Conflict rule (v1.12): the ONLY blocking clash is the organizer rule: the organizer is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (on edit only when the time changes; priority plays no role). Every other overlap that shares an officer (chair, members, the organizer as a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash. When editing, send `meetingId`.",
         "operationId": "MeetingsController_checkConflicts",
         "parameters": [
           {
@@ -3180,7 +3180,7 @@
         ]
       },
       "patch": {
-        "description": "Re-runs the engine when time or people change. Conflict rule: for every overlapping SCHEDULED meeting that shares a person (organizer, chair or participant): if this meeting has a SMALLER priority number (higher rank) it is saved and the other meeting's people are asked to cancel/reschedule; equal or larger number → 409 and nothing is saved. Touching times (11:00–12:00 after 10:00–11:00) do not clash.",
+        "description": "Re-runs the engine when time or people change. Conflict rule (v1.12): the ONLY blocking clash is the organizer rule: the organizer is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (on edit only when the time changes; priority plays no role). Every other overlap that shares an officer (chair, members, the organizer as a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.",
         "operationId": "MeetingsController_update",
         "parameters": [
           {
@@ -3234,7 +3234,7 @@
             "description": "Not found or not visible"
           },
           "409": {
-            "description": "Blocked, cancelled/completed, or already ended",
+            "description": "Organizer rule (organizer or chair of another meeting at the new time), cancelled/completed, or already ended",
             "content": {
               "application/json": {
                 "schema": {
@@ -4560,7 +4560,7 @@
   },
   "info": {
     "title": "BBS Meeting Schedule API",
-    "description": "Bangladesh Bureau of Statistics (BBS) and SID — meeting schedule system. Errors: `{ statusCode, message, error, code, requestId }` (409 meeting clashes add `blocking`; validation errors add `codes`, one per message). Language (v1.6): send `Accept-Language: en` or `bn` (or `X-Lang`, which wins; the web app sends both); error and success messages come back in that language (Bangla when the header is missing). `code` never changes with the language. PDF reports, emails and notifications are always Bangla.",
+    "description": "Bangladesh Bureau of Statistics (BBS) and SID — meeting schedule system. Errors: `{ statusCode, message, error, code, requestId }` (409 organizer-rule clashes add `blocking`; validation errors add `codes`, one per message). Language (v1.6): send `Accept-Language: en` or `bn` (or `X-Lang`, which wins; the web app sends both); error and success messages come back in that language (Bangla when the header is missing). `code` never changes with the language. PDF reports, emails and notifications are always Bangla.",
     "version": "1.0",
     "contact": {}
   },
@@ -6809,13 +6809,14 @@
             "description": "false = saving would give 409"
           },
           "blocking": {
+            "description": "Blocking clashes (v1.12): the organizer is the organizer or internal chair of these overlapping meetings. Saving gives 409.",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ClashDto"
             }
           },
-          "willNotify": {
-            "description": "Lower meetings whose people would be asked to cancel/reschedule",
+          "warnings": {
+            "description": "Warnings (v1.12): overlapping meetings that share an officer, whatever the priorities. Saving works; duplicate-meeting records are kept and the people concerned are informed.",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ClashDto"
@@ -6825,7 +6826,7 @@
         "required": [
           "allowed",
           "blocking",
-          "willNotify"
+          "warnings"
         ]
       },
       "PersonDto": {
@@ -7308,13 +7309,15 @@
           },
           "message": {
             "type": "string",
-            "example": "নির্বাচিত সময়ে এক বা একাধিক কর্মকর্তার সমান বা উচ্চতর অগ্রাধিকারের সভা আছে। সময় বা অংশগ্রহণকারী পরিবর্তন করুন।"
+            "example": "আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।",
+            "description": "Bangla by default; English with Accept-Language: en (\"The organizer is already the organizer or chair of another meeting at this time.\")"
           },
           "error": {
             "type": "string",
             "example": "Conflict"
           },
           "blocking": {
+            "description": "Meetings where the organizer is already the organizer or internal chair at this time",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ClashDto"

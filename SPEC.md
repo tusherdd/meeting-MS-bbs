@@ -10,9 +10,9 @@
 
 An office-wide web application where every officer can create and manage meetings.
 Meetings carry a **priority taken from the chair's designation** (the organizer's when the chair is
-a guest officer or there is none, v1.5). A higher-priority meeting is never blocked by a conflict;
-instead the organizers and shared officers of the lower-priority meetings that clash are informed
-and may cancel or decide otherwise.
+a guest officer or there is none, v1.5). Since v1.12 a clash with another meeting is **never blocked
+because of priority**: the form warns, the meeting is saved, and the people concerned are informed and
+may cancel or decide otherwise. Only the organizer's own schedule blocks (§6.4).
 Every officer has a personal dashboard with today / weekly / monthly / yearly reports,
 downloadable as PDF.
 
@@ -206,16 +206,22 @@ A conflict exists when the **same officer** (organizer, chair or participant) is
 meetings whose time ranges overlap: `A.start < B.end AND B.start < A.end`.
 
 When meeting **N** (priority `p`) is created or its time/people change, for every overlapping
-meeting **E** that shares at least one officer:
+meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19 — "warn, don't block"):
 
 | Case | Result |
 |---|---|
-| `p < E.priority` (N is higher) | N is saved. A `meeting_conflicts` row is created (status `PENDING`). E's organizer **and** each shared officer get an **informational** bell notification + email (v1.5, not a cancel request; see below). |
-| `p >= E.priority` (equal or lower) | N is **blocked**. API returns `409 Conflict` with the list of clashing meetings and officers. Nothing is saved. |
+| **Organizer rule:** N's organizer is E's organizer or E's **internal chair** | N is **blocked**, whatever the priorities. API returns `409 Conflict` (`code` `TIME_CONFLICT_BLOCKING`): "আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।" / "The organizer is already the organizer or chair of another meeting at this time." with the list of these meetings (`blocking`). Nothing is saved. On edit this rule is checked only when the time changes. |
+| Any other shared officer (chair, members, N's organizer who is only a **member** of E), **any priority** | **Never blocked.** N is saved. One `meeting_conflicts` row (status `PENDING`) per shared officer, kept (never duplicated) while the overlap lasts. Informational notices (below). |
 
-- If any clash is blocking, the whole request is rejected (even if other clashes would be allowed).
-- **Conflict notice (v1.5):** the same message to E's organizer and to each newly affected shared officer,
-  once per person (someone who is both gets one): title "সময় কনফ্লিক্ট: [E-এর শিরোনাম]", body
+- If any clash is blocking, the whole request is rejected (even if other clashes would only warn).
+- Record orientation: the meeting with the smaller priority number is "higher"; on **equal priority** the
+  existing meeting E stays "higher" and N is "lower". Priorities (the snapshots of §6.3) are used only for this
+  and for the notice wording.
+- Notice recipients (bell + email, once per person even with several roles): every newly affected shared
+  officer, and the organizer of the lower-priority meeting — on equal priority **both** organizers, each about
+  their own meeting. On equal priority both organizers also see the record in `GET /conflicts/mine`.
+- **Conflict notice (v1.5, recipients since v1.12 as above):** below, E = the recipient's ("lower") meeting and
+  N = the other one. Title "সময় কনফ্লিক্ট: [E-এর শিরোনাম]", body
   "সময় কনফ্লিক্ট: একই সময়ে [শেয়ার্ড ব্যক্তির নাম]-এর [পদবি] মহোদয়ের সাথে আরেকটি সভা আছে ([তারিখ, সময়])।
   আপনি চাইলে আপনার সভা “[E-এর শিরোনাম]” বাতিল করতে পারেন অথবা অন্য সিদ্ধান্ত নিতে পারেন।"
   [পদবি] = designation of N's internal chair, else N's organizer. A shared officer reads "আপনার" (or
@@ -224,11 +230,14 @@ meeting **E** that shares at least one officer:
   resolves by itself; cancel / reschedule stay on the ডুপ্লিকেট সভা page. Guest officers are never part of
   the check and never get this notice.
 - `POST /meetings/check-conflicts` runs the same logic without saving (used by the form to warn live).
+  Response (v1.12): `{ allowed, blocking, warnings }` — `blocking` = organizer-rule clashes (saving gives 409),
+  `warnings` = all other clashes (saving works).
 - A pending conflict is marked `RESOLVED` automatically when E is cancelled, rescheduled out of the
   overlap, or the shared officer is removed from E.
 - Every participant is notified when invited, when time/room changes, and when a meeting is cancelled.
 - The conflict check and the insert run inside one DB transaction to avoid race conditions; the transaction
-  takes `pg_advisory_xact_lock` per person (sorted), so two parallel requests for the same officer cannot both pass.
+  takes `pg_advisory_xact_lock` per person (sorted), so two parallel requests for the same organizer cannot both pass
+  the organizer rule (v1.12).
 - Touching meetings (10:00–11:00 and 11:00–12:00) do not overlap. The engine re-runs on update only when the
   time or the people change; the meeting never clashes with itself.
 - 409 body: `{ message, blocking: [{ meetingId, title, startAt, endAt, priority, organizer, sharedOfficers }] }`.
@@ -236,7 +245,8 @@ meeting **E** that shares at least one officer:
   rule applies to the conflict notice (N's title only for N's invitees).
 - A PENDING conflict is also RESOLVED when either meeting is completed or moved, or the shared officer is
   removed from either meeting, or (v1.5, after a chair change) the higher meeting no longer has a
-  strictly higher priority than the lower one.
+  larger priority number than the lower one (the engine then records the clash again the right way round;
+  equal priority stays valid, v1.12).
 
 ### 6.5 Notifications
 - Channels: in-app bell (always) and email (to the notification email).
@@ -764,9 +774,10 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   participants and the guests ("নাম (অতিথি কর্মকর্তা)", stored as `guest:<email>` in the form); removing the
   guest who chairs clears the chair. The detail page has an "অতিথি কর্মকর্তা" section; guests are editable.
 - Whenever the time or the people change, `POST /meetings/check-conflicts` runs 600 ms later (older requests
-  aborted): green = only the line "এই সময়ে নির্বাচিত কারও অন্য কোনো সভা নেই।" (no heading, v1.5), amber =
-  "নিম্ন অগ্রাধিকারের ডুপ্লিকেট সভা আছে" (their organizers and shared officers will be informed), red = blocked
-  (submit disabled, clashing people highlighted). Only an officer chair is sent to the check. A 409 on save shows the same red panel and keeps the form data.
+  aborted): green = only the line "এই সময়ে নির্বাচিত কারও অন্য কোনো সভা নেই।" (no heading, v1.5), amber (v1.12) =
+  "নির্বাচিত কর্মকর্তাদের কারও এই সময়ে আরেকটি সভা আছে" with the list of clashes; Save stays enabled, no extra
+  confirmation; red = only the organizer rule (§6.4): "আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি। সময় বদলান।",
+  Save disabled. Only an officer chair is sent to the check. A 409 on save shows the same red panel and keeps the form data.
 - After create/edit/cancel/complete/delete, every cached "meetings", "conflicts", "notifications" and "reports"
   query is refreshed (`lib/invalidate.ts`).
 

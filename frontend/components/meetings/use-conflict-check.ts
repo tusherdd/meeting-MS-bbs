@@ -27,7 +27,8 @@ export const CHECK_DEBOUNCE_MS = 600;
 const CHECK_TITLE = "ডুপ্লিকেট সভা যাচাই";
 
 /**
- * Live dry run of the conflict engine (POST /meetings/check-conflicts):
+ * Live dry run of the conflict engine (POST /meetings/check-conflicts). v1.12: `blocking` (red,
+ * Save disabled) is only the organizer rule; `warnings` (amber) never stop the save.
  * runs 600 ms after the time or the people last changed; an older request still in flight is
  * aborted, so a slow answer can never overwrite a newer one.
  * `reportServerBlock` shows a 409 from the real save (someone booked meanwhile) until the
@@ -63,8 +64,8 @@ export function useConflictCheck(input: Input) {
         const state: ConflictCheckState =
           res.blocking.length > 0
             ? { kind: "blocked", clashes: res.blocking }
-            : res.willNotify.length > 0
-              ? { kind: "warn", clashes: res.willNotify }
+            : res.warnings.length > 0
+              ? { kind: "warn", clashes: res.warnings }
               : { kind: "ok" };
         setResult({ key, state });
       } catch (error) {
@@ -95,7 +96,7 @@ export function useConflictCheck(input: Input) {
   };
 }
 
-/** Officer ids that clash in a blocked state (their chips are highlighted). */
+/** Officer ids that clash in a blocked state (organizer rule; their chips are highlighted). */
 export function clashingOfficerIds(state: ConflictCheckState): Set<string> {
   if (state.kind !== "blocked") return new Set();
   return new Set(state.clashes.flatMap((c) => c.sharedOfficers.map((o) => o.id)));

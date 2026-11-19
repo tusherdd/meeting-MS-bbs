@@ -268,21 +268,25 @@ describe('v1.9: organizer shown as the wing, venue required (e2e)', () => {
       expect(conflict?.higherMeeting.organizerWingEn).toBe(WING.nameEn);
       expect(conflict?.lowerMeeting.organizerWing).toBe(WING2.nameBn);
 
-      // nowing (6) at the same time with so → blocked by dd's meeting (6 vs 6).
-      const blocked = await create('nowing', {
-        title: 'আটকে যাবে',
-        startAt: slot(62, '10:30'),
-        endAt: slot(62, '11:00'),
-        room: 'কক্ষ ৩০১',
-        participantIds: [ids.so],
-      }).expect(409);
+      // nowing (6) at the same time with so → a warning (v1.12), listed with dd's wing.
+      const warned = await http()
+        .post(`${API}/meetings/check-conflicts`)
+        .set(as('nowing'))
+        .send({
+          title: 'সতর্কতা',
+          startAt: slot(62, '10:30'),
+          endAt: slot(62, '11:00'),
+          room: 'কক্ষ ৩০১',
+          participantIds: [ids.so],
+        })
+        .expect(200);
       const clash = (
-        blocked.body as {
-          blocking: Array<{
+        warned.body as {
+          warnings: Array<{
             organizer: { wing: string | null; wingEn: string | null };
           }>;
         }
-      ).blocking.find((b) => b.organizer.wing === WING.nameBn);
+      ).warnings.find((b) => b.organizer.wing === WING.nameBn);
       expect(clash?.organizer.wingEn).toBe(WING.nameEn);
     });
 

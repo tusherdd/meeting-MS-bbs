@@ -24,7 +24,7 @@ export const OFFICERS = {
     nameEn: "E2E Test Officer",
     designationEn: "Statistical Officer",
   },
-  /** Deputy Directors (priority 6): equal priority → blocking clash. */
+  /** Deputy Directors (priority 6): equal priority → a warning only (v1.12). */
   dd1: {
     loginEmail: "e2e-dd1@example.com",
     nameBn: "ই২ই উপপরিচালক প্রথম",

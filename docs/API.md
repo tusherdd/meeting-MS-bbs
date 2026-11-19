@@ -283,7 +283,7 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | `MEETING_ALREADY_ENDED` | The meeting has already ended; it can only be marked as completed with notes. | সভাটি ইতিমধ্যে শেষ হয়েছে; শুধু সম্পন্ন হিসেবে চিহ্নিত করে নোট যোগ করা যাবে। |
 | `MEETING_NOT_STARTED` | A meeting cannot be marked as completed before it starts. | সভা শুরু হওয়ার আগে সম্পন্ন হিসেবে চিহ্নিত করা যাবে না। |
 | `MEETING_CANCELLED_CANNOT_COMPLETE` | A cancelled meeting cannot be marked as completed. | বাতিল সভা সম্পন্ন হিসেবে চিহ্নিত করা যাবে না। |
-| `TIME_CONFLICT_BLOCKING` | At the selected time, one or more officers have a meeting with the same or a higher priority. Change the time or the participants. | নির্বাচিত সময়ে এক বা একাধিক কর্মকর্তার সমান বা উচ্চতর অগ্রাধিকারের সভা আছে। সময় বা অংশগ্রহণকারী পরিবর্তন করুন। |
+| `TIME_CONFLICT_BLOCKING` | The organizer is already the organizer or chair of another meeting at this time. | আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি। |
 | `SCOPE_ALL_ADMIN_ONLY` | Only administrators may view all meetings. | সব সভা দেখার অনুমতি শুধু প্রশাসকের আছে। |
 | `ONE_CHAIR` | A meeting can have only one president: one officer or one guest officer. | সভাপতি একজনই হতে পারেন: একজন কর্মকর্তা অথবা একজন অতিথি কর্মকর্তা। |
 | `GUEST_DUPLICATE_EMAIL` | The same email ({email}) cannot be used for more than one guest officer. | একই Email ({email}) একাধিক অতিথি কর্মকর্তার জন্য দেওয়া যাবে না। |

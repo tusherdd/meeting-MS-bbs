@@ -1,10 +1,13 @@
 import { MeetingStatus } from './enums/meeting-status.enum';
 import {
+  candidateIsLower,
   classifyClashes,
+  conflictNoticeRecipients,
   findClashes,
   lockOrder,
   meetingPeople,
   meetingPriority,
+  organizerIsBusy,
   overlaps,
   timeProblems,
   type CandidateMeeting,
@@ -20,7 +23,9 @@ function existing(overrides: Partial<ExistingMeeting> = {}): ExistingMeeting {
     priority: 7,
     startAt: at('10:00'),
     endAt: at('11:00'),
-    peopleIds: ['so-organizer', 'shared-officer'],
+    organizerId: 'e-organizer',
+    chairId: null,
+    peopleIds: ['e-organizer', 'shared-officer'],
     ...overrides,
   };
 }
@@ -32,51 +37,159 @@ function candidate(
     priority: 1,
     startAt: at('10:30'),
     endAt: at('11:30'),
-    peopleIds: ['secretary', 'shared-officer'],
+    organizerId: 'n-organizer',
+    peopleIds: ['n-organizer', 'shared-officer'],
     ...overrides,
   };
 }
 
 /** Full engine decision for one candidate against existing meetings. */
-function decide(c: CandidateMeeting, list: ExistingMeeting[]) {
-  const { allowed, blocking } = classifyClashes(
-    c.priority,
+function decide(
+  c: CandidateMeeting,
+  list: ExistingMeeting[],
+  checkOrganizer = true,
+) {
+  const { warnings, blocking } = classifyClashes(
+    c.organizerId,
     findClashes(c, list),
+    checkOrganizer,
   );
   return {
     saved: blocking.length === 0,
     conflictRows:
       blocking.length === 0
-        ? allowed.flatMap((x) =>
+        ? warnings.flatMap((x) =>
             x.sharedPeopleIds.map((u) => `${x.meeting.id}:${u}`),
           )
         : [],
     blockingIds: blocking.map((b) => b.meeting.id),
+    warningIds: warnings.map((w) => w.meeting.id),
   };
 }
 
-describe('conflict engine rule table (SPEC.md §6.4)', () => {
+describe('conflict engine rule table (SPEC.md §6.4, v1.12: warn, do not block)', () => {
   it.each([
-    // [case, candidate priority, existing priority, saved?]
-    ['N higher (1 vs 7) → saved, conflict row', 1, 7, true],
-    ['N higher by one (6 vs 7) → saved', 6, 7, true],
-    ['equal priority (6 vs 6) → 409', 6, 6, false],
-    ['N lower (7 vs 1) → 409', 7, 1, false],
-  ])('%s', (_label, nPriority, ePriority, saved) => {
-    const result = decide(candidate({ priority: nPriority }), [
-      existing({ priority: ePriority }),
-    ]);
-    expect(result.saved).toBe(saved);
-    expect(result.conflictRows).toEqual(saved ? ['E:shared-officer'] : []);
-    expect(result.blockingIds).toEqual(saved ? [] : ['E']);
+    // [case, candidate priority, existing priority]
+    ['N higher (1 vs 7)', 1, 7],
+    ['N higher by one (6 vs 7)', 6, 7],
+    ['equal priority (6 vs 6)', 6, 6],
+    ['N lower (7 vs 1)', 7, 1],
+  ])(
+    'shared officer, %s → warning only, saved, duplicate-meeting row',
+    (_label, nPriority, ePriority) => {
+      const result = decide(candidate({ priority: nPriority }), [
+        existing({ priority: ePriority }),
+      ]);
+      expect(result).toEqual({
+        saved: true,
+        conflictRows: ['E:shared-officer'],
+        blockingIds: [],
+        warningIds: ['E'],
+      });
+    },
+  );
+
+  it('organizer-organizer: N organizer also organizes E → blocked, whatever the priority', () => {
+    for (const [n, e] of [
+      [1, 7],
+      [7, 1],
+      [5, 5],
+    ]) {
+      const result = decide(
+        candidate({ priority: n, peopleIds: ['n-organizer'] }),
+        [
+          existing({
+            priority: e,
+            organizerId: 'n-organizer',
+            peopleIds: ['n-organizer'],
+          }),
+        ],
+      );
+      expect(result.blockingIds).toEqual(['E']);
+      expect(result.saved).toBe(false);
+    }
   });
 
-  it('no shared person → no clash at all, even with lower priority', () => {
+  it('organizer-chair: N organizer is the internal chair of E → blocked', () => {
+    const result = decide(candidate({ priority: 1 }), [
+      existing({
+        priority: 9,
+        chairId: 'n-organizer',
+        peopleIds: ['e-organizer', 'n-organizer'],
+      }),
+    ]);
+    expect(result).toMatchObject({ saved: false, blockingIds: ['E'] });
+  });
+
+  it('organizer-member: N organizer is only a member of E → warning only', () => {
+    const result = decide(candidate({ priority: 9 }), [
+      existing({ priority: 1, peopleIds: ['e-organizer', 'n-organizer'] }),
+    ]);
+    expect(result).toEqual({
+      saved: true,
+      conflictRows: ['E:n-organizer'],
+      blockingIds: [],
+      warningIds: ['E'],
+    });
+  });
+
+  it('the chair or a member of N who organizes E is NOT the organizer rule → warning', () => {
+    const result = decide(
+      candidate({ peopleIds: ['n-organizer', 'chair-person'] }),
+      [
+        existing({
+          organizerId: 'chair-person',
+          chairId: 'chair-person',
+          peopleIds: ['chair-person'],
+        }),
+      ],
+    );
+    expect(result).toMatchObject({ saved: true, warningIds: ['E'] });
+  });
+
+  it('edit without a new time (checkOrganizer = false) never blocks', () => {
+    const result = decide(
+      candidate({ id: 'N' }),
+      [existing({ organizerId: 'n-organizer', peopleIds: ['n-organizer'] })],
+      false,
+    );
+    expect(result).toMatchObject({ saved: true, warningIds: ['E'] });
+  });
+
+  it('mixed case: one warning + one organizer clash → 409 and NOTHING saved', () => {
+    const result = decide(candidate({ priority: 5 }), [
+      existing({ id: 'warn', priority: 1 }),
+      existing({ id: 'own', organizerId: 'n-organizer' }),
+    ]);
+    expect(result).toEqual({
+      saved: false,
+      conflictRows: [],
+      blockingIds: ['own'],
+      warningIds: ['warn'],
+    });
+  });
+
+  it('organizerIsBusy: organizer or internal chair only', () => {
+    expect(organizerIsBusy('x', { organizerId: 'x', chairId: null })).toBe(
+      true,
+    );
+    expect(organizerIsBusy('x', { organizerId: 'y', chairId: 'x' })).toBe(true);
+    expect(organizerIsBusy('x', { organizerId: 'y', chairId: 'z' })).toBe(
+      false,
+    );
+  });
+
+  it('no shared person → no clash at all', () => {
     const result = decide(
       candidate({ priority: 9, peopleIds: ['someone-else'] }),
       [existing()],
     );
-    expect(result).toEqual({ saved: true, conflictRows: [], blockingIds: [] });
+    expect(result).toEqual({
+      saved: true,
+      conflictRows: [],
+      blockingIds: [],
+      warningIds: [],
+    });
   });
 
   it('touching times (10:00–11:00 and 11:00–12:00) do not clash', () => {
@@ -84,30 +197,33 @@ describe('conflict engine rule table (SPEC.md §6.4)', () => {
       candidate({ priority: 9, startAt: at('11:00'), endAt: at('12:00') }),
       [existing()],
     );
-    expect(result.blockingIds).toEqual([]);
+    expect(result.warningIds).toEqual([]);
     const before = decide(
       candidate({ priority: 9, startAt: at('09:00'), endAt: at('10:00') }),
       [existing()],
     );
-    expect(before.blockingIds).toEqual([]);
+    expect(before.warningIds).toEqual([]);
   });
 
   it.each([MeetingStatus.CANCELLED, MeetingStatus.COMPLETED])(
     '%s meetings are ignored',
     (status) => {
-      expect(
-        decide(candidate({ priority: 9 }), [existing({ status })]).blockingIds,
-      ).toEqual([]);
+      const result = decide(candidate({ priority: 9 }), [
+        existing({ status, organizerId: 'n-organizer' }),
+      ]);
+      expect(result.blockingIds).toEqual([]);
+      expect(result.warningIds).toEqual([]);
     },
   );
 
   it('the chair counts as a person of the meeting', () => {
     const people = meetingPeople('organizer', 'chair-person', ['member']);
     expect(people).toEqual(['organizer', 'chair-person', 'member']);
-    const result = decide(candidate({ priority: 9, peopleIds: people }), [
-      existing({ peopleIds: ['chair-person'] }),
-    ]);
-    expect(result.blockingIds).toEqual(['E']);
+    const result = decide(
+      candidate({ priority: 9, organizerId: 'organizer', peopleIds: people }),
+      [existing({ peopleIds: ['chair-person'] })],
+    );
+    expect(result.warningIds).toEqual(['E']);
   });
 
   it('the organizer counts too, and people are deduplicated', () => {
@@ -116,40 +232,107 @@ describe('conflict engine rule table (SPEC.md §6.4)', () => {
   });
 
   it('on update the meeting never clashes with itself', () => {
-    const self = existing({ id: 'N', priority: 6 });
-    expect(
-      decide(candidate({ id: 'N', priority: 6 }), [self]).blockingIds,
-    ).toEqual([]);
+    const self = existing({ id: 'N', organizerId: 'n-organizer' });
+    expect(decide(candidate({ id: 'N' }), [self])).toMatchObject({
+      blockingIds: [],
+      warningIds: [],
+    });
     // ...but it still clashes with others
     expect(
-      decide(candidate({ id: 'N', priority: 6 }), [
-        self,
-        existing({ id: 'X', priority: 6 }),
-      ]).blockingIds,
+      decide(candidate({ id: 'N' }), [self, existing({ id: 'X' })]).warningIds,
     ).toEqual(['X']);
   });
 
-  it('mixed case: one allowed + one blocking → 409 and NOTHING saved (no conflict rows)', () => {
-    const result = decide(candidate({ priority: 5 }), [
-      existing({ id: 'lower', priority: 7 }),
-      existing({ id: 'equal', priority: 5 }),
-    ]);
-    expect(result).toEqual({
-      saved: false,
-      conflictRows: [],
-      blockingIds: ['equal'],
-    });
-  });
-
-  it('one conflict row per (lower meeting, shared officer)', () => {
+  it('one conflict row per (other meeting, shared officer)', () => {
     const result = decide(
-      candidate({ priority: 1, peopleIds: ['a', 'b', 'c'] }),
+      candidate({ priority: 1, peopleIds: ['n-organizer', 'a', 'b', 'c'] }),
       [
         existing({ id: 'E1', peopleIds: ['a', 'b'] }),
         existing({ id: 'E2', peopleIds: ['c', 'z'] }),
       ],
     );
     expect(result.conflictRows).toEqual(['E1:a', 'E1:b', 'E2:c']);
+  });
+});
+
+describe('candidateIsLower (record orientation, v1.12)', () => {
+  it('smaller number is higher; on equal priority the new/moved meeting is lower', () => {
+    expect(candidateIsLower(1, 7)).toBe(false);
+    expect(candidateIsLower(7, 1)).toBe(true);
+    expect(candidateIsLower(5, 5)).toBe(true);
+  });
+});
+
+describe('conflictNoticeRecipients (SPEC.md §6.4, v1.12)', () => {
+  const base = {
+    candidateOrganizerId: 'n-org',
+    existingOrganizerId: 'e-org',
+    freshSharedIds: ['shared'],
+  };
+
+  it('N higher → only E (lower) organizer + shared officer', () => {
+    expect(
+      conflictNoticeRecipients({
+        ...base,
+        candidatePriority: 1,
+        existingPriority: 7,
+      }),
+    ).toEqual([
+      { userId: 'e-org', side: 'EXISTING' },
+      { userId: 'shared', side: 'EXISTING' },
+    ]);
+  });
+
+  it('N lower → only N (lower) organizer + shared officer', () => {
+    expect(
+      conflictNoticeRecipients({
+        ...base,
+        candidatePriority: 7,
+        existingPriority: 1,
+      }),
+    ).toEqual([
+      { userId: 'n-org', side: 'CANDIDATE' },
+      { userId: 'shared', side: 'CANDIDATE' },
+    ]);
+  });
+
+  it('equal priority → BOTH organizers, each about their own meeting', () => {
+    expect(
+      conflictNoticeRecipients({
+        ...base,
+        candidatePriority: 5,
+        existingPriority: 5,
+      }),
+    ).toEqual([
+      { userId: 'e-org', side: 'EXISTING' },
+      { userId: 'n-org', side: 'CANDIDATE' },
+      { userId: 'shared', side: 'CANDIDATE' },
+    ]);
+  });
+
+  it('shared officer notified once, even with several roles or listed twice', () => {
+    const list = conflictNoticeRecipients({
+      candidateOrganizerId: 'n-org',
+      existingOrganizerId: 'e-org',
+      freshSharedIds: ['e-org', 'x', 'x', 'n-org'],
+      candidatePriority: 5,
+      existingPriority: 5,
+    });
+    expect(list.map((r) => r.userId).sort()).toEqual(['e-org', 'n-org', 'x']);
+    // an organizer who is also shared reads about their OWN meeting
+    expect(list.find((r) => r.userId === 'e-org')!.side).toBe('EXISTING');
+    expect(list.find((r) => r.userId === 'n-org')!.side).toBe('CANDIDATE');
+  });
+
+  it('no fresh shared officer → organizers only', () => {
+    expect(
+      conflictNoticeRecipients({
+        ...base,
+        freshSharedIds: [],
+        candidatePriority: 1,
+        existingPriority: 7,
+      }),
+    ).toEqual([{ userId: 'e-org', side: 'EXISTING' }]);
   });
 });
 

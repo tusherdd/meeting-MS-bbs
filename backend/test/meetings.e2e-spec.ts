@@ -1,5 +1,5 @@
 /**
- * Step 8 e2e: meetings and the priority conflict engine, on the TEST database.
+ * Step 8 e2e: meetings and the conflict engine (v1.12: only the organizer rule blocks), on the TEST database.
  * Each scenario uses its own future day (slot(day, time)) so scenarios never overlap.
  */
 import { INestApplication } from '@nestjs/common';
@@ -298,12 +298,12 @@ describe('Meetings and conflict engine (e2e)', () => {
     });
   });
 
-  // ---------------------------------------------------------------- equal priority blocks
+  // ---------------------------------------------------------------- v1.12: warn, do not block
 
-  describe('two Deputy Directors (6 vs 6)', () => {
+  describe('two Deputy Directors (6 vs 6): equal priority only warns (v1.12)', () => {
     let firstId: string;
 
-    it('the second one gets 409 with the blocking list; the title is hidden from an outsider; nothing saved', async () => {
+    it('the second one is saved (201); a PENDING record; the title stays hidden in the warning', async () => {
       firstId = body(
         await create('dd1', {
           title: 'বাজেট পর্যালোচনা (গোপন শিরোনাম)',
@@ -313,68 +313,76 @@ describe('Meetings and conflict engine (e2e)', () => {
         }).expect(201),
       ).id;
 
-      const before = await ds
-        .getRepository(Meeting)
-        .countBy({ organizerId: ids.dd2 });
-      const res = await create('dd2', {
-        title: 'প্রশিক্ষণ সভা',
-        startAt: slot(3, '14:30'),
-        endAt: slot(3, '15:30'),
-        participantIds: [ids.shared],
-      }).expect(409);
-
-      expect(res.body).toMatchObject({
-        statusCode: 409,
-        error: 'Conflict',
-        message: MEETING_MESSAGES.blocking,
-        blocking: [
+      const dry = await http()
+        .post(`${API}/meetings/check-conflicts`)
+        .set(as('dd2'))
+        .send({
+          title: 'প্রশিক্ষণ সভা',
+          startAt: slot(3, '14:30'),
+          endAt: slot(3, '15:00'),
+          participantIds: [ids.shared],
+        })
+        .expect(200);
+      expect(dry.body).toMatchObject({
+        allowed: true,
+        blocking: [],
+        warnings: [
           {
             meetingId: firstId,
             title: MEETING_MESSAGES.hiddenTitle,
-            priority: 6,
             organizer: { name: 'উপপরিচালক এক', designation: 'উপপরিচালক' },
             sharedOfficers: [{ id: ids.shared, nameBn: 'যৌথ কর্মকর্তা' }],
           },
         ],
       });
-      expect(JSON.stringify(res.body)).not.toContain('গোপন শিরোনাম');
+      expect(JSON.stringify(dry.body)).not.toContain('গোপন শিরোনাম');
+
+      const second = body(
+        await create('dd2', {
+          title: 'প্রশিক্ষণ সভা',
+          startAt: slot(3, '14:30'),
+          endAt: slot(3, '15:00'),
+          participantIds: [ids.shared],
+        }).expect(201),
+      ).id;
+      // Equal priority: the existing meeting stays "higher", the new one is "lower".
       expect(
-        await ds.getRepository(Meeting).countBy({ organizerId: ids.dd2 }),
-      ).toBe(before);
+        await ds.getRepository(MeetingConflict).findOneByOrFail({
+          higherMeetingId: firstId,
+          lowerMeetingId: second,
+        }),
+      ).toMatchObject({ userId: ids.shared, status: ConflictStatus.PENDING });
     });
 
-    it('an admin sees the real title in the 409 body', async () => {
-      const res = await create('admin', {
-        title: 'প্রশাসনিক সভা',
-        startAt: slot(3, '14:15'),
-        endAt: slot(3, '14:45'),
-        participantIds: [ids.shared],
-      }).expect(409);
-      expect(
-        (res.body as { blocking: Array<{ title: string }> }).blocking[0].title,
-      ).toBe('বাজেট পর্যালোচনা (গোপন শিরোনাম)');
-    });
-
-    it('a lower-priority organizer (Statistical Officer 7 vs 6) is blocked too', async () => {
+    it('a lower-priority organizer (Statistical Officer 7 vs 6) is saved too', async () => {
       await create('so', {
         title: 'নিম্ন অগ্রাধিকার',
         startAt: slot(3, '14:00'),
         endAt: slot(3, '14:30'),
         participantIds: [ids.shared],
-      }).expect(409);
-    });
-
-    it('touching times (15:00–16:00 right after 14:00–15:00) do not clash', async () => {
-      await create('dd2', {
-        title: 'পরের সভা',
-        startAt: slot(3, '15:00'),
-        endAt: slot(3, '16:00'),
-        participantIds: [ids.shared],
       }).expect(201);
     });
 
+    it('touching times (15:00–16:00 right after 14:00–15:00) do not clash', async () => {
+      const res = await http()
+        .post(`${API}/meetings/check-conflicts`)
+        .set(as('dd2'))
+        .send({
+          title: 'পরের সভা',
+          startAt: slot(3, '15:00'),
+          endAt: slot(3, '16:00'),
+          participantIds: [ids.shared],
+        })
+        .expect(200);
+      expect(res.body).toMatchObject({
+        allowed: true,
+        blocking: [],
+        warnings: [],
+      });
+    });
+
     it('no shared person → no clash even at the same time', async () => {
-      await create('dd2', {
+      await create('secretary', {
         title: 'আলাদা লোকের সভা',
         startAt: slot(3, '14:00'),
         endAt: slot(3, '15:00'),
@@ -394,11 +402,9 @@ describe('Meetings and conflict engine (e2e)', () => {
           participantIds: [ids.shared],
         })
         .expect(200);
-      // Director (4) beats both Deputy Directors (6): allowed, two meetings would be notified
+      // Both Deputy Director meetings share the officer: warnings, never blocking.
       expect(res.body).toMatchObject({ allowed: true, blocking: [] });
-      expect((res.body as { willNotify: unknown[] }).willNotify).toHaveLength(
-        2,
-      );
+      expect((res.body as { warnings: unknown[] }).warnings).toHaveLength(2);
       expect(await ds.getRepository(Meeting).count()).toBe(before);
     });
   });
@@ -472,7 +478,7 @@ describe('Meetings and conflict engine (e2e)', () => {
       ).not.toHaveLength(0);
     });
 
-    it('updating a meeting does not clash with itself; still blocked by others', async () => {
+    it('updating a meeting does not clash with itself; only the organizer rule blocks', async () => {
       const own = body(
         await create('dd1', {
           title: 'নিজের সভা',
@@ -492,18 +498,29 @@ describe('Meetings and conflict engine (e2e)', () => {
         endAt: slot(6, '13:00'),
         participantIds: [ids.shared],
       }).expect(201);
-      // moving into dd2's slot is blocked (equal priority)
+      // v1.12: moving into dd2's slot (equal priority, shared officer) only warns
       await http()
         .patch(`${API}/meetings/${own}`)
         .set(as('dd1'))
         .send({ startAt: slot(6, '12:30'), endAt: slot(6, '13:30') })
+        .expect(200);
+      // ...but moving onto another meeting dd1 organizes is blocked (organizer rule)
+      await create('dd1', {
+        title: 'নিজের দ্বিতীয় সভা',
+        startAt: slot(6, '15:00'),
+        endAt: slot(6, '16:00'),
+      }).expect(201);
+      await http()
+        .patch(`${API}/meetings/${own}`)
+        .set(as('dd1'))
+        .send({ startAt: slot(6, '15:30'), endAt: slot(6, '16:30') })
         .expect(409);
     });
   });
 
   // ---------------------------------------------------------------- race safety
 
-  it('two parallel equal-priority creates for the same officer → exactly one 201 and one 409', async () => {
+  it('two parallel creates by the SAME organizer at the same time → exactly one 201 and one 409', async () => {
     const payload = (title: string) => ({
       title,
       startAt: slot(7, '10:00'),
@@ -512,7 +529,7 @@ describe('Meetings and conflict engine (e2e)', () => {
     });
     const results = await Promise.all([
       create('dd1', payload('সমান্তরাল এক')),
-      create('dd2', payload('সমান্তরাল দুই')),
+      create('dd1', payload('সমান্তরাল দুই')),
     ]);
     expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
     const saved = await ds.getRepository(Meeting).count({

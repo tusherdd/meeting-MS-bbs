@@ -12,7 +12,7 @@ import { Test } from '@nestjs/testing';
 import { DateTime } from 'luxon';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { DataSource, Like } from 'typeorm';
+import { DataSource, In, Like } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
 import { hashPassword } from '../src/common/utils/password';
@@ -268,14 +268,7 @@ describe('v1.5: chair priority, informational conflicts, guest officers (e2e)', 
           participantIds: [ids.shared],
         }).expect(201),
       );
-      // B: Deputy Director (6) with the shared officer at the same time → blocked (6 ≥ 4).
-      await create('dd1', {
-        title: 'উপপরিচালকের সভা',
-        startAt: slot(41, '10:00'),
-        endAt: slot(41, '11:00'),
-        participantIds: [ids.shared, ids.secretary],
-      }).expect(409);
-      // Without the shared officer it is saved (priority 6).
+      // B: Deputy Director (6) without the shared officer (priority 6, no clash).
       const b = detail(
         await create('dd1', {
           title: 'উপপরিচালকের সভা',
@@ -318,15 +311,26 @@ describe('v1.5: chair priority, informational conflicts, guest officers (e2e)', 
         ),
       ).toHaveLength(2); // this one and the first test's
 
-      // Edit: chair removed (the secretary stays a member) → back to 6 → blocked by A (4).
-      const res = await patch('dd1', b.id, { chairId: null }).expect(409);
-      expect((res.body as { message: string }).message).toBe(
-        MEETING_MESSAGES.blocking,
+      // Edit: chair removed (the secretary stays a member) → back to 6. v1.12: never blocked;
+      // the old record (B higher) resolves and the clash is recorded again with A higher.
+      const down = detail(
+        await patch('dd1', b.id, { chairId: null }).expect(200),
       );
+      expect(down.priority).toBe(6);
       expect(
-        (await ds.getRepository(Meeting).findOneByOrFail({ id: b.id }))
-          .priority,
-      ).toBe(1); // nothing saved
+        (
+          await ds
+            .getRepository(MeetingConflict)
+            .findOneByOrFail({ id: conflict.id })
+        ).status,
+      ).toBe(ConflictStatus.RESOLVED);
+      expect(
+        await ds.getRepository(MeetingConflict).findOneByOrFail({
+          higherMeetingId: a.id,
+          lowerMeetingId: b.id,
+          status: ConflictStatus.PENDING,
+        }),
+      ).toMatchObject({ userId: ids.shared });
     });
 
     it('a chair change alone (no new people, no new time) re-runs the check', async () => {
@@ -348,8 +352,19 @@ describe('v1.5: chair priority, informational conflicts, guest officers (e2e)', 
         }).expect(201),
       );
       expect(b.priority).toBe(6);
-      // so2 (already a member, priority 7) becomes chair → 7 ≥ 7 → blocked.
-      await patch('dd2', b.id, { chairId: ids.so2 }).expect(409);
+      // so2 (already a member, priority 7) becomes chair → 7 vs 7: v1.12 never blocked; the
+      // existing record (B higher, equal priority now) is kept, not duplicated.
+      const tie = detail(
+        await patch('dd2', b.id, { chairId: ids.so2 }).expect(200),
+      );
+      expect(tie.priority).toBe(7);
+      expect(
+        await ds.getRepository(MeetingConflict).countBy({
+          status: ConflictStatus.PENDING,
+          higherMeetingId: In([a.id, b.id]),
+          lowerMeetingId: In([a.id, b.id]),
+        }),
+      ).toBe(1);
 
       // The other way: A's chair becomes the director (4) → A outranks B (6): a new conflict
       // A > B, and the old B > A conflict resolves because B is no longer higher.
@@ -399,15 +414,12 @@ describe('v1.5: chair priority, informational conflicts, guest officers (e2e)', 
           .set(as('dd1'))
           .send(payload)
           .expect(200);
-      // dd1 (6) vs the director (4): blocked; with the secretary (1) as chair: allowed.
-      expect(((await dryRun(base)).body as { allowed: boolean }).allowed).toBe(
-        false,
-      );
-      const withChair = await dryRun({ ...base, chairId: ids.secretary });
-      expect(withChair.body).toMatchObject({ allowed: true, blocking: [] });
-      expect(
-        (withChair.body as { willNotify: unknown[] }).willNotify,
-      ).toHaveLength(1);
+      // v1.12: dd1 (6) vs the director (4) and with the secretary (1) as chair: both only warn.
+      for (const payload of [base, { ...base, chairId: ids.secretary }]) {
+        const res = await dryRun(payload);
+        expect(res.body).toMatchObject({ allowed: true, blocking: [] });
+        expect((res.body as { warnings: unknown[] }).warnings).toHaveLength(1);
+      }
     });
   });
 

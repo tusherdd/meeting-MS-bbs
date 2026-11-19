@@ -120,7 +120,7 @@ export function createSwaggerDocument(app: INestApplication): OpenAPIObject {
       .setTitle('BBS Meeting Schedule API')
       .setDescription(
         'Bangladesh Bureau of Statistics (BBS) and SID — meeting schedule system. ' +
-          'Errors: `{ statusCode, message, error, code, requestId }` (409 meeting clashes add `blocking`; ' +
+          'Errors: `{ statusCode, message, error, code, requestId }` (409 organizer-rule clashes add `blocking`; ' +
           'validation errors add `codes`, one per message). ' +
           'Language (v1.6): send `Accept-Language: en` or `bn` (or `X-Lang`, which wins; the web app sends both); error and success messages come back in ' +
           'that language (Bangla when the header is missing). `code` never changes with the language. ' +

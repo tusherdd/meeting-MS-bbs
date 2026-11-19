@@ -7,7 +7,6 @@ import {
 } from '../mail/templates/mail-templates';
 import { NotificationType } from '../notifications/enums/notification-type.enum';
 import { NotificationsService } from '../notifications/notifications.service';
-import type { LoadedMeeting } from './conflict-engine.service';
 import {
   formatDhakaRange,
   NO_VENUE_BN,
@@ -34,6 +33,19 @@ export interface MeetingInfo {
    * or the organizer's when the chair is a guest officer or there is no chair.
    */
   leadDesignationBn: string | null;
+}
+
+/** One side of a conflict notice (v1.12: either meeting may be the "lower" one). */
+export interface ConflictNoticeMeeting {
+  id: string;
+  title: string;
+  startAt: Date;
+  endAt: Date;
+  organizerId: string;
+  /** Internal chair's designation, else the organizer's (SPEC.md §6.4). */
+  leadDesignationBn: string | null;
+  /** The meeting's people: only they may read its title in the other side's notice. */
+  peopleIds: ReadonlySet<string>;
 }
 
 export interface MeetingChange {
@@ -196,16 +208,16 @@ export class MeetingNotifierService {
   }
 
   /**
-   * A higher-priority meeting N now overlaps lower meeting E through shared officers
-   * (SPEC.md §6.4, v1.5). Informational, not a cancel request: E's organizer and each shared
-   * officer get the same notice once (someone who is both gets one). N's title appears only for
-   * people invited to N; everyone else sees "আরেকটি সভা".
+   * Two SCHEDULED meetings overlap through shared officers (SPEC.md §6.4, v1.12). Informational,
+   * not a cancel request. `lower` is the recipient's meeting as the notice frames it, `higher`
+   * the other one (on equal priority each organizer reads about their own meeting). Each
+   * recipient gets one notice. The other meeting's title appears only for its own people;
+   * everyone else sees "আরেকটি সভা".
    */
   async conflict(
     manager: EntityManager,
-    higher: MeetingInfo,
-    higherPeopleIds: ReadonlySet<string>,
-    lower: LoadedMeeting,
+    higher: ConflictNoticeMeeting,
+    lower: ConflictNoticeMeeting,
     sharedOfficers: ReadonlyArray<{ id: string; nameBn: string }>,
     recipientIds: string[],
   ): Promise<void> {
@@ -218,13 +230,13 @@ export class MeetingNotifierService {
       const others = sharedOfficers
         .filter((o) => o.id !== recipientId)
         .map((o) => o.nameBn);
-      // Whose meeting with the higher designation it is: "আপনার", "রহিম-এর", "আপনার ও রহিম-এর".
+      // Whose meeting with the other designation it is: "আপনার", "রহিম-এর", "আপনার ও রহিম-এর".
       const whose = isShared
         ? others.length > 0
           ? `আপনার ও ${joinNames(others)}-এর`
           : 'আপনার'
         : `${joinNames(others)}-এর`;
-      const other = higherPeopleIds.has(recipientId)
+      const other = higher.peopleIds.has(recipientId)
         ? `আরেকটি সভা (“${higher.title}”)`
         : 'আরেকটি সভা';
       const choice = isOrganizer

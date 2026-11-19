@@ -22,8 +22,8 @@ export const MEETING_MESSAGES = {
     'সভাটি ইতিমধ্যে শেষ হয়েছে; শুধু সম্পন্ন হিসেবে চিহ্নিত করে নোট যোগ করা যাবে।',
   notStartedYet: 'সভা শুরু হওয়ার আগে সম্পন্ন হিসেবে চিহ্নিত করা যাবে না।',
   cancelledCannotComplete: 'বাতিল সভা সম্পন্ন হিসেবে চিহ্নিত করা যাবে না।',
-  blocking:
-    'নির্বাচিত সময়ে এক বা একাধিক কর্মকর্তার সমান বা উচ্চতর অগ্রাধিকারের সভা আছে। সময় বা অংশগ্রহণকারী পরিবর্তন করুন।',
+  /** v1.12: the only blocking rule — the organizer's own schedule (SPEC.md §6.4). */
+  blocking: 'আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।',
   hiddenTitle: 'অন্য একটি সভা',
   /** v1.9: the venue (স্থান, field `room`) is required on create and edit. */
   venueRequired: 'স্থান লিখতে হবে।',

@@ -2,10 +2,9 @@ import type { EntityManager } from 'typeorm';
 import type { MailService } from '../mail/mail.service';
 import { NotificationType } from '../notifications/enums/notification-type.enum';
 import type { NotificationsService } from '../notifications/notifications.service';
-import type { LoadedMeeting } from './conflict-engine.service';
-import { MeetingStatus } from './enums/meeting-status.enum';
 import {
   MeetingNotifierService,
+  type ConflictNoticeMeeting,
   type MeetingInfo,
 } from './meeting-notifier.service';
 
@@ -26,21 +25,28 @@ const higher: MeetingInfo = {
   leadDesignationBn: 'সচিব',
 };
 
-const lower: LoadedMeeting = {
+/** The higher side as the conflict notice sees it (N, invited: N-org and rahim). */
+const higherSide = (
+  overrides: Partial<ConflictNoticeMeeting> = {},
+): ConflictNoticeMeeting => ({
+  id: higher.id,
+  title: higher.title,
+  startAt: higher.startAt,
+  endAt: higher.endAt,
+  organizerId: 'N-org',
+  leadDesignationBn: higher.leadDesignationBn,
+  peopleIds: new Set(['N-org', 'rahim']),
+  ...overrides,
+});
+
+const lower: ConflictNoticeMeeting = {
   id: 'E',
   title: 'মাঠ জরিপ প্রস্তুতি সভা',
-  status: MeetingStatus.SCHEDULED,
-  priority: 7,
   startAt: new Date('2030-01-01T04:30:00Z'),
   endAt: new Date('2030-01-01T05:30:00Z'),
-  peopleIds: ['E-org', 'rahim', 'karim'],
   organizerId: 'E-org',
-  organizerNameBn: 'নিম্ন আয়োজক',
-  organizerNameEn: 'EN_ONLY organizer',
-  organizerDesignationBn: 'পরিসংখ্যান কর্মকর্তা',
-  organizerDesignationEn: 'EN_ONLY designation',
-  organizerWingBn: 'জনশুমারি উইং',
-  organizerWingEn: 'EN_ONLY wing',
+  leadDesignationBn: 'পরিসংখ্যান কর্মকর্তা',
+  peopleIds: new Set(['E-org', 'rahim', 'karim']),
 };
 
 function setup() {
@@ -64,12 +70,30 @@ function setup() {
 }
 
 describe('MeetingNotifierService.conflict (v1.5: informational)', () => {
+  it('v1.12: the new meeting can be the lower one; its organizer reads about their own meeting', async () => {
+    const { service, sent } = setup();
+    // N (lower) vs E (higher, led by a সচিব): N's organizer gets the notice about N.
+    await service.conflict(
+      manager,
+      { ...lower, leadDesignationBn: 'সচিব' },
+      higherSide({ leadDesignationBn: 'উপপরিচালক' }),
+      [{ id: 'rahim', nameBn: 'রহিম' }],
+      ['N-org'],
+    );
+    const toN = sent().get('N-org')!;
+    expect(toN.title).toBe('সময় কনফ্লিক্ট: জরুরি সমন্বয় সভা');
+    expect(toN.body).toContain('রহিম-এর সচিব মহোদয়ের সাথে আরেকটি সভা আছে');
+    expect(toN.body).toContain(
+      'আপনি চাইলে আপনার সভা “জরুরি সমন্বয় সভা” বাতিল করতে পারেন',
+    );
+    expect(toN.body).not.toContain('মাঠ জরিপ'); // N-org is not one of E's people
+  });
+
   it('organizer and each shared officer get the same notice, worded for them, once each', async () => {
     const { service, notifications, sent } = setup();
     await service.conflict(
       manager,
-      higher,
-      new Set(['N-org', 'rahim']), // rahim is invited to N, karim and E-org are not
+      higherSide(), // rahim is invited to N, karim and E-org are not
       lower,
       [
         { id: 'rahim', nameBn: 'রহিম' },
@@ -115,8 +139,7 @@ describe('MeetingNotifierService.conflict (v1.5: informational)', () => {
     const { service, notifications, sent } = setup();
     await service.conflict(
       manager,
-      higher,
-      new Set(['N-org']),
+      higherSide({ peopleIds: new Set(['N-org']) }),
       lower,
       [{ id: 'E-org', nameBn: 'নিম্ন আয়োজক' }],
       ['E-org', 'E-org'],
@@ -132,8 +155,7 @@ describe('MeetingNotifierService.conflict (v1.5: informational)', () => {
     const { service, sent } = setup();
     await service.conflict(
       manager,
-      { ...higher, leadDesignationBn: 'উপপরিচালক' },
-      new Set(),
+      higherSide({ leadDesignationBn: 'উপপরিচালক', peopleIds: new Set() }),
       lower,
       [{ id: 'rahim', nameBn: 'রহিম' }],
       ['E-org'],

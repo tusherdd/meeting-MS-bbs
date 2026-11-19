@@ -17,6 +17,7 @@ import {
 /**
  * F2: meetings, live conflict check, conflicts and notifications — only with the dedicated test
  * officers (dd1, dd2 = Deputy Director 6; dg = Director General 2; so = Statistical Officer 7).
+ * v1.12: only the organizer rule is red (Save disabled); shared-officer clashes are amber.
  * Clash tests use days 2–4 ahead so they never touch today's or each other's meetings.
  */
 test.describe.configure({ mode: "serial" });
@@ -102,7 +103,10 @@ test("create a meeting with the form; it shows on the dashboard, calendar and li
   await expect(dd1.getByRole("row").filter({ hasText: title })).toBeVisible();
 });
 
-test("equal priority clash: red panel, submit disabled; a touching slot turns it green", async () => {
+/** dd1's meeting saved despite the amber warning; the organizer-rule test clashes with it. */
+const warnedTitle = uniqueTitle("ডুপ্লিকেট");
+
+test("v1.12: equal priority clash only warns (amber); Save still works", async () => {
   const day = dhakaDate(2);
   const other = await createMeetingAs(dd2, {
     title: uniqueTitle("সমান"),
@@ -112,23 +116,42 @@ test("equal priority clash: red panel, submit disabled; a touching slot turns it
   created.push({ page: () => dd2, id: other.id });
 
   await dd1.goto("/meetings/new");
-  await dd1.getByLabel("সভার শিরোনাম").fill(uniqueTitle("ডুপ্লিকেট"));
+  await dd1.getByLabel("সভার শিরোনাম").fill(warnedTitle);
   await fillMeetingTime(dd1, day, "10:30", "11:30");
+  await dd1.getByLabel("স্থান", { exact: true }).fill("সম্মেলন কক্ষ"); // v1.9: required
   await addParticipant(dd1, "dd2");
 
-  await expect(panel(dd1)).toHaveAttribute("data-state", "blocked");
-  await expect(panel(dd1)).toContainText("এই সময়ে সভা তৈরি করা যাবে না");
-  await expect(panel(dd1)).toContainText("অন্য একটি সভা"); // not my meeting: title hidden
+  await expect(panel(dd1)).toHaveAttribute("data-state", "warn");
+  await expect(panel(dd1)).toContainText("নির্বাচিত কর্মকর্তাদের কারও এই সময়ে আরেকটি সভা আছে");
   await expect(panel(dd1)).toContainText(nameOf("dd2"));
-  await expect(submit(dd1)).toBeDisabled();
-  await expect(dd1.locator("[data-clash]")).toContainText(nameOf("dd2"));
-
-  // 11:00–12:00 only touches 10:00–11:00 → no clash.
-  await fillMeetingTime(dd1, day, "11:00", "12:00");
-  await expect(panel(dd1)).toHaveAttribute("data-state", "ok");
-  await expect(panel(dd1)).toContainText("এই সময়ে নির্বাচিত কারও অন্য কোনো সভা নেই।");
+  await expect(panel(dd1).getByRole("alert")).toHaveCount(0); // no red box
   await expect(submit(dd1)).toBeEnabled();
   await expect(dd1.locator("[data-clash]")).toHaveCount(0);
+
+  await submit(dd1).click();
+  await expect(dd1).toHaveURL(/\/meetings\/[0-9a-f-]{36}$/);
+  created.push({ page: () => dd1, id: meetingIdFrom(dd1) });
+});
+
+test("v1.12: organizer rule — red panel, Save disabled; a touching slot turns it green", async () => {
+  const day = dhakaDate(2);
+  // dd1 already organizes 10:30–11:30 on this day (previous test).
+  await dd1.goto("/meetings/new");
+  await dd1.getByLabel("সভার শিরোনাম").fill(uniqueTitle("নিজের"));
+  await fillMeetingTime(dd1, day, "11:00", "11:45");
+
+  await expect(panel(dd1)).toHaveAttribute("data-state", "blocked");
+  await expect(panel(dd1).getByRole("alert")).toContainText("এই সময়ে সভাটি Save করা যাবে না");
+  await expect(panel(dd1)).toContainText(
+    "আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি। সময় বদলান।",
+  );
+  await expect(panel(dd1)).toContainText(warnedTitle); // my own meeting: title shown
+  await expect(submit(dd1)).toBeDisabled();
+
+  // 11:30–12:30 only touches 10:30–11:30 → no clash.
+  await fillMeetingTime(dd1, day, "11:30", "12:30");
+  await expect(panel(dd1)).toHaveAttribute("data-state", "ok");
+  await expect(submit(dd1)).toBeEnabled();
 });
 
 test("higher priority overrides lower: amber panel, save, lower organizer is notified and cancels", async () => {
@@ -149,9 +172,9 @@ test("higher priority overrides lower: amber panel, save, lower organizer is not
   await dg.getByLabel("স্থান", { exact: true }).fill("সম্মেলন কক্ষ"); // v1.9: required
   await addParticipant(dg, "dd2");
   await expect(panel(dg)).toHaveAttribute("data-state", "warn");
-  await expect(panel(dg)).toContainText("নিম্ন অগ্রাধিকারের ডুপ্লিকেট সভা আছে");
+  await expect(panel(dg)).toContainText("নির্বাচিত কর্মকর্তাদের কারও এই সময়ে আরেকটি সভা আছে");
   await expect(panel(dg)).toContainText(
-    "এই সভা তৈরি হলে নিচের সভাগুলোর আয়োজক ও যৌথ কর্মকর্তাদের জানানো হবে।",
+    "তবুও Save করা যাবে। যৌথ কর্মকর্তা ও নিম্ন অগ্রাধিকারের সভার আয়োজককে (অগ্রাধিকার সমান হলে উভয় আয়োজককে) জানানো হবে।",
   );
   // v1.9: the organizer is shown as the wing; the test officers have none → the designation.
   await expect(panel(dg)).toContainText("আয়োজক: উপপরিচালক");
