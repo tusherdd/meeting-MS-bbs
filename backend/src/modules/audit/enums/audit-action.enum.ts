@@ -47,9 +47,16 @@ export enum AuditAction {
   MEETING_DELETE = 'MEETING_DELETE',
   /** v1.5: an internal chair (not the organizer) gave the meeting their designation priority. */
   MEETING_CHAIR_PRIORITY_APPLIED = 'MEETING_CHAIR_PRIORITY_APPLIED',
-  /** v1.10: someone downloaded the single-meeting notice PDF ("সভার নোটিশ"). */
+  /**
+   * v1.10: someone downloaded the generated notice PDF. The PDF was removed in v1.13; the value
+   * stays so old audit rows still show their label.
+   */
   MEETING_NOTICE_EXPORTED = 'MEETING_NOTICE_EXPORTED',
-  /** v1.11: meeting decision files ("সভা সিদ্ধান্ত"). */
+  /** v1.13: the uploaded meeting notice ("সভার নোটিশ", SPEC.md §6.8). */
+  MEETING_NOTICE_UPLOADED = 'MEETING_NOTICE_UPLOADED',
+  MEETING_NOTICE_REPLACED = 'MEETING_NOTICE_REPLACED',
+  MEETING_NOTICE_REMOVED = 'MEETING_NOTICE_REMOVED',
+  /** v1.11: meeting decision files ("সভা কার্যবিবরণী"). */
   MEETING_DECISION_UPLOADED = 'MEETING_DECISION_UPLOADED',
   MEETING_DECISION_DELETED = 'MEETING_DECISION_DELETED',
   CONFLICT_CREATED = 'CONFLICT_CREATED',

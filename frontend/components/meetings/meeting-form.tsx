@@ -13,7 +13,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import { isApiError } from "@/lib/api";
-import { meetingsApi } from "@/lib/endpoints";
+import { meetingsApi, noticesApi } from "@/lib/endpoints";
 import { invalidateMeetingData } from "@/lib/invalidate";
 import { fromIso, toIso } from "@/lib/meeting-time";
 import { type MeetingFormValues } from "@/lib/schemas";
@@ -28,6 +28,7 @@ import {
   guestChairValue,
   type GuestEntry,
 } from "./guest-officers";
+import { NoticeField } from "./notice-field";
 import { ParticipantPicker } from "./participant-picker";
 import { fromParticipant, type SelectedPerson } from "./people";
 import { clashingOfficerIds, useConflictCheck } from "./use-conflict-check";
@@ -81,6 +82,9 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
   const queryClient = useQueryClient();
   const isEdit = !!meeting;
   const organizer = meeting?.organizer ?? { id: me.id, nameBn: me.nameBn, nameEn: me.nameEn };
+  // v1.13: only the organizer sees the notice field (not the chair, not an admin editing).
+  const isOrganizer = organizer.id === me.id;
+  const [noticeFile, setNoticeFile] = useState<File | null>(null);
 
   const form = useForm<MeetingFormValues>({
     resolver: zodResolver(meetingFormSchema),
@@ -150,7 +154,23 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
       });
     },
     onSuccess: async (saved) => {
+      // v1.13: on create, the notice is uploaded right after the meeting was saved. A failed
+      // upload never undoes the meeting: the user is told and taken to the edit page to retry.
+      let noticeFailed: unknown = null;
+      if (!isEdit && noticeFile) {
+        try {
+          await noticesApi.upload(saved.id, noticeFile);
+        } catch (err) {
+          noticeFailed = err;
+        }
+      }
       await invalidateMeetingData(queryClient);
+      if (noticeFailed !== null) {
+        const reason = noticeFailed instanceof Error ? noticeFailed.message : "";
+        toast.show(t.notice.createFailed(reason), "error");
+        router.push(`/meetings/${saved.id}/edit`);
+        return;
+      }
       toast.show(isEdit ? t.meetingForm.updated : t.meetingForm.created);
       router.push(`/meetings/${saved.id}`);
     },
@@ -273,6 +293,13 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                   {...form.register("onlineLink")}
                 />
               </div>
+              {isOrganizer && !cannotOrganize && (
+                <NoticeField
+                  meetingId={meeting?.id}
+                  current={meeting?.notice ?? null}
+                  onSelect={setNoticeFile}
+                />
+              )}
             </CardBody>
           </Card>
 

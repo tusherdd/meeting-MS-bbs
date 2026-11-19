@@ -40,6 +40,8 @@ export interface ReportMeeting {
   guests: Array<{ name: string; designation: string }>;
   /** v1.11: number of decision files (for the row menu's "Upload decision"). */
   decisionFileCount?: number;
+  /** v1.13: an uploaded notice exists (row menu "সভার নোটিশ"). */
+  hasNotice?: boolean;
 }
 
 export type StatusCounts = Record<MeetingStatus, number>;

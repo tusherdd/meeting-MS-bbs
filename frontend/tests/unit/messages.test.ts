@@ -64,3 +64,43 @@ describe("messages (v1.6)", () => {
     expect(localeCookie("en", true)).toMatch(/; Secure$/);
   });
 });
+
+describe("v1.13 wording (SPEC.md §6.8, §6.9, §13.19)", () => {
+  // The old v1.11 Bangla name, built from code points (it must not appear in the sources).
+  const OLD_BN = String.fromCharCode(
+    0x09b8, 0x09ad, 0x09be, 0x20,
+    0x09b8, 0x09bf, 0x09a6, 0x09cd, 0x09a7, 0x09be, 0x09a8, 0x09cd, 0x09a4,
+  );
+
+  it("the minutes are \"সভা কার্যবিবরণী\" / \"Meeting minutes\" (menu, page, row menu)", () => {
+    expect(bn.nav.decisions).toBe("সভা কার্যবিবরণী");
+    expect(bn.decisions.title).toBe("সভা কার্যবিবরণী");
+    expect(en.nav.decisions).toBe("Meeting minutes");
+    expect(en.decisions.title).toBe("Meeting minutes");
+    expect(bn.rowMenu.upload).toBe("Upload minutes");
+    expect(en.rowMenu.upload).toBe("Upload minutes");
+  });
+
+  it("the old name never comes back in any produced text", () => {
+    expect(strings(bn).filter((s) => s.includes(OLD_BN))).toEqual([]);
+    expect(strings(en).filter((s) => /meeting decisions?\b|upload decision\b/i.test(s))).toEqual(
+      [],
+    );
+  });
+
+  it("the notice field: label and hint as decided, never marked optional", () => {
+    expect([bn.notice.label, bn.notice.hint]).toEqual([
+      "সভার নোটিশ",
+      "PDF, DOCX, JPG বা PNG; সর্বোচ্চ ১০ MB",
+    ]);
+    expect([en.notice.label, en.notice.hint]).toEqual([
+      "Meeting notice",
+      "PDF, DOCX, JPG or PNG; max 10 MB",
+    ]);
+    for (const text of strings({ bn: bn.notice, en: en.notice })) {
+      expect(text).not.toMatch(/ঐচ্ছিক|optional/i);
+    }
+    expect(bn.rowMenu.notice).toBe("সভার নোটিশ");
+    expect(en.rowMenu.notice).toBe("Meeting notice");
+  });
+});

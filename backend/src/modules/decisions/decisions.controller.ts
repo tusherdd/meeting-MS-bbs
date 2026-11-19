@@ -40,7 +40,7 @@ import {
 import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import type { AppRequest, AuthUser } from '../../common/types/auth-user';
 import { MeetingSummaryDto } from '../meetings/dto/meeting-response.dto';
-import { contentDisposition } from './decision-file';
+import { contentDisposition, DOCX_MIME, mayOpenInline } from './decision-file';
 import { MAX_DECISION_FILES } from './decision-rules';
 import { DecisionUploadErrorsInterceptor } from './decision-upload-errors.interceptor';
 import { DecisionsService, type IncomingFile } from './decisions.service';
@@ -55,8 +55,8 @@ import {
 /** Uploads are counted per user: at most 30 upload requests per hour. */
 const UPLOAD_THROTTLE = { default: { limit: 30, ttl: hours(1) } };
 
-/** Meeting decisions "সভা সিদ্ধান্ত" (v1.11, SPEC.md §6.9). */
-@ApiTags('Meeting decisions')
+/** Meeting minutes "সভা কার্যবিবরণী" (v1.11 as decisions, renamed v1.13; SPEC.md §6.9). */
+@ApiTags('Meeting minutes')
 @ApiBearerAuth()
 @Controller()
 export class DecisionsController {
@@ -116,7 +116,7 @@ export class DecisionsController {
     summary:
       'Upload decision files (organizer, chair, members; after the start)',
     description:
-      'PDF, JPEG or PNG only, checked by their bytes; max 10 MB each, max 10 per meeting. Image ' +
+      'PDF, DOCX (no macros; v1.13), JPEG or PNG only, checked by their bytes; max 10 MB each, max 10 per meeting. Image ' +
       'metadata is removed. Not before the start, never for cancelled meetings. Organizer and chair ' +
       '(not the uploader) get a bell notification. Audited per file.',
   })
@@ -140,15 +140,16 @@ export class DecisionsController {
 
   @Get('meetings/:id/decision/files/:fileId')
   @ApiOperation({
-    summary: 'Download (or with ?inline=true open) one decision file',
+    summary: 'Download (or with ?inline=true open) one minutes file',
     description:
-      "The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition.",
+      "The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition. A DOCX is always an attachment.",
   })
-  @ApiProduces('application/pdf', 'image/jpeg', 'image/png')
+  @ApiProduces('application/pdf', DOCX_MIME, 'image/jpeg', 'image/png')
   @ApiOkResponse({
     description: 'The file',
     content: {
       'application/pdf': { schema: { type: 'string', format: 'binary' } },
+      [DOCX_MIME]: { schema: { type: 'string', format: 'binary' } },
       'image/jpeg': { schema: { type: 'string', format: 'binary' } },
       'image/png': { schema: { type: 'string', format: 'binary' } },
     },
@@ -169,7 +170,11 @@ export class DecisionsController {
     res.setHeader('Content-Length', String(file.size));
     res.setHeader(
       'Content-Disposition',
-      contentDisposition(file.originalName, query.inline === true),
+      // v1.13: a DOCX is always an attachment, even with ?inline=true.
+      contentDisposition(
+        file.originalName,
+        query.inline === true && mayOpenInline(file.mime),
+      ),
     );
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'private, no-store');

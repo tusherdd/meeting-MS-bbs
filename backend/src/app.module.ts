@@ -22,6 +22,7 @@ import { DesignationsModule } from './modules/designations/designations.module';
 import { HealthModule } from './modules/health/health.module';
 import { MailModule } from './modules/mail/mail.module';
 import { DecisionsModule } from './modules/decisions/decisions.module';
+import { NoticesModule } from './modules/notices/notices.module';
 import { MeetingsModule } from './modules/meetings/meetings.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ProfileModule } from './modules/profile/profile.module';
@@ -107,6 +108,7 @@ import { testHooksEnabled } from './modules/test-hooks/test-hooks.guard';
     ChangeRequestsModule,
     MeetingsModule,
     DecisionsModule,
+    NoticesModule,
     ReportsModule,
     AdminModule,
     HealthModule,

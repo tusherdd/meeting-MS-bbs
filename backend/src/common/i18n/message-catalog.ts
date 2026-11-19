@@ -461,14 +461,6 @@ export const MESSAGE_CATALOG = {
     bn: 'শুধু সভার আয়োজক, সভাপতি অথবা প্রশাসক এই কাজটি করতে পারেন।',
     en: 'Only the organizer, the president of the meeting or an administrator can do this.',
   },
-  NOTICE_FORBIDDEN: {
-    bn: 'শুধু সভার সংশ্লিষ্ট কর্মকর্তা অথবা প্রশাসক এই সভার নোটিশ নিতে পারেন।',
-    en: 'Only the officers of this meeting or an administrator can get its notice.',
-  },
-  NOTICE_CANCELLED: {
-    bn: 'বাতিল সভার নোটিশ তৈরি করা যাবে না।',
-    en: 'A notice cannot be created for a cancelled meeting.',
-  },
   MEETING_NOT_SCHEDULED: {
     bn: 'বাতিল বা সম্পন্ন সভা পরিবর্তন করা যাবে না।',
     en: 'Cancelled or completed meetings cannot be changed.',
@@ -489,6 +481,10 @@ export const MESSAGE_CATALOG = {
     bn: 'আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।',
     en: 'The organizer is already the organizer or chair of another meeting at this time.',
   },
+  TIME_CONFLICT_CHAIR_BLOCKING: {
+    bn: 'সভাপতি একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।',
+    en: 'The chair is already the organizer or chair of another meeting at this time.',
+  },
   SCOPE_ALL_ADMIN_ONLY: {
     bn: 'সব সভা দেখার অনুমতি শুধু প্রশাসকের আছে।',
     en: 'Only administrators may view all meetings.',
@@ -506,48 +502,76 @@ export const MESSAGE_CATALOG = {
     en: 'The address {email} belongs to the officer {nameBn}. Select them from the participant list instead of adding them as a guest officer.',
   },
   DECISION_FORBIDDEN: {
-    bn: 'শুধু সভার সংশ্লিষ্ট কর্মকর্তা অথবা প্রশাসক সভা সিদ্ধান্ত দেখতে পারেন।',
-    en: 'Only the officers of this meeting or an administrator can see its decisions.',
+    bn: 'শুধু সভার সংশ্লিষ্ট কর্মকর্তা অথবা প্রশাসক সভা কার্যবিবরণী দেখতে পারেন।',
+    en: 'Only the officers of this meeting or an administrator can see its minutes.',
   },
   DECISION_UPLOAD_FORBIDDEN: {
-    bn: 'শুধু সভার আয়োজক, সভাপতি ও সদস্য সভা সিদ্ধান্ত Upload করতে পারেন।',
-    en: 'Only the organizer, the president and the members of the meeting can upload decisions.',
+    bn: 'শুধু সভার আয়োজক, সভাপতি ও সদস্য সভা কার্যবিবরণী Upload করতে পারেন।',
+    en: 'Only the organizer, the president and the members of the meeting can upload minutes.',
   },
   DECISION_NOT_STARTED: {
-    bn: 'সভা শুরু হওয়ার আগে সিদ্ধান্ত Upload করা যাবে না।',
-    en: 'Decisions cannot be uploaded before the meeting starts.',
+    bn: 'সভা শুরু হওয়ার আগে কার্যবিবরণী Upload করা যাবে না।',
+    en: 'Minutes cannot be uploaded before the meeting starts.',
   },
   DECISION_CANCELLED: {
-    bn: 'বাতিল সভার সিদ্ধান্ত Upload করা যাবে না।',
-    en: 'Decisions cannot be uploaded for a cancelled meeting.',
+    bn: 'বাতিল সভার কার্যবিবরণী Upload করা যাবে না।',
+    en: 'Minutes cannot be uploaded for a cancelled meeting.',
   },
   DECISION_FILE_MISSING: {
     bn: 'অন্তত একটি ফাইল নির্বাচন করুন (ফিল্ডের নাম: files)।',
     en: 'Select at least one file (field name: files).',
   },
   DECISION_FILE_BAD_TYPE: {
-    bn: '"{name}" ফাইলটি গ্রহণ করা যায়নি: শুধু PDF, JPEG অথবা PNG ফাইল Upload করা যাবে।',
-    en: 'The file "{name}" was not accepted: only PDF, JPEG or PNG files can be uploaded.',
+    bn: '"{name}" ফাইলটি গ্রহণ করা যায়নি: শুধু PDF, DOCX, JPEG অথবা PNG ফাইল Upload করা যাবে।',
+    en: 'The file "{name}" was not accepted: only PDF, DOCX, JPEG or PNG files can be uploaded.',
   },
   DECISION_FILE_UNREADABLE: {
-    bn: '"{name}" ফাইলটি পড়া যায়নি: ফাইলটি নষ্ট অথবা আসল PDF বা ছবি নয়।',
-    en: 'The file "{name}" could not be read: it is damaged or not a real PDF or image.',
+    bn: '"{name}" ফাইলটি পড়া যায়নি: ফাইলটি নষ্ট অথবা আসল PDF, DOCX বা ছবি নয়।',
+    en: 'The file "{name}" could not be read: it is damaged or not a real PDF, DOCX or image.',
+  },
+  DECISION_FILE_MACRO: {
+    bn: '"{name}" ফাইলটি গ্রহণ করা যায়নি: Macro-যুক্ত Word ফাইল Upload করা যাবে না।',
+    en: 'The file "{name}" was not accepted: Word files with macros cannot be uploaded.',
   },
   DECISION_FILE_TOO_LARGE: {
     bn: 'প্রতিটি ফাইল সর্বোচ্চ ১০ MB হতে পারে।',
     en: 'Each file can be at most 10 MB.',
   },
   DECISION_TOO_MANY_FILES: {
-    bn: 'একটি সভায় সর্বোচ্চ ১০টি সিদ্ধান্ত ফাইল রাখা যায়।',
-    en: 'A meeting can have at most 10 decision files.',
+    bn: 'একটি সভায় সর্বোচ্চ ১০টি কার্যবিবরণী ফাইল রাখা যায়।',
+    en: 'A meeting can have at most 10 minutes files.',
   },
   DECISION_FILE_NOT_FOUND: {
-    bn: 'সিদ্ধান্ত ফাইলটি পাওয়া যায়নি।',
-    en: 'The decision file was not found.',
+    bn: 'কার্যবিবরণী ফাইলটি পাওয়া যায়নি।',
+    en: 'The minutes file was not found.',
   },
   DECISION_DELETE_FORBIDDEN: {
     bn: 'শুধু ফাইলটি যিনি Upload করেছেন, সভার আয়োজক অথবা সভাপতি এটি মুছতে পারেন।',
     en: 'Only the person who uploaded the file, the organizer or the president of the meeting can delete it.',
+  },
+  NOTICE_FORBIDDEN: {
+    bn: 'শুধু সভার সংশ্লিষ্ট কর্মকর্তা অথবা প্রশাসক এই সভার নোটিশ দেখতে পারেন।',
+    en: 'Only the officers of this meeting or an administrator can see its notice.',
+  },
+  NOTICE_CHANGE_FORBIDDEN: {
+    bn: 'শুধু সভার আয়োজক সভার নোটিশ Upload, পরিবর্তন বা মুছে ফেলতে পারেন।',
+    en: 'Only the organizer of the meeting can upload, replace or remove its notice.',
+  },
+  NOTICE_CANCELLED: {
+    bn: 'বাতিল সভার নোটিশ Upload, পরিবর্তন বা মুছে ফেলা যাবে না।',
+    en: 'The notice of a cancelled meeting cannot be uploaded, replaced or removed.',
+  },
+  NOTICE_FILE_MISSING: {
+    bn: 'একটি ফাইল নির্বাচন করুন (ফিল্ডের নাম: file)।',
+    en: 'Select a file (field name: file).',
+  },
+  NOTICE_FILE_TOO_LARGE: {
+    bn: 'সভার নোটিশ ফাইল সর্বোচ্চ ১০ MB হতে পারে।',
+    en: 'The meeting notice file can be at most 10 MB.',
+  },
+  NOTICE_NOT_FOUND: {
+    bn: 'এই সভার কোনো নোটিশ ফাইল নেই।',
+    en: 'This meeting has no notice file.',
   },
   DECISION_STATUS_INVALID: {
     bn: 'status PENDING অথবা COMPLETE হতে হবে।',

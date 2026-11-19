@@ -10,6 +10,7 @@ import type {
   DecisionDetail,
   DecisionStatus,
   DecisionSummary,
+  NoticeFile,
   AppNotification,
   AuditAction,
   AuditLogItem,
@@ -190,11 +191,6 @@ export const meetingsApi = {
   complete: (id: string, notes: string | null) =>
     api<MeetingDetail>(`${meetingPath(id)}/complete`, { method: "POST", body: { notes } }),
   remove: (id: string) => api<void>(meetingPath(id), { method: "DELETE" }),
-  /** v1.10: the single-meeting notice "সভার নোটিশ" (always Bangla). */
-  noticePdf: (id: string) =>
-    apiDownload(`${meetingPath(id)}/notice.pdf`, {
-      fallbackName: `meeting-notice-${id.slice(0, 8)}.pdf`,
-    }),
   checkConflicts: (input: CheckConflictsInput, signal?: AbortSignal) =>
     api<CheckConflictsResponse>("/meetings/check-conflicts", {
       method: "POST",
@@ -236,7 +232,24 @@ export const notificationsApi = {
   markAllRead: () => api<unknown>("/notifications/read-all", { method: "PATCH" }),
 };
 
-// Meeting decisions (v1.11) ---------------------------------------------------------------------
+// Meeting notice "সভার নোটিশ" (v1.13) -------------------------------------------------------------
+export const noticesApi = {
+  /** Upload or replace (organizer only); one file, field `file`. */
+  upload: (id: string, file: File, onProgress?: (fraction: number) => void) => {
+    const form = new FormData();
+    form.append("file", file, file.name);
+    return apiUpload<NoticeFile>(`${meetingPath(id)}/notice`, form, { onProgress });
+  },
+  /** `inline`: PDF and images may open in the browser; a DOCX always comes as an attachment. */
+  download: (id: string, inline = false) =>
+    apiDownload(`${meetingPath(id)}/notice`, {
+      query: inline ? { inline: true } : undefined,
+      fallbackName: "meeting-notice",
+    }),
+  remove: (id: string) => api<void>(`${meetingPath(id)}/notice`, { method: "DELETE" }),
+};
+
+// Meeting minutes (v1.11, code name "decisions") ---------------------------------------------------------------------
 export const DECISIONS_PAGE_SIZE = 20;
 
 export const decisionsApi = {

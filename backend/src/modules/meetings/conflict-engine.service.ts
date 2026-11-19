@@ -62,19 +62,20 @@ export class ConflictEngineService {
   }
 
   /**
-   * Clashes of the candidate with existing meetings, split into blocking (the organizer rule,
-   * only when `checkOrganizer`: create, or an edit that moves the meeting) and warnings.
+   * Clashes of the candidate with existing meetings, split into blocking (the lead rule for N's
+   * organizer and internal chair, only when `checkLeads`: create, or an edit that changes the
+   * time or the chair) and warnings.
    */
   async evaluate(
     manager: EntityManager,
     candidate: CandidateMeeting,
-    checkOrganizer = true,
+    checkLeads = true,
   ): Promise<Classification<LoadedMeeting>> {
     const existing = await this.loadCandidates(manager, candidate);
     return classifyClashes(
-      candidate.organizerId,
+      candidate,
       findClashes(candidate, existing),
-      checkOrganizer,
+      checkLeads,
     );
   }
 

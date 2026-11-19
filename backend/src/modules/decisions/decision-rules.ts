@@ -1,5 +1,5 @@
 /**
- * Meeting decisions ("সভা সিদ্ধান্ত", v1.11, SPEC.md §6.9): status and permissions as pure
+ * Meeting minutes ("সভা কার্যবিবরণী", v1.11, SPEC.md §6.9): status and permissions as pure
  * functions, so every rule is unit-tested without a database.
  */
 import { MeetingStatus } from '../meetings/enums/meeting-status.enum';

@@ -26,8 +26,10 @@ erDiagram
     users |o--o{ meetings : "chairs (SET NULL)"
     meetings ||--o{ meeting_participants : "has (CASCADE)"
     meetings ||--o{ meeting_guests : "guest officers (CASCADE)"
-    meetings ||--o{ meeting_decision_files : "decision files (CASCADE)"
+    meetings ||--o{ meeting_decision_files : "minutes files (CASCADE)"
+    meetings ||--o| meeting_notice_files : "notice file, at most one (CASCADE)"
     users ||--o{ meeting_decision_files : "uploads (RESTRICT)"
+    users ||--o{ meeting_notice_files : "uploads notice (RESTRICT)"
     users ||--o{ meeting_participants : "attends (RESTRICT)"
 
     meetings ||--o{ meeting_conflicts : "higher (CASCADE)"
@@ -138,7 +140,16 @@ erDiagram
         uuid uploadedById FK
         varchar originalName "sanitized, max 200"
         varchar storedName "random uuid + extension"
-        varchar mime "application/pdf | image/jpeg | image/png"
+        varchar mime "PDF | DOCX (v1.13) | JPEG | PNG; max 100"
+        int size "bytes"
+        char sha256 "hex"
+    }
+    meeting_notice_files {
+        uuid meetingId FK "unique: one notice per meeting (v1.13)"
+        uuid uploadedById FK "the organizer"
+        varchar originalName "sanitized, max 200"
+        varchar storedName "random uuid + extension"
+        varchar mime "PDF | DOCX | JPEG | PNG"
         int size "bytes"
         char sha256 "hex"
     }
@@ -195,7 +206,8 @@ erDiagram
 | meeting_guests | `UQ_meeting_guests_one_chair` (unique on `meetingId` where `isChair`) | at most one guest chair |
 | meeting_guests | `IDX_meeting_guests_meetingId`, `CHK_meeting_guests_email_lowercase` (check) | guests of a meeting; emails stored lowercased |
 | meetings + meeting_guests | `TRG_meeting_single_chair_meetings` / `_guests` (deferred constraint triggers) | a meeting never has an officer chair (`meetings.chairId`) and a guest chair at once |
-| meeting_decision_files | `IDX_meeting_decision_files_meetingId` | decision files of a meeting; decision status (v1.11) |
+| meeting_decision_files | `IDX_meeting_decision_files_meetingId` | minutes files "সভা কার্যবিবরণী" of a meeting; status (v1.11) |
+| meeting_notice_files | `UQ_meeting_notice_files_meetingId` (unique) | one uploaded notice "সভার নোটিশ" per meeting (v1.13) |
 | meeting_conflicts | `IDX_meeting_conflicts_higherMeetingId`, `IDX_meeting_conflicts_lowerMeetingId` | conflicts of a meeting (detail page, auto-resolve) |
 | meeting_conflicts | `IDX_meeting_conflicts_userId_status` | "my pending conflicts" |
 | notifications | `IDX_notifications_userId_readAt` | bell list and unread count |
@@ -209,7 +221,7 @@ erDiagram
   `RESTRICT` (organizer, participant, shared officer, change-request owner, audit actor);
   optional references use `SET NULL` (chair, reviewer, replaced token).
 - Data owned by a user goes with the user: additional charges, tokens, notifications (`CASCADE`).
-- Data owned by a meeting goes with the meeting: participants, guest officers, conflicts, decision files
+- Data owned by a meeting goes with the meeting: participants, guest officers, conflicts, minutes files, the notice file
   (`CASCADE`; v1.11: the files on disk are removed by the API after a hard delete). The uploader of a decision
   file is `RESTRICT` (users are never hard-deleted).
 - A designation or wing cannot be deleted while any user uses it (`RESTRICT`).

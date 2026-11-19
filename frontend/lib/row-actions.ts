@@ -2,11 +2,13 @@
  * v1.10 (SPEC.md §13.18): which items the three-dot menu of a meeting row shows. The backend
  * checks every action again; this only hides what would be refused.
  * - View details: everyone who sees the row.
- * - Export PDF: everyone who sees the row, except for cancelled meetings.
+ * - Meeting notice (v1.13, SPEC.md §6.8): everyone who sees the row, ONLY when an uploaded notice
+ *   exists (`hasNotice`), also for cancelled meetings. (The generated "Export PDF" of v1.10 was
+ *   removed in v1.13.)
  * - Edit / Cancel: ONLY the organizer and the internal chair (`mine`), with the usual status
  *   rules (edit: scheduled and not ended yet; cancel: scheduled). Admins keep their rights on the
  *   detail page; the row menu does not offer them Edit / Cancel for other people's meetings.
- * - Upload decision (v1.11, SPEC.md §13.19): the meeting's people (organizer, internal chair,
+ * - Upload minutes (v1.11, SPEC.md §13.19): the meeting's people (organizer, internal chair,
  *   members — not admins as such), only when an upload is allowed: started (or completed), not
  *   cancelled, fewer than MAX_DECISION_FILES files.
  */
@@ -18,11 +20,13 @@ export interface RowMeeting {
   endAt: string;
   /** Number of decision files; unknown → the backend still checks the limit. */
   decisionFileCount?: number;
+  /** v1.13: an uploaded notice exists; unknown → no menu item. */
+  hasNotice?: boolean;
 }
 
 export interface RowActions {
   view: boolean;
-  exportPdf: boolean;
+  notice: boolean;
   edit: boolean;
   cancel: boolean;
   uploadDecision: boolean;
@@ -38,7 +42,7 @@ export function rowActions(
   const started = meeting.status === "COMPLETED" || now >= new Date(meeting.startAt);
   return {
     view: true,
-    exportPdf: meeting.status !== "CANCELLED",
+    notice: meeting.hasNotice === true,
     edit: mine && scheduled && now < new Date(meeting.endAt),
     cancel: mine && scheduled,
     uploadDecision:

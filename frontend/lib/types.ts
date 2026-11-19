@@ -95,10 +95,13 @@ export type Paginated<T> = PageMeta & { items: T[] };
 export type PeriodDto = S["PeriodDto"];
 export type ReportMeeting = S["ReportMeetingDto"];
 
-// Meeting decisions (v1.11) ----------------------------------------------------------------------
+// Meeting minutes (v1.11, code name "decisions") ----------------------------------------------------------------------
 export type DecisionStatus = S["DecisionStatus"];
 export type DecisionDetail = S["DecisionDetailDto"];
 export type DecisionFile = S["DecisionFileDto"];
+/** v1.13: the uploaded meeting notice "সভার নোটিশ" (SPEC.md §6.8). */
+export type NoticeFile = S["NoticeFileDto"];
+export type BlockedRole = S["BlockedRole"];
 export type DecisionSummary = S["DecisionSummaryDto"];
 export type DayCount = S["DayCountDto"];
 export type StatusCounts = S["StatusCountsDto"];

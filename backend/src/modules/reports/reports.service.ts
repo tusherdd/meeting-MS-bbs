@@ -246,6 +246,7 @@ export class ReportsService {
       .leftJoinAndSelect('m.chair', 'ch')
       .leftJoinAndSelect('m.guests', 'g')
       .loadRelationCountAndMap('m.decisionFileCount', 'm.decisionFiles')
+      .loadRelationCountAndMap('m.noticeFileCount', 'm.noticeFiles')
       .where('m.startAt >= :start AND m.startAt < :end', {
         start: range.start,
         end: range.end,
@@ -312,6 +313,7 @@ export class ReportsService {
         designation: g.designation,
       })),
       decisionFileCount: m.decisionFileCount ?? 0,
+      hasNotice: (m.noticeFileCount ?? 0) > 0,
     }));
   }
 
@@ -425,5 +427,6 @@ function toItem(m: ReportMeeting): ReportMeetingDto {
     chairNameEn: m.chairNameEn,
     guests: m.guests,
     decisionFileCount: m.decisionFileCount ?? 0,
+    hasNotice: m.hasNotice ?? false,
   };
 }

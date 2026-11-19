@@ -11,8 +11,8 @@ import {
 } from "./support/helpers";
 
 /**
- * v1.11 (SPEC.md §6.9, §13.19): meeting decisions "সভা সিদ্ধান্ত".
- * A member opens "Upload decision" from the row menu, uploads a PDF and the status turns
+ * v1.11 (SPEC.md §6.9, §13.19): meeting minutes "সভা কার্যবিবরণী" (named decisions in v1.11).
+ * A member opens "Upload minutes" from the row menu, uploads a PDF and the status turns
  * Complete; the organizer sees the counts in the sidebar and in the /decisions tabs (the numbers
  * come from the same API, so other test meetings do not matter). The dashboard has no decision
  * card (removed after v1.11, owner decision 2026-11-17).
@@ -66,7 +66,7 @@ test("a member uploads a decision → Complete; the organizer sees the counts", 
 }) => {
   const org = await pageAs(browser, "dd1");
   const member = await pageAs(browser, "so");
-  const title = uniqueTitle("সিদ্ধান্ত");
+  const title = uniqueTitle("কার্যবিবরণী");
   const before = await summaryOf(org);
   // Started one minute ago (allowed: up to 5 min in the past) → the decision is Pending at once.
   const start = new Date(Date.now() - 60_000);
@@ -85,7 +85,7 @@ test("a member uploads a decision → Complete; the organizer sees the counts", 
     // The new meeting is listed under Pending.
     await expect(org.getByRole("link", { name: title })).toBeVisible();
 
-    // The member: "আমি সদস্য" lists it; the row menu offers "Upload decision".
+    // The member: "আমি সদস্য" lists it; the row menu offers "Upload minutes".
     await member.goto("/decisions");
     const memberRow = member.getByRole("row").filter({ hasText: title });
     await expect(memberRow).toBeVisible();
@@ -95,13 +95,13 @@ test("a member uploads a decision → Complete; the organizer sees the counts", 
     await expect(member.getByTestId("decision-status")).toHaveText("Pending");
 
     await member.getByLabel(bn.decisions.pickLabel).setInputFiles({
-      name: "সভার সিদ্ধান্ত.pdf",
+      name: "সভার কার্যবিবরণী.pdf",
       mimeType: "application/pdf",
       buffer: PDF,
     });
     await member.getByRole("button", { name: bn.decisions.uploadButton, exact: true }).click();
     await expect(member.getByTestId("decision-status")).toHaveText("Complete");
-    await expect(member.getByTestId("decision-files")).toContainText("সভার সিদ্ধান্ত.pdf");
+    await expect(member.getByTestId("decision-files")).toContainText("সভার কার্যবিবরণী.pdf");
 
     // A wrong file type is refused with a clear message.
     await member.getByLabel(bn.decisions.pickLabel).setInputFiles({
@@ -116,7 +116,7 @@ test("a member uploads a decision → Complete; the organizer sees the counts", 
     // Download works.
     const download = member.waitForEvent("download");
     await member.getByRole("button", { name: bn.decisions.download }).click();
-    expect((await download).suggestedFilename()).toBe("সভার সিদ্ধান্ত.pdf");
+    expect((await download).suggestedFilename()).toBe("সভার কার্যবিবরণী.pdf");
 
     // The organizer: one Pending less, one Complete more; and a bell notice.
     const after = await summaryOf(org);
@@ -131,7 +131,7 @@ test("a member uploads a decision → Complete; the organizer sees the counts", 
       "/notifications?limit=20",
     );
     expect(notes.items.map((n) => n.body)).toContain(
-      `"${title}" সভার সিদ্ধান্ত আপলোড করা হয়েছে।`,
+      `"${title}" সভার কার্যবিবরণী আপলোড করা হয়েছে।`,
     );
   } finally {
     await cancelMeetingAs(org, meeting.id);

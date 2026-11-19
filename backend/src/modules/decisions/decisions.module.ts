@@ -11,7 +11,7 @@ import { DecisionsController } from './decisions.controller';
 import { DecisionsService } from './decisions.service';
 import { MeetingDecisionFile } from './entities/meeting-decision-file.entity';
 
-/** Meeting decisions "সভা সিদ্ধান্ত" (v1.11, SPEC.md §6.9). */
+/** Meeting minutes "সভা কার্যবিবরণী" (v1.11, SPEC.md §6.9). */
 @Module({
   imports: [
     TypeOrmModule.forFeature([Meeting, MeetingDecisionFile]),

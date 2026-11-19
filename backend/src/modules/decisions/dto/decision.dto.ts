@@ -31,7 +31,7 @@ export class DecisionFileDto {
   id!: string;
 
   @ApiProperty({
-    example: 'সভার সিদ্ধান্ত.pdf',
+    example: 'সভার কার্যবিবরণী.pdf',
     description:
       'Sanitized original name; the extension follows the detected type',
   })

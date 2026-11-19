@@ -172,9 +172,14 @@ export class ReportMeetingDto {
   guests!: ReportGuestDto[];
   @ApiProperty({
     example: 0,
-    description: 'v1.11: number of decision files ("সভা সিদ্ধান্ত")',
+    description: 'v1.11: number of decision files ("সভা কার্যবিবরণী")',
   })
   decisionFileCount!: number;
+  @ApiProperty({
+    example: false,
+    description: 'v1.13: the meeting has an uploaded notice ("সভার নোটিশ")',
+  })
+  hasNotice!: boolean;
 }
 
 export class ReportMeetingPageDto {

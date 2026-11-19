@@ -1,5 +1,6 @@
 /**
- * Release v1.11 e2e (SPEC.md §6.9) on the TEST database: meeting decisions ("সভা সিদ্ধান্ত").
+ * Release v1.11 e2e (SPEC.md §6.9) on the TEST database: meeting minutes ("সভা কার্যবিবরণী", named
+ * "decisions" in v1.11). v1.13: DOCX minutes (always an attachment), macro / legacy .doc refused.
  * Upload, download (attachment / inline, safe headers), delete (→ Pending again), the lists and
  * counts, and every refusal: non-participants, admins uploading, before the start, cancelled,
  * fake files. Own users, designations, wing and days (90+). Files go to DECISION_UPLOAD_DIR
@@ -19,6 +20,11 @@ import { hashPassword } from '../src/common/utils/password';
 import { AuditLog } from '../src/modules/audit/entities/audit-log.entity';
 import { AuditAction } from '../src/modules/audit/enums/audit-action.enum';
 import { DecisionStorageService } from '../src/modules/decisions/decision-storage.service';
+import {
+  docm,
+  docx,
+  legacyDoc,
+} from '../src/modules/decisions/docx.fixture-spec';
 import { MeetingDecisionFile } from '../src/modules/decisions/entities/meeting-decision-file.entity';
 import { Designation } from '../src/modules/designations/entities/designation.entity';
 import { Meeting } from '../src/modules/meetings/entities/meeting.entity';
@@ -177,7 +183,7 @@ describe('v1.11: meeting decisions (e2e)', () => {
     let fileId: string;
 
     beforeAll(async () => {
-      id = await meeting(90, 'সিদ্ধান্ত পরীক্ষা সভা');
+      id = await meeting(90, 'কার্যবিবরণী পরীক্ষা সভা');
     });
 
     it('starts Pending; the member may upload, the admin may only view', async () => {
@@ -190,14 +196,17 @@ describe('v1.11: meeting decisions (e2e)', () => {
     });
 
     it('a member uploads a PDF → Complete; organizer and chair get a bell notice (no mail)', async () => {
-      const res = await upload('member', id, 'সভার সিদ্ধান্ত.pdf', PDF).expect(
-        201,
-      );
+      const res = await upload(
+        'member',
+        id,
+        'সভার কার্যবিবরণী.pdf',
+        PDF,
+      ).expect(201);
       const d = res.body as Detail;
       expect(d.status).toBe('COMPLETE');
       expect(d.files).toHaveLength(1);
       expect(d.files[0]).toMatchObject({
-        originalName: 'সভার সিদ্ধান্ত.pdf',
+        originalName: 'সভার কার্যবিবরণী.pdf',
         mime: 'application/pdf',
         size: PDF.length,
         canDelete: true,
@@ -210,7 +219,7 @@ describe('v1.11: meeting decisions (e2e)', () => {
           type: NotificationType.MEETING_DECISION_UPLOADED,
         });
         expect(n.body).toBe(
-          '"সিদ্ধান্ত পরীক্ষা সভা" সভার সিদ্ধান্ত আপলোড করা হয়েছে।',
+          '"কার্যবিবরণী পরীক্ষা সভা" সভার কার্যবিবরণী আপলোড করা হয়েছে।',
         );
       }
       expect(
@@ -297,7 +306,7 @@ describe('v1.11: meeting decisions (e2e)', () => {
         .set('Accept-Language', 'en')
         .expect(400);
       expect((en.body as { message: string }).message).toBe(
-        'The file "fake.pdf" was not accepted: only PDF, JPEG or PNG files can be uploaded.',
+        'The file "fake.pdf" was not accepted: only PDF, DOCX, JPEG or PNG files can be uploaded.',
       );
     });
 
@@ -346,6 +355,62 @@ describe('v1.11: meeting decisions (e2e)', () => {
         .expect(200);
       expect((await detail('member', id)).status).toBeNull();
       await upload('member', id, 'x.pdf', PDF).expect(409);
+    });
+  });
+
+  describe('v1.13: DOCX minutes', () => {
+    const DOCX_TYPE =
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    let id: string;
+
+    beforeAll(async () => {
+      id = await meeting(95, 'DOCX কার্যবিবরণী সভা');
+    });
+
+    it('a DOCX is accepted and always downloaded as an attachment (even with ?inline=true)', async () => {
+      const bytes = docx();
+      const res = await upload(
+        'member',
+        id,
+        'minutes.docx',
+        bytes,
+        DOCX_TYPE,
+      ).expect(201);
+      const file = (res.body as Detail).files[0];
+      expect(file).toMatchObject({
+        originalName: 'minutes.docx',
+        mime: DOCX_TYPE,
+        size: bytes.length,
+      });
+      const dl = await binary(
+        http()
+          .get(`${base(id)}/files/${file.id}?inline=true`)
+          .set(as('chair')),
+      ).expect(200);
+      expect(dl.headers['content-type']).toBe(DOCX_TYPE);
+      expect(dl.headers['content-disposition']).toMatch(/^attachment;/);
+      expect(dl.headers['x-content-type-options']).toBe('nosniff');
+      expect((dl.body as Buffer).equals(bytes)).toBe(true);
+    });
+
+    it('a macro-enabled Word file is refused (400, macro message)', async () => {
+      const res = await upload('member', id, 'minutes.docm', docm(), DOCX_TYPE)
+        .set('Accept-Language', 'en')
+        .expect(400);
+      expect((res.body as { code: string }).code).toBe('DECISION_FILE_MACRO');
+    });
+
+    it('a legacy .doc is refused as the wrong type (400)', async () => {
+      const res = await upload(
+        'member',
+        id,
+        'old.doc',
+        legacyDoc(),
+        'application/msword',
+      ).expect(400);
+      expect((res.body as { code: string }).code).toBe(
+        'DECISION_FILE_BAD_TYPE',
+      );
     });
   });
 

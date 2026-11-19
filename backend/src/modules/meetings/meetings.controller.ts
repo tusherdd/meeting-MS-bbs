@@ -10,8 +10,6 @@ import {
   Post,
   Query,
   Req,
-  Res,
-  StreamableFile,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -23,12 +21,8 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiProduces,
-  ApiServiceUnavailableResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Throttle, minutes } from '@nestjs/throttler';
-import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
@@ -53,15 +47,13 @@ import {
   MeetingSummaryDto,
 } from './dto/meeting-response.dto';
 import { MeetingsService } from './meetings.service';
-import { MeetingNoticeService } from './notice/meeting-notice.service';
-
-/** PDF rendering is expensive: the same tighter limit as the report PDFs. */
-const PDF_THROTTLE = { default: { limit: 10, ttl: minutes(1) } };
 
 const RULE =
-  'Conflict rule (v1.12): the ONLY blocking clash is the organizer rule: the organizer is, at an overlapping time, ' +
-  'the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (on edit only when the time changes; ' +
-  'priority plays no role). Every other overlap that shares an officer (chair, members, the organizer as a member elsewhere) ' +
+  "Conflict rule (v1.12, extended in v1.13): the ONLY blocking clash is the lead rule: the meeting's organizer OR its " +
+  'internal chair is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and ' +
+  'nothing is saved (checked on create and on every edit that changes the time or the chair; priority plays no role; the ' +
+  'message names the role: TIME_CONFLICT_BLOCKING for the organizer, TIME_CONFLICT_CHAIR_BLOCKING for the chair). ' +
+  'Every other overlap that shares an officer (members, a lead who is only a member elsewhere) ' +
   'is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, ' +
   'and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. ' +
   'Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.';
@@ -70,10 +62,7 @@ const RULE =
 @ApiBearerAuth()
 @Controller('meetings')
 export class MeetingsController {
-  constructor(
-    private readonly meetings: MeetingsService,
-    private readonly notices: MeetingNoticeService,
-  ) {}
+  constructor(private readonly meetings: MeetingsService) {}
 
   @Get('today')
   @ApiOperation({
@@ -130,48 +119,6 @@ export class MeetingsController {
     @Param('id', ParseIdPipe) id: string,
   ): Promise<MeetingDetailDto> {
     return this.meetings.findOne(user, id);
-  }
-
-  @Throttle(PDF_THROTTLE)
-  @Get(':id/notice.pdf')
-  @ApiOperation({
-    summary: 'Meeting notice "সভার নোটিশ" as PDF (v1.10)',
-    description:
-      'A4, always Bangla (Bangla digits), no logo. Signed by the user who exports it; distribution ' +
-      'list = every internal officer by designation priority, then the guest officers. Allowed for ' +
-      "the meeting's people and admins; not for cancelled meetings. File name " +
-      '`meeting-notice-YYYY-MM-DD-<shortid>.pdf`. Audited as MEETING_NOTICE_EXPORTED.',
-  })
-  @ApiProduces('application/pdf')
-  @ApiOkResponse({
-    description: 'A4 PDF (Bangla), downloaded as an attachment',
-    content: {
-      'application/pdf': { schema: { type: 'string', format: 'binary' } },
-    },
-  })
-  @ApiForbiddenResponse({
-    description: 'Not one of the meeting’s people and not an admin',
-  })
-  @ApiNotFoundResponse({ description: 'Meeting not found' })
-  @ApiConflictResponse({ description: 'The meeting is cancelled' })
-  @ApiServiceUnavailableResponse({
-    description: 'PDF rendering took longer than 30 s',
-  })
-  async noticePdf(
-    @CurrentUser() user: AuthUser,
-    @Param('id', ParseIdPipe) id: string,
-    @Req() req: AppRequest,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<StreamableFile> {
-    const file = await this.notices.noticePdf(user, id, req.ip ?? null);
-    // The file name is ASCII only (fixed text, date digits, hex id), never user input.
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${file.filename}"`,
-    );
-    res.setHeader('Cache-Control', 'no-store');
-    return new StreamableFile(file.content);
   }
 
   @Post()

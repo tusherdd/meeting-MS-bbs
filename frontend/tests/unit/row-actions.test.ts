@@ -13,40 +13,50 @@ const started = {
   endAt: "2026-11-17T07:00:00Z",
 };
 
-describe("row menu items (v1.10)", () => {
-  it("organizer or chair of a scheduled future meeting: View, Export, Edit, Cancel", () => {
+describe("row menu items (v1.10, v1.13)", () => {
+  it("organizer or chair of a scheduled future meeting: View, Edit, Cancel", () => {
     expect(rowActions(future, true, now)).toEqual({
       view: true,
-      exportPdf: true,
+      notice: false,
       edit: true,
       cancel: true,
       uploadDecision: false,
     });
   });
 
-  it("a plain member (or an admin who is neither): only View and Export", () => {
+  it("a plain member (or an admin who is neither): only View", () => {
     expect(rowActions(future, false, now)).toEqual({
       view: true,
-      exportPdf: true,
+      notice: false,
       edit: false,
       cancel: false,
       uploadDecision: false,
     });
   });
 
-  it("cancelled: no Export PDF, no Edit, no Cancel, no Upload", () => {
+  it("cancelled: no Edit, no Cancel, no Upload", () => {
     expect(rowActions({ ...started, status: "CANCELLED" }, true, now)).toEqual({
       view: true,
-      exportPdf: false,
+      notice: false,
       edit: false,
       cancel: false,
       uploadDecision: false,
     });
   });
 
-  it("completed: Export only (plus Upload decision for its people)", () => {
+  it("completed: Upload minutes for its people, no Edit / Cancel", () => {
     const r = rowActions({ ...future, status: "COMPLETED" }, true, now);
-    expect([r.exportPdf, r.edit, r.cancel, r.uploadDecision]).toEqual([true, false, false, true]);
+    expect([r.edit, r.cancel, r.uploadDecision]).toEqual([false, false, true]);
+  });
+
+  it("v1.13: \"Meeting notice\" appears ONLY when a notice file exists — for everyone who sees the row, also when cancelled", () => {
+    expect(rowActions(future, false, now).notice).toBe(false);
+    expect(rowActions({ ...future, hasNotice: false }, true, now).notice).toBe(false);
+    expect(rowActions({ ...future, hasNotice: true }, false, now).notice).toBe(true);
+    expect(rowActions({ ...future, hasNotice: true }, true, now).notice).toBe(true);
+    expect(rowActions({ ...started, status: "CANCELLED", hasNotice: true }, false, now).notice).toBe(
+      true,
+    );
   });
 
   it("scheduled but already ended: Cancel, no Edit", () => {

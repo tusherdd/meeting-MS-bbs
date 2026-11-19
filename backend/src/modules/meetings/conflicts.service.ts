@@ -80,17 +80,22 @@ export class ConflictsService {
   }
 
   private query() {
-    return this.conflicts
-      .createQueryBuilder('c')
-      .innerJoinAndSelect('c.user', 'u')
-      .innerJoinAndSelect('c.higherMeeting', 'h')
-      .innerJoinAndSelect('h.organizer', 'ho')
-      .leftJoinAndSelect('ho.designation', 'hod')
-      .leftJoinAndSelect('ho.wing', 'how')
-      .innerJoinAndSelect('c.lowerMeeting', 'l')
-      .innerJoinAndSelect('l.organizer', 'lo')
-      .leftJoinAndSelect('lo.designation', 'lod')
-      .leftJoinAndSelect('lo.wing', 'low');
+    return (
+      this.conflicts
+        .createQueryBuilder('c')
+        .innerJoinAndSelect('c.user', 'u')
+        .innerJoinAndSelect('c.higherMeeting', 'h')
+        .innerJoinAndSelect('h.organizer', 'ho')
+        .leftJoinAndSelect('ho.designation', 'hod')
+        .leftJoinAndSelect('ho.wing', 'how')
+        .innerJoinAndSelect('c.lowerMeeting', 'l')
+        .innerJoinAndSelect('l.organizer', 'lo')
+        .leftJoinAndSelect('lo.designation', 'lod')
+        .leftJoinAndSelect('lo.wing', 'low')
+        // v1.13: the row menu shows "সভার নোটিশ" only when a notice exists.
+        .loadRelationCountAndMap('h.noticeFileCount', 'h.noticeFiles')
+        .loadRelationCountAndMap('l.noticeFileCount', 'l.noticeFiles')
+    );
   }
 
   private async toItems(
@@ -115,6 +120,7 @@ export class ConflictsService {
       organizerWingEn: m.organizer.wing?.nameEn ?? null,
       organizedByMe: m.organizerId === actor.id,
       chairedByMe: m.chairId === actor.id,
+      hasNotice: (m.noticeFileCount ?? 0) > 0,
     });
     return rows.map((r) => ({
       id: r.id,

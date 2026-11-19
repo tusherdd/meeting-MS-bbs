@@ -13,17 +13,15 @@ export const MEETING_MESSAGES = {
   /** v1.10: edit and cancel are also allowed for the internal chair. */
   notOrganizerOrChair:
     'শুধু সভার আয়োজক, সভাপতি অথবা প্রশাসক এই কাজটি করতে পারেন।',
-  /** v1.10: the meeting notice PDF. */
-  noticeForbidden:
-    'শুধু সভার সংশ্লিষ্ট কর্মকর্তা অথবা প্রশাসক এই সভার নোটিশ নিতে পারেন।',
-  noticeCancelled: 'বাতিল সভার নোটিশ তৈরি করা যাবে না।',
   notScheduled: 'বাতিল বা সম্পন্ন সভা পরিবর্তন করা যাবে না।',
   alreadyEnded:
     'সভাটি ইতিমধ্যে শেষ হয়েছে; শুধু সম্পন্ন হিসেবে চিহ্নিত করে নোট যোগ করা যাবে।',
   notStartedYet: 'সভা শুরু হওয়ার আগে সম্পন্ন হিসেবে চিহ্নিত করা যাবে না।',
   cancelledCannotComplete: 'বাতিল সভা সম্পন্ন হিসেবে চিহ্নিত করা যাবে না।',
-  /** v1.12: the only blocking rule — the organizer's own schedule (SPEC.md §6.4). */
+  /** v1.12: the lead rule — the organizer's own schedule (SPEC.md §6.4). */
   blocking: 'আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।',
+  /** v1.13: the lead rule for the internal chair. */
+  chairBlocking: 'সভাপতি একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।',
   hiddenTitle: 'অন্য একটি সভা',
   /** v1.9: the venue (স্থান, field `room`) is required on create and edit. */
   venueRequired: 'স্থান লিখতে হবে।',

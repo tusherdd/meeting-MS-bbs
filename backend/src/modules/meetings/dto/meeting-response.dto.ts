@@ -4,6 +4,8 @@ import { ConflictStatus } from '../enums/conflict-status.enum';
 import { MeetingStatus } from '../enums/meeting-status.enum';
 import { ParticipantRole } from '../enums/participant-role.enum';
 import { DecisionStatus } from '../../decisions/decision-rules';
+import type { BlockedRole } from '../meeting-rules';
+import { NoticeFileDto } from '../../notices/dto/notice.dto';
 
 export class DesignationBriefDto {
   @ApiProperty({ example: 'উপপরিচালক' })
@@ -101,7 +103,7 @@ export class MeetingSummaryDto {
 
   @ApiProperty({
     example: 0,
-    description: 'v1.11: number of decision files ("সভা সিদ্ধান্ত")',
+    description: 'v1.11: number of decision files ("সভা কার্যবিবরণী")',
   })
   decisionFileCount!: number;
 
@@ -113,6 +115,13 @@ export class MeetingSummaryDto {
       'v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started',
   })
   decisionStatus!: DecisionStatus | null;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'v1.13: the meeting has an uploaded notice "সভার নোটিশ" (GET /meetings/:id/notice)',
+  })
+  hasNotice!: boolean;
 }
 
 export class ConflictMeetingRefDto {
@@ -190,6 +199,12 @@ export class ConflictMeetingRefDto {
       'True when the current user is the internal chair of this meeting (v1.10: may edit/cancel it)',
   })
   chairedByMe!: boolean;
+
+  @ApiProperty({
+    example: false,
+    description: 'v1.13: the meeting has an uploaded notice "সভার নোটিশ"',
+  })
+  hasNotice!: boolean;
 }
 
 export class OfficerRefDto {
@@ -283,6 +298,14 @@ export class MeetingDetailDto extends MeetingSummaryDto {
   @ApiProperty({ type: [MeetingConflictDto] })
   conflicts!: MeetingConflictDto[];
 
+  @ApiProperty({
+    type: NoticeFileDto,
+    nullable: true,
+    description:
+      'v1.13: the uploaded notice "সভার নোটিশ" (null = none); `canManage` = I may replace / remove it',
+  })
+  notice!: NoticeFileDto | null;
+
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt!: Date;
 
@@ -358,9 +381,19 @@ export class ClashDto {
     description: 'Officers who are in both meetings',
   })
   sharedOfficers!: OfficerRefDto[];
+
+  @ApiProperty({
+    enum: ['ORGANIZER', 'CHAIR'],
+    enumName: 'BlockedRole',
+    isArray: true,
+    example: ['CHAIR'],
+    description:
+      'v1.13: on blocking clashes, which lead of THIS meeting (its organizer and/or its internal chair) already organizes or chairs the other meeting; empty on warnings',
+  })
+  blockedBy!: BlockedRole[];
 }
 
-/** 409 body of POST/PATCH /meetings when the organizer rule blocks (v1.12, SPEC.md §6.4). */
+/** 409 body of POST/PATCH /meetings when the lead rule blocks (SPEC.md §6.4, v1.12/v1.13). */
 export class MeetingConflictErrorDto {
   @ApiProperty({ example: 409 })
   statusCode!: number;
@@ -368,7 +401,8 @@ export class MeetingConflictErrorDto {
   @ApiProperty({
     example: 'আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।',
     description:
-      'Bangla by default; English with Accept-Language: en ("The organizer is already the organizer or chair of another meeting at this time.")',
+      'Bangla by default; English with Accept-Language: en. Organizer busy: "The organizer is already the organizer or chair of another meeting at this time." ' +
+      '(TIME_CONFLICT_BLOCKING); only the chair busy (v1.13): "The chair is already the organizer or chair of another meeting at this time." (TIME_CONFLICT_CHAIR_BLOCKING)',
   })
   message!: string;
 
@@ -378,13 +412,14 @@ export class MeetingConflictErrorDto {
   @ApiProperty({
     type: [ClashDto],
     description:
-      'Meetings where the organizer is already the organizer or internal chair at this time',
+      'Meetings where the organizer or the internal chair is already the organizer or internal chair at this time',
   })
   blocking!: ClashDto[];
 
   @ApiProperty({
     example: 'TIME_CONFLICT_BLOCKING',
-    description: 'Stable message code (v1.6)',
+    description:
+      'Stable message code (v1.6): TIME_CONFLICT_BLOCKING or TIME_CONFLICT_CHAIR_BLOCKING (v1.13)',
   })
   code!: string;
 }

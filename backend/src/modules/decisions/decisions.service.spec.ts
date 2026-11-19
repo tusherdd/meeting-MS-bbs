@@ -165,7 +165,7 @@ describe('DecisionsService permissions', () => {
       service.upload(actor('mem'), ID, [fake], null),
     ).rejects.toThrow(
       new BadRequestException(
-        '"fake.pdf" ফাইলটি গ্রহণ করা যায়নি: শুধু PDF, JPEG অথবা PNG ফাইল Upload করা যাবে।',
+        '"fake.pdf" ফাইলটি গ্রহণ করা যায়নি: শুধু PDF, DOCX, JPEG অথবা PNG ফাইল Upload করা যাবে।',
       ),
     );
     expect(storage.save).not.toHaveBeenCalled();
@@ -215,8 +215,8 @@ describe('DecisionsService upload, notification, delete-last', () => {
       ['org', 'chair'],
       {
         type: NotificationType.MEETING_DECISION_UPLOADED,
-        title: 'সভা সিদ্ধান্ত: বাজেট সভা',
-        body: '"বাজেট সভা" সভার সিদ্ধান্ত আপলোড করা হয়েছে।',
+        title: 'সভা কার্যবিবরণী: বাজেট সভা',
+        body: '"বাজেট সভা" সভার কার্যবিবরণী আপলোড করা হয়েছে।',
         link: `/meetings/${ID}/decision`,
       },
       [ChannelName.IN_APP],
@@ -252,7 +252,7 @@ describe('DecisionsService upload, notification, delete-last', () => {
 
   it('notice text', () => {
     expect(decisionUploadedNotice({ id: 'x', title: 'T' }).body).toBe(
-      '"T" সভার সিদ্ধান্ত আপলোড করা হয়েছে।',
+      '"T" সভার কার্যবিবরণী আপলোড করা হয়েছে।',
     );
   });
 });

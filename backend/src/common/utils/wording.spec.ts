@@ -8,7 +8,9 @@ import { join } from 'node:path';
  * - the old Bangla word for "conflict" is gone: the time clash is "সময় কনফ্লিক্ট", everything
  *   else "ডুপ্লিকেট সভা";
  * - "ডুপ্লিকেট সভা" is never followed by a second "সভা";
- * - guests are "অতিথি কর্মকর্তা"; the phrase "outside guest" (Bangla) never appears.
+ * - guests are "অতিথি কর্মকর্তা"; the phrase "outside guest" (Bangla) never appears;
+ * - v1.13: the minutes are "সভা কার্যবিবরণী" / "Meeting minutes"; the old v1.11 name never appears
+ *   again in the message files (frontend messages, backend *.messages.ts, the API catalog).
  * The words are built from code points, so this file does not contain them itself.
  */
 const ch = (...codes: number[]): string => String.fromCharCode(...codes);
@@ -69,6 +71,33 @@ describe('v1.5 wording in every tracked file (SPEC.md §13.12)', () => {
 
   it('never says "outside guest": guests are "অতিথি কর্মকর্তা"', () => {
     expect(offending(OUTSIDE_GUEST)).toEqual([]);
+  });
+
+  it('v1.13: "সভা কার্যবিবরণী" / "Meeting minutes" — the old name never comes back in message files', () => {
+    // The old Bangla name (SHOVA + "decision") and its English label, built from code points.
+    const OLD_BN = `${SHOVA} ${ch(0x09b8, 0x09bf, 0x09a6, 0x09cd, 0x09a7, 0x09be, 0x09a8, 0x09cd, 0x09a4)}`;
+    const OLD_EN = /Meeting decisions?\b|Upload decision\b/i;
+    const messageFiles = trackedTextFiles().filter(
+      (f) =>
+        /^frontend\/messages\/(bn|en)\.ts$/.test(f) ||
+        /^backend\/src\/.*\.messages\.ts$/.test(f) ||
+        f === 'backend/src/common/i18n/message-catalog.ts' ||
+        f === 'backend/src/modules/decisions/decisions.service.ts',
+    );
+    expect(messageFiles).toContain('frontend/messages/bn.ts');
+    expect(messageFiles).toContain(
+      'backend/src/modules/decisions/decisions.messages.ts',
+    );
+    const bad: string[] = [];
+    for (const file of messageFiles) {
+      readFileSync(join(ROOT, file), 'utf8')
+        .split('\n')
+        .forEach((line, i) => {
+          if (line.includes(OLD_BN) || OLD_EN.test(line))
+            bad.push(`${file}:${i + 1}`);
+        });
+    }
+    expect(bad).toEqual([]);
   });
 
   it('v1.6: the English UI texts (frontend/messages/en.ts) contain no Bangla characters', () => {

@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { MeetingDecisionFile } from '../../decisions/entities/meeting-decision-file.entity';
+import { MeetingNoticeFile } from '../../notices/entities/meeting-notice-file.entity';
 import { User } from '../../users/entities/user.entity';
 import { MeetingStatus } from '../enums/meeting-status.enum';
 import { MeetingGuest } from './meeting-guest.entity';
@@ -92,4 +93,14 @@ export class Meeting extends BaseEntity {
 
   /** Not a column: filled by loadRelationCountAndMap where a query asks for it. */
   decisionFileCount?: number;
+
+  /**
+   * v1.13: the uploaded notice "সভার নোটিশ" (SPEC.md §6.8). At most one row (unique meetingId);
+   * a OneToMany so list queries can count it like the minutes files.
+   */
+  @OneToMany(() => MeetingNoticeFile, (file) => file.meeting)
+  noticeFiles!: Relation<MeetingNoticeFile>[];
+
+  /** Not a column: 0 or 1, filled by loadRelationCountAndMap. */
+  noticeFileCount?: number;
 }

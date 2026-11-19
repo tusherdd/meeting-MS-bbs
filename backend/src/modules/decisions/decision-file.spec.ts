@@ -1,5 +1,7 @@
 import sharp from 'sharp';
 import {
+  DOCX_MIME,
+  mayOpenInline,
   contentDisposition,
   decodeUploadName,
   detectDecisionType,
@@ -8,6 +10,15 @@ import {
   processDecisionFile,
   sanitizeFileName,
 } from './decision-file';
+import { checkDocx } from './docx';
+import {
+  docm,
+  docx,
+  docxWithVba,
+  legacyDoc,
+  plainZip,
+  renamedExe,
+} from './docx.fixture-spec';
 
 const PDF = Buffer.from(
   '%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n',
@@ -43,7 +54,7 @@ describe('decision file type sniffing (magic bytes)', () => {
     );
   });
 
-  it('rejects other types even with an allowed name (HTML, WebP, ZIP)', async () => {
+  it('rejects other types even with an allowed name (HTML, WebP, a broken ZIP)', async () => {
     for (const bytes of [
       Buffer.from('<html><script>alert(1)</script></html>'),
       Buffer.from('RIFF\x00\x00\x00\x00WEBPVP8 ', 'latin1'),
@@ -103,8 +114,8 @@ describe('file names', () => {
   });
 
   it('keeps Bangla names (with ZWNJ / ZWJ) and gives a default when empty', () => {
-    expect(sanitizeFileName('সভার সিদ্ধান্ত.pdf', '.pdf')).toBe(
-      'সভার সিদ্ধান্ত.pdf',
+    expect(sanitizeFileName('সভার কার্যবিবরণী.pdf', '.pdf')).toBe(
+      'সভার কার্যবিবরণী.pdf',
     );
     expect(sanitizeFileName('...', '.png')).toBe('decision.png');
     expect(sanitizeFileName(undefined, '.pdf')).toBe('decision.pdf');
@@ -133,5 +144,68 @@ describe('file names', () => {
     expect(contentDisposition('minutes.pdf', true)).toBe(
       `inline; filename="minutes.pdf"; filename*=UTF-8''minutes.pdf`,
     );
+  });
+});
+
+describe('DOCX by the bytes (v1.13)', () => {
+  it('a valid DOCX is accepted, stored unchanged, with the DOCX type and extension', async () => {
+    const bytes = docx();
+    expect(checkDocx(bytes)).toBe('docx');
+    expect(detectDecisionType(bytes)).toBe('docx');
+    const result = await processDecisionFile(bytes);
+    expect(result).toMatchObject({
+      type: 'docx',
+      mime: DOCX_MIME,
+      extension: '.docx',
+    });
+    expect(result.content.equals(bytes)).toBe(true);
+    expect(result.sha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('a macro-enabled file (DOCM) is rejected as "macro"', async () => {
+    expect(checkDocx(docm())).toBe('macro');
+    await expect(processDecisionFile(docm())).rejects.toEqual(
+      new DecisionFileError('macro'),
+    );
+  });
+
+  it('a DOCX with a hidden vbaProject.bin is rejected as "macro"', async () => {
+    expect(checkDocx(docxWithVba())).toBe('macro');
+    await expect(processDecisionFile(docxWithVba())).rejects.toEqual(
+      new DecisionFileError('macro'),
+    );
+  });
+
+  it('legacy .doc (OLE) is rejected as the wrong type', async () => {
+    expect(detectDecisionType(legacyDoc())).toBeNull();
+    await expect(processDecisionFile(legacyDoc())).rejects.toEqual(
+      new DecisionFileError('type'),
+    );
+  });
+
+  it('a renamed .exe is rejected as the wrong type', async () => {
+    expect(detectDecisionType(renamedExe())).toBeNull();
+    await expect(processDecisionFile(renamedExe())).rejects.toEqual(
+      new DecisionFileError('type'),
+    );
+  });
+
+  it('a ZIP that is not a Word file is the wrong type; a cut-off ZIP is unreadable', async () => {
+    expect(checkDocx(plainZip())).toBe('notDocx');
+    await expect(processDecisionFile(plainZip())).rejects.toEqual(
+      new DecisionFileError('type'),
+    );
+    const cut = docx().subarray(0, 60);
+    expect(checkDocx(cut)).toBe('broken');
+    await expect(processDecisionFile(cut)).rejects.toEqual(
+      new DecisionFileError('unreadable'),
+    );
+  });
+
+  it('only PDF and images may open inline; a DOCX is always downloaded', () => {
+    expect(mayOpenInline('application/pdf')).toBe(true);
+    expect(mayOpenInline('image/jpeg')).toBe(true);
+    expect(mayOpenInline('image/png')).toBe(true);
+    expect(mayOpenInline(DOCX_MIME)).toBe(false);
   });
 });

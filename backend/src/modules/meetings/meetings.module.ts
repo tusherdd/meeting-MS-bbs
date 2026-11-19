@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DecisionStorageModule } from '../decisions/decision-storage.service';
-import { PdfModule } from '../reports/pdf/pdf.module';
 import { User } from '../users/entities/user.entity';
 import { ConflictEngineService } from './conflict-engine.service';
 import { ConflictsController } from './conflicts.controller';
@@ -14,7 +13,6 @@ import { MeetingNotifierService } from './meeting-notifier.service';
 import { MeetingSchedulerService } from './meeting-scheduler.service';
 import { MeetingsController } from './meetings.controller';
 import { MeetingsService } from './meetings.service';
-import { MeetingNoticeService } from './notice/meeting-notice.service';
 
 @Module({
   imports: [
@@ -25,7 +23,6 @@ import { MeetingNoticeService } from './notice/meeting-notice.service';
       MeetingGuest,
       User,
     ]),
-    PdfModule,
     DecisionStorageModule,
   ],
   controllers: [MeetingsController, ConflictsController],
@@ -35,7 +32,6 @@ import { MeetingNoticeService } from './notice/meeting-notice.service';
     MeetingNotifierService,
     ConflictsService,
     MeetingSchedulerService,
-    MeetingNoticeService,
   ],
   exports: [MeetingsService],
 })

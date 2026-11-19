@@ -47,6 +47,15 @@ function ClashList({ clashes, blocking }: { clashes: Clash[]; blocking: boolean 
   );
 }
 
+/**
+ * Which lead of this meeting is busy (SPEC.md §6.4, v1.13). A clash without `blockedBy` (older
+ * backend) counts as the organizer.
+ */
+export function blockedRoles(clashes: readonly Clash[]): { organizer: boolean; chair: boolean } {
+  const roles = clashes.flatMap((c) => (c.blockedBy?.length ? c.blockedBy : ["ORGANIZER"]));
+  return { organizer: roles.includes("ORGANIZER"), chair: roles.includes("CHAIR") };
+}
+
 /** The three states of the live conflict check (plus idle / checking / error). */
 export function ConflictPanel({ state }: { state: ConflictCheckState }) {
   const t = useT();
@@ -97,7 +106,13 @@ export function ConflictPanel({ state }: { state: ConflictCheckState }) {
           {state.meanwhile && (
             <p className="mt-1 text-sm font-medium">{t.conflictPanel.takenMeanwhile}</p>
           )}
-          <p className="mt-1 text-sm">{t.conflictPanel.blockedBody}</p>
+          {/* v1.13: the organizer and/or the internal chair may be the busy lead. */}
+          {blockedRoles(state.clashes).organizer && (
+            <p className="mt-1 text-sm">{t.conflictPanel.blockedBody}</p>
+          )}
+          {blockedRoles(state.clashes).chair && (
+            <p className="mt-1 text-sm">{t.conflictPanel.blockedBodyChair}</p>
+          )}
           <ClashList clashes={state.clashes} blocking />
         </div>
       )}

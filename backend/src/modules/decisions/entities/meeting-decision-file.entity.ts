@@ -11,7 +11,7 @@ import { Meeting } from '../../meetings/entities/meeting.entity';
 import { User } from '../../users/entities/user.entity';
 
 /**
- * A meeting decision file ("সভা সিদ্ধান্ত", v1.11, SPEC.md §6.9): a PDF, JPEG or PNG uploaded by one
+ * A meeting decision file ("সভা কার্যবিবরণী", v1.11, SPEC.md §6.9): a PDF, DOCX (v1.13), JPEG or PNG uploaded by one
  * of the meeting's people after the meeting started. The bytes live on disk under
  * DECISION_UPLOAD_DIR/<meetingId>/<storedName> (never served statically); only the metadata is
  * stored here. Deleting the meeting deletes the rows (CASCADE); the service removes the files.
@@ -43,8 +43,8 @@ export class MeetingDecisionFile extends BaseEntity {
   @Column({ type: 'varchar', length: 64 })
   storedName!: string;
 
-  /** Detected from the bytes: application/pdf, image/jpeg or image/png. */
-  @Column({ type: 'varchar', length: 50 })
+  /** Detected from the bytes: PDF, DOCX (v1.13; its type is 71 characters long), JPEG or PNG. */
+  @Column({ type: 'varchar', length: 100 })
   mime!: string;
 
   /** Stored size in bytes (after image metadata was stripped). */

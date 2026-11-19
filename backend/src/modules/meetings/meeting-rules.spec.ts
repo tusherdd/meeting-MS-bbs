@@ -8,6 +8,8 @@ import {
   meetingPeople,
   meetingPriority,
   organizerIsBusy,
+  blockedRoles,
+  blockingRole,
   overlaps,
   timeProblems,
   type CandidateMeeting,
@@ -50,7 +52,7 @@ function decide(
   checkOrganizer = true,
 ) {
   const { warnings, blocking } = classifyClashes(
-    c.organizerId,
+    c,
     findClashes(c, list),
     checkOrganizer,
   );
@@ -252,6 +254,77 @@ describe('conflict engine rule table (SPEC.md §6.4, v1.12: warn, do not block)'
       ],
     );
     expect(result.conflictRows).toEqual(['E1:a', 'E1:b', 'E2:c']);
+  });
+});
+
+describe('lead rule for the internal chair (SPEC.md §6.4, v1.13)', () => {
+  const withChair = (overrides: Partial<CandidateMeeting> = {}) =>
+    candidate({
+      chairId: 'n-chair',
+      peopleIds: ['n-organizer', 'n-chair'],
+      ...overrides,
+    });
+
+  it('a chair who ORGANIZES another overlapping meeting is blocked', () => {
+    const result = decide(withChair(), [
+      existing({ id: 'C', organizerId: 'n-chair', peopleIds: ['n-chair'] }),
+    ]);
+    expect(result).toMatchObject({ saved: false, blockingIds: ['C'] });
+  });
+
+  it('a chair who CHAIRS another overlapping meeting is blocked', () => {
+    const result = decide(withChair(), [
+      existing({ id: 'C', chairId: 'n-chair', peopleIds: ['x', 'n-chair'] }),
+    ]);
+    expect(result).toMatchObject({ saved: false, blockingIds: ['C'] });
+  });
+
+  it('a chair who is only a MEMBER elsewhere just warns', () => {
+    const result = decide(withChair(), [
+      existing({ id: 'M', peopleIds: ['e-organizer', 'n-chair'] }),
+    ]);
+    expect(result).toMatchObject({
+      saved: true,
+      blockingIds: [],
+      warningIds: ['M'],
+    });
+  });
+
+  it('not checked when the edit changes neither the time nor the chair', () => {
+    const result = decide(
+      withChair(),
+      [existing({ id: 'C', organizerId: 'n-chair', peopleIds: ['n-chair'] })],
+      false,
+    );
+    expect(result).toMatchObject({ saved: true, warningIds: ['C'] });
+  });
+
+  it('blockedBy names the busy role(s); organizer first in the message', () => {
+    const e = { organizerId: 'n-chair', chairId: 'n-organizer' };
+    expect(
+      blockedRoles({ organizerId: 'n-organizer', chairId: 'n-chair' }, e),
+    ).toEqual(['ORGANIZER', 'CHAIR']);
+    expect(blockedRoles({ organizerId: 'a', chairId: 'n-chair' }, e)).toEqual([
+      'CHAIR',
+    ]);
+    // A chair who is the organizer counts once, as ORGANIZER; a guest chair (null) is never checked.
+    expect(
+      blockedRoles({ organizerId: 'n-chair', chairId: 'n-chair' }, e),
+    ).toEqual(['ORGANIZER']);
+    expect(blockedRoles({ organizerId: 'a', chairId: null }, e)).toEqual([]);
+
+    const { blocking } = classifyClashes(
+      { organizerId: 'a', chairId: 'n-chair' },
+      findClashes(
+        withChair({ organizerId: 'a', peopleIds: ['a', 'n-chair'] }),
+        [existing({ id: 'C', organizerId: 'n-chair', peopleIds: ['n-chair'] })],
+      ),
+    );
+    expect(blocking.map((b) => b.blockedBy)).toEqual([['CHAIR']]);
+    expect(blockingRole(blocking)).toBe('CHAIR');
+    expect(
+      blockingRole([{ blockedBy: ['CHAIR'] }, { blockedBy: ['ORGANIZER'] }]),
+    ).toBe('ORGANIZER');
   });
 });
 

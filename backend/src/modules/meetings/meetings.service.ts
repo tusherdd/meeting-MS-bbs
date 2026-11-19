@@ -18,6 +18,8 @@ import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/enums/audit-action.enum';
 import { DecisionStorageService } from '../decisions/decision-storage.service';
 import { decisionStatus } from '../decisions/decision-rules';
+import { MeetingNoticeFile } from '../notices/entities/meeting-notice-file.entity';
+import { noticeDto } from '../notices/notice-view';
 import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
 import {
@@ -57,6 +59,7 @@ import {
   type MeetingInfo,
 } from './meeting-notifier.service';
 import {
+  blockingRole,
   candidateIsLower,
   conflictNoticeRecipients,
   meetingPeople,
@@ -167,12 +170,14 @@ export class MeetingsService {
         chairId,
       );
       await this.engine.lockPeople(manager, people);
-      // SPEC.md §6.4 (v1.12): only the organizer rule blocks; everything else is a warning.
+      // SPEC.md §6.4: only the lead rule (organizer or internal chair busy leading another
+      // meeting) blocks; everything else is a warning.
       const { warnings, blocking } = await this.engine.evaluate(manager, {
         startAt,
         endAt,
         priority,
         organizerId: actor.id,
+        chairId,
         peopleIds: people,
       });
       if (blocking.length > 0)
@@ -338,10 +343,11 @@ export class MeetingsService {
         : meeting.priority;
       const priorityChanged = priority !== meeting.priority;
 
-      // SPEC.md §6.4: the engine re-runs when the time, the people or the priority change.
-      // v1.12: the organizer rule blocks only when the edit moves the meeting to a new time.
+      // SPEC.md §6.4: the engine re-runs when the time, the people, the chair or the priority
+      // change. v1.13: the lead rule (organizer AND internal chair) blocks when the edit changes
+      // the time OR the chair.
       let warnings: Clash<LoadedMeeting>[] = [];
-      if (timeChanged || peopleChanged || priorityChanged) {
+      if (timeChanged || peopleChanged || priorityChanged || chairChanged) {
         await this.engine.lockPeople(manager, [...oldPeople, ...newPeople]);
         const result = await this.engine.evaluate(
           manager,
@@ -351,9 +357,10 @@ export class MeetingsService {
             endAt,
             priority,
             organizerId: meeting.organizerId,
+            chairId,
             peopleIds: newPeople,
           },
-          timeChanged,
+          timeChanged || chairChanged,
         );
         if (result.blocking.length > 0) {
           throw await this.blockingError(manager, actor, result.blocking);
@@ -666,6 +673,9 @@ export class MeetingsService {
         ? storedChair.priority
         : await this.priorityFor(manager, organizerPriority, chairId);
 
+    // v1.13: the lead rule applies on create and when the time or the chair changes.
+    const chairChanged =
+      !storedChair || (storedChair.chairId ?? null) !== chairId;
     const { warnings, blocking } = await this.engine.evaluate(
       manager,
       {
@@ -674,9 +684,10 @@ export class MeetingsService {
         endAt,
         priority,
         organizerId,
+        chairId,
         peopleIds: people,
       },
-      moved,
+      moved || chairChanged,
     );
     return {
       allowed: blocking.length === 0,
@@ -708,8 +719,14 @@ export class MeetingsService {
       .innerJoin('m.decisionFiles', 'f')
       .where('m.id = :id', { id })
       .getCount();
+    // v1.13: the uploaded notice "সভার নোটিশ" (SPEC.md §6.8).
+    const notice = await this.dataSource
+      .getRepository(MeetingNoticeFile)
+      .findOne({ where: { meetingId: id }, relations: { uploadedBy: true } });
+    meeting.noticeFileCount = notice ? 1 : 0;
     return {
       ...this.summary(meeting, actor),
+      notice: notice ? noticeDto(notice, meeting, actor.id) : null,
       agenda: meeting.agenda,
       chair: meeting.chair ? personDto(meeting.chair) : null,
       guests: sortGuests(meeting.guests).map((g) => ({
@@ -1171,7 +1188,10 @@ export class MeetingsService {
     blocking: Clash<LoadedMeeting>[],
   ): Promise<ConflictException> {
     return new ConflictException({
-      message: MSG.blocking,
+      message:
+        blockingRole(blocking) === 'ORGANIZER'
+          ? MSG.blocking
+          : MSG.chairBlocking,
       blocking: await this.clashDtos(manager, actor, blocking),
     });
   }
@@ -1203,6 +1223,7 @@ export class MeetingsService {
         wing: c.meeting.organizerWingBn,
         wingEn: c.meeting.organizerWingEn,
       },
+      blockedBy: c.blockedBy ?? [],
       sharedOfficers: c.sharedPeopleIds.map((id) => ({
         id,
         nameBn: names.get(id)?.bn ?? '—',
@@ -1337,7 +1358,9 @@ export class MeetingsService {
       .leftJoinAndSelect('o.designation', 'od')
       .leftJoinAndSelect('o.wing', 'ow')
       // v1.11: decision status (SPEC.md §6.9) for every listed meeting.
-      .loadRelationCountAndMap('m.decisionFileCount', 'm.decisionFiles');
+      .loadRelationCountAndMap('m.decisionFileCount', 'm.decisionFiles')
+      // v1.13: does it have an uploaded notice (row menu "সভার নোটিশ")?
+      .loadRelationCountAndMap('m.noticeFileCount', 'm.noticeFiles');
     if (scope === 'mine') {
       qb.where(
         new Brackets((b) =>
@@ -1387,6 +1410,7 @@ export class MeetingsService {
       myRole: m.participants?.find((p) => p.userId === actor.id)?.role ?? null,
       decisionFileCount: m.decisionFileCount ?? 0,
       decisionStatus: decisionStatus(m, m.decisionFileCount ?? 0),
+      hasNotice: (m.noticeFileCount ?? 0) > 0,
     };
   }
 
@@ -1408,6 +1432,16 @@ export class MeetingsService {
       r.higherMeetingId === meetingId ? r.lowerMeetingId : r.higherMeetingId,
     );
     const visible = await this.visibleMeetingIds(actor, otherIds);
+    const withNotice = new Set(
+      otherIds.length
+        ? (
+            await this.dataSource.getRepository(MeetingNoticeFile).find({
+              select: { meetingId: true },
+              where: { meetingId: In(otherIds) },
+            })
+          ).map((n) => n.meetingId)
+        : [],
+    );
     return rows.map((r) => {
       const isHigher = r.higherMeetingId === meetingId;
       const other = isHigher ? r.lowerMeeting : r.higherMeeting;
@@ -1429,6 +1463,7 @@ export class MeetingsService {
           organizerWingEn: other.organizer.wing?.nameEn ?? null,
           organizedByMe: other.organizerId === actor.id,
           chairedByMe: other.chairId === actor.id,
+          hasNotice: withNotice.has(other.id),
         },
         officer: {
           id: r.user.id,

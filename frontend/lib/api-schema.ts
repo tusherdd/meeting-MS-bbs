@@ -677,7 +677,7 @@ export interface paths {
         put?: never;
         /**
          * Create a meeting (you are the organizer; priority = your designation priority now)
-         * @description Conflict rule (v1.12): the ONLY blocking clash is the organizer rule: the organizer is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (on edit only when the time changes; priority plays no role). Every other overlap that shares an officer (chair, members, the organizer as a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.
+         * @description Conflict rule (v1.12, extended in v1.13): the ONLY blocking clash is the lead rule: the meeting's organizer OR its internal chair is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (checked on create and on every edit that changes the time or the chair; priority plays no role; the message names the role: TIME_CONFLICT_BLOCKING for the organizer, TIME_CONFLICT_CHAIR_BLOCKING for the chair). Every other overlap that shares an officer (members, a lead who is only a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.
          */
         post: operations["MeetingsController_create"];
         delete?: never;
@@ -697,7 +697,7 @@ export interface paths {
         put?: never;
         /**
          * Dry run of the conflict engine (nothing is saved)
-         * @description Conflict rule (v1.12): the ONLY blocking clash is the organizer rule: the organizer is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (on edit only when the time changes; priority plays no role). Every other overlap that shares an officer (chair, members, the organizer as a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash. When editing, send `meetingId`.
+         * @description Conflict rule (v1.12, extended in v1.13): the ONLY blocking clash is the lead rule: the meeting's organizer OR its internal chair is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (checked on create and on every edit that changes the time or the chair; priority plays no role; the message names the role: TIME_CONFLICT_BLOCKING for the organizer, TIME_CONFLICT_CHAIR_BLOCKING for the chair). Every other overlap that shares an officer (members, a lead who is only a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash. When editing, send `meetingId`.
          */
         post: operations["MeetingsController_checkConflicts"];
         delete?: never;
@@ -723,29 +723,9 @@ export interface paths {
         head?: never;
         /**
          * Update (organizer, internal chair or ADMIN; not after the meeting ended)
-         * @description Re-runs the engine when time or people change. Conflict rule (v1.12): the ONLY blocking clash is the organizer rule: the organizer is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (on edit only when the time changes; priority plays no role). Every other overlap that shares an officer (chair, members, the organizer as a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.
+         * @description Re-runs the engine when time or people change. Conflict rule (v1.12, extended in v1.13): the ONLY blocking clash is the lead rule: the meeting's organizer OR its internal chair is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (checked on create and on every edit that changes the time or the chair; priority plays no role; the message names the role: TIME_CONFLICT_BLOCKING for the organizer, TIME_CONFLICT_CHAIR_BLOCKING for the chair). Every other overlap that shares an officer (members, a lead who is only a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.
          */
         patch: operations["MeetingsController_update"];
-        trace?: never;
-    };
-    "/api/v1/meetings/{id}/notice.pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Meeting notice "সভার নোটিশ" as PDF (v1.10)
-         * @description A4, always Bangla (Bangla digits), no logo. Signed by the user who exports it; distribution list = every internal officer by designation priority, then the guest officers. Allowed for the meeting's people and admins; not for cancelled meetings. File name `meeting-notice-YYYY-MM-DD-<shortid>.pdf`. Audited as MEETING_NOTICE_EXPORTED.
-         */
-        get: operations["MeetingsController_noticePdf"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/v1/meetings/{id}/cancel": {
@@ -884,7 +864,7 @@ export interface paths {
         put?: never;
         /**
          * Upload decision files (organizer, chair, members; after the start)
-         * @description PDF, JPEG or PNG only, checked by their bytes; max 10 MB each, max 10 per meeting. Image metadata is removed. Not before the start, never for cancelled meetings. Organizer and chair (not the uploader) get a bell notification. Audited per file.
+         * @description PDF, DOCX (no macros; v1.13), JPEG or PNG only, checked by their bytes; max 10 MB each, max 10 per meeting. Image metadata is removed. Not before the start, never for cancelled meetings. Organizer and chair (not the uploader) get a bell notification. Audited per file.
          */
         post: operations["DecisionsController_upload"];
         delete?: never;
@@ -901,8 +881,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Download (or with ?inline=true open) one decision file
-         * @description The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition.
+         * Download (or with ?inline=true open) one minutes file
+         * @description The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition. A DOCX is always an attachment.
          */
         get: operations["DecisionsController_download"];
         put?: never;
@@ -912,6 +892,34 @@ export interface paths {
          * @description Deleting the last file makes the decision Pending again. Audited.
          */
         delete: operations["DecisionsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meetings/{id}/notice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download (PDF / image: or with ?inline=true open) the meeting notice
+         * @description The meeting's people and admins, also for cancelled meetings. A DOCX is always an attachment. Sent with nosniff, no-store and a safe Content-Disposition.
+         */
+        get: operations["NoticesController_download"];
+        put?: never;
+        /**
+         * Upload or replace the meeting notice (organizer only)
+         * @description One file per meeting: a new upload replaces the old one. PDF, DOCX (no macros), JPEG or PNG, checked by the bytes (legacy .doc and everything else refused); max 10 MB; image metadata removed. Only the organizer (not the chair, not admins); not for cancelled meetings. Audited (MEETING_NOTICE_UPLOADED / MEETING_NOTICE_REPLACED).
+         */
+        post: operations["NoticesController_upload"];
+        /**
+         * Remove the meeting notice (organizer only)
+         * @description Not for cancelled meetings. Audited (MEETING_NOTICE_REMOVED).
+         */
+        delete: operations["NoticesController_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1057,7 +1065,7 @@ export interface components {
              * @example MEETING_CREATE
              * @enum {string}
              */
-            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
             /** @example meeting */
             entityType: string;
             entityId: string | null;
@@ -1880,12 +1888,17 @@ export interface components {
              */
             myRole: "ORGANIZER" | "CHAIR" | "MEMBER" | null;
             /**
-             * @description v1.11: number of decision files ("সভা সিদ্ধান্ত")
+             * @description v1.11: number of decision files ("সভা কার্যবিবরণী")
              * @example 0
              */
             decisionFileCount: number;
             /** @description v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started */
             decisionStatus: components["schemas"]["DecisionStatus"] | null;
+            /**
+             * @description v1.13: the meeting has an uploaded notice "সভার নোটিশ" (GET /meetings/:id/notice)
+             * @example false
+             */
+            hasNotice: boolean;
         };
         MeetingGuestInputDto: {
             /** @example ড. ফারহানা ইসলাম */
@@ -1975,6 +1988,11 @@ export interface components {
             /** @example Md. Karim Uddin */
             nameEn: string;
         };
+        /**
+         * @description v1.13: on blocking clashes, which lead of THIS meeting (its organizer and/or its internal chair) already organizes or chairs the other meeting; empty on warnings
+         * @enum {string}
+         */
+        BlockedRole: "ORGANIZER" | "CHAIR";
         ClashDto: {
             /** Format: uuid */
             meetingId: string;
@@ -1997,6 +2015,13 @@ export interface components {
             organizer: components["schemas"]["ClashOrganizerDto"];
             /** @description Officers who are in both meetings */
             sharedOfficers: components["schemas"]["OfficerRefDto"][];
+            /**
+             * @description v1.13: on blocking clashes, which lead of THIS meeting (its organizer and/or its internal chair) already organizes or chairs the other meeting; empty on warnings
+             * @example [
+             *       "CHAIR"
+             *     ]
+             */
+            blockedBy: components["schemas"]["BlockedRole"][];
         };
         CheckConflictsResponseDto: {
             /**
@@ -2099,6 +2124,11 @@ export interface components {
              * @example false
              */
             chairedByMe: boolean;
+            /**
+             * @description v1.13: the meeting has an uploaded notice "সভার নোটিশ"
+             * @example false
+             */
+            hasNotice: boolean;
         };
         MeetingConflictDto: {
             /** Format: uuid */
@@ -2114,6 +2144,39 @@ export interface components {
             officer: components["schemas"]["OfficerRefDto"];
             /** Format: date-time */
             resolvedAt: string | null;
+        };
+        NoticeUploaderDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example মোঃ রহিম */
+            nameBn: string;
+            /** @example Md. Rahim */
+            nameEn: string;
+        };
+        NoticeFileDto: {
+            /**
+             * @description Sanitized original name
+             * @example সভার নোটিশ.pdf
+             */
+            originalName: string;
+            /**
+             * @description Detected from the bytes: application/pdf, the DOCX type, image/jpeg or image/png
+             * @example application/pdf
+             */
+            mime: string;
+            /**
+             * @description Size in bytes
+             * @example 182044
+             */
+            size: number;
+            /** Format: date-time */
+            uploadedAt: string;
+            uploadedBy: components["schemas"]["NoticeUploaderDto"];
+            /**
+             * @description I may replace or remove it (the organizer; not for cancelled meetings)
+             * @example true
+             */
+            canManage: boolean;
         };
         MeetingDetailDto: {
             /** Format: uuid */
@@ -2142,12 +2205,17 @@ export interface components {
              */
             myRole: "ORGANIZER" | "CHAIR" | "MEMBER" | null;
             /**
-             * @description v1.11: number of decision files ("সভা সিদ্ধান্ত")
+             * @description v1.11: number of decision files ("সভা কার্যবিবরণী")
              * @example 0
              */
             decisionFileCount: number;
             /** @description v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started */
             decisionStatus: components["schemas"]["DecisionStatus"] | null;
+            /**
+             * @description v1.13: the meeting has an uploaded notice "সভার নোটিশ" (GET /meetings/:id/notice)
+             * @example false
+             */
+            hasNotice: boolean;
             agenda: string | null;
             /** @description Internal chair (null when the chair is a guest, see guests[].isChair) */
             chair: components["schemas"]["PersonDto"] | null;
@@ -2162,6 +2230,8 @@ export interface components {
             /** Format: date-time */
             completedAt: string | null;
             conflicts: components["schemas"]["MeetingConflictDto"][];
+            /** @description v1.13: the uploaded notice "সভার নোটিশ" (null = none); `canManage` = I may replace / remove it */
+            notice: components["schemas"]["NoticeFileDto"] | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -2207,16 +2277,16 @@ export interface components {
             /** @example 409 */
             statusCode: number;
             /**
-             * @description Bangla by default; English with Accept-Language: en ("The organizer is already the organizer or chair of another meeting at this time.")
+             * @description Bangla by default; English with Accept-Language: en. Organizer busy: "The organizer is already the organizer or chair of another meeting at this time." (TIME_CONFLICT_BLOCKING); only the chair busy (v1.13): "The chair is already the organizer or chair of another meeting at this time." (TIME_CONFLICT_CHAIR_BLOCKING)
              * @example আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।
              */
             message: string;
             /** @example Conflict */
             error: string;
-            /** @description Meetings where the organizer is already the organizer or internal chair at this time */
+            /** @description Meetings where the organizer or the internal chair is already the organizer or internal chair at this time */
             blocking: components["schemas"]["ClashDto"][];
             /**
-             * @description Stable message code (v1.6)
+             * @description Stable message code (v1.6): TIME_CONFLICT_BLOCKING or TIME_CONFLICT_CHAIR_BLOCKING (v1.13)
              * @example TIME_CONFLICT_BLOCKING
              */
             code: string;
@@ -2309,7 +2379,7 @@ export interface components {
             id: string;
             /**
              * @description Sanitized original name; the extension follows the detected type
-             * @example সভার সিদ্ধান্ত.pdf
+             * @example সভার কার্যবিবরণী.pdf
              */
             originalName: string;
             /** @enum {string} */
@@ -2346,6 +2416,13 @@ export interface components {
         DecisionUploadDto: {
             /** @description PDF, JPEG or PNG (checked by their bytes), max 10 MB each, max 10 per meeting. Image metadata (EXIF) is removed. */
             files: string[];
+        };
+        NoticeUploadDto: {
+            /**
+             * Format: binary
+             * @description One PDF, DOCX (no macros), JPEG or PNG file, max 10 MB
+             */
+            file: string;
         };
         PeriodDto: {
             /**
@@ -2473,10 +2550,15 @@ export interface components {
             /** @description Guest officers (listed only, never counted) */
             guests: components["schemas"]["ReportGuestDto"][];
             /**
-             * @description v1.11: number of decision files ("সভা সিদ্ধান্ত")
+             * @description v1.11: number of decision files ("সভা কার্যবিবরণী")
              * @example 0
              */
             decisionFileCount: number;
+            /**
+             * @description v1.13: the meeting has an uploaded notice ("সভার নোটিশ")
+             * @example false
+             */
+            hasNotice: boolean;
         };
         ReportMeetingPageDto: {
             items: components["schemas"]["ReportMeetingDto"][];
@@ -2661,7 +2743,7 @@ export interface operations {
                 limit?: number;
                 /** @description Who did it */
                 actorId?: string;
-                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
                 /** @description user, meeting, designation, change_request, … */
                 entityType?: string;
                 /** @description Id of the changed record */
@@ -4527,59 +4609,6 @@ export interface operations {
             };
         };
     };
-    MeetingsController_noticePdf: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
-                "Accept-Language"?: "bn" | "en";
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description A4 PDF (Bangla), downloaded as an attachment */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/pdf": string;
-                };
-            };
-            /** @description Not one of the meeting’s people and not an admin */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Meeting not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The meeting is cancelled */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description PDF rendering took longer than 30 s */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     MeetingsController_cancel: {
         parameters: {
             query?: never;
@@ -4903,6 +4932,7 @@ export interface operations {
                 };
                 content: {
                     "application/pdf": string;
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
                     "image/jpeg": string;
                     "image/png": string;
                 };
@@ -4954,6 +4984,158 @@ export interface operations {
             };
             /** @description Meeting or file not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_download: {
+        parameters: {
+            query?: {
+                /** @description true = open a PDF or image in the browser (Content-Disposition: inline); a DOCX is always an attachment */
+                inline?: boolean;
+            };
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
+                    "image/jpeg": string;
+                    "image/png": string;
+                };
+            };
+            /** @description Not one of the meeting’s people / not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting not found or it has no notice */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_upload: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["NoticeUploadDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeFileDto"];
+                };
+            };
+            /** @description No file, wrong type, macro-enabled Word file, unreadable */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not the organizer */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting cancelled */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description File larger than 10 MB */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_remove: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not the organizer */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting not found or it has no notice */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting cancelled */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -63,19 +63,20 @@ export interface IncomingFile {
 
 const LEAD_ROLES = [ParticipantRole.ORGANIZER, ParticipantRole.CHAIR];
 
-/** Bell text (always Bangla, SPEC.md §6.9). */
+/** Bell text (always Bangla, SPEC.md §6.9; "কার্যবিবরণী" since v1.13). */
 export function decisionUploadedNotice(meeting: { id: string; title: string }) {
   return {
     type: NotificationType.MEETING_DECISION_UPLOADED,
-    title: `সভা সিদ্ধান্ত: ${meeting.title}`,
-    body: `"${meeting.title}" সভার সিদ্ধান্ত আপলোড করা হয়েছে।`,
+    title: `সভা কার্যবিবরণী: ${meeting.title}`,
+    body: `"${meeting.title}" সভার কার্যবিবরণী আপলোড করা হয়েছে।`,
     link: `/meetings/${meeting.id}/decision`,
   };
 }
 
 /**
- * Meeting decisions ("সভা সিদ্ধান্ত", v1.11, SPEC.md §6.9): upload, list, download and delete
- * decision files, plus the per-user Pending / Complete lists and counts.
+ * Meeting minutes ("সভা কার্যবিবরণী"; v1.11 as "decisions", renamed in v1.13; SPEC.md §6.9):
+ * upload, list, download and delete minutes files, plus the per-user Pending / Complete lists
+ * and counts. Code names keep "decision".
  */
 @Injectable()
 export class DecisionsService {
@@ -207,7 +208,9 @@ export class DecisionsService {
           throw new BadRequestException(
             err.reason === 'type'
               ? MSG.badType(shownName)
-              : MSG.unreadable(shownName),
+              : err.reason === 'macro'
+                ? MSG.macro(shownName)
+                : MSG.unreadable(shownName),
           );
         }
         throw err;
@@ -401,6 +404,7 @@ export class DecisionsService {
       .leftJoinAndSelect('o.designation', 'od')
       .leftJoinAndSelect('o.wing', 'ow')
       .loadRelationCountAndMap('m.decisionFileCount', 'm.decisionFiles')
+      .loadRelationCountAndMap('m.noticeFileCount', 'm.noticeFiles')
       .orderBy('m.startAt', 'DESC')
       .addOrderBy('m.id', 'ASC')
       .skip(query.skip)

@@ -70,8 +70,13 @@ export interface CandidateMeeting extends TimeRange {
   /** Set on update: the meeting never clashes with itself. */
   id?: string;
   priority: number;
-  /** N's organizer: the only person whose own schedule can block N (v1.12). */
+  /** N's organizer: their own schedule can block N (v1.12). */
   organizerId: string;
+  /**
+   * N's internal chair (an officer; null for a guest chair or none). Since v1.13 the chair's
+   * own schedule blocks N too.
+   */
+  chairId?: string | null;
   peopleIds: readonly string[];
 }
 
@@ -86,10 +91,15 @@ export interface ExistingMeeting extends TimeRange {
   peopleIds: readonly string[];
 }
 
+/** Which lead of N is busy in a blocking clash (v1.13). */
+export type BlockedRole = 'ORGANIZER' | 'CHAIR';
+
 export interface Clash<M extends ExistingMeeting = ExistingMeeting> {
   meeting: M;
   /** People in BOTH meetings (sorted). */
   sharedPeopleIds: string[];
+  /** Set on blocking clashes only: N's organizer and/or N's chair lead E (v1.13). */
+  blockedBy?: BlockedRole[];
 }
 
 /**
@@ -115,45 +125,83 @@ export function findClashes<M extends ExistingMeeting>(
 }
 
 /**
- * The organizer rule (SPEC.md §6.4, v1.12): N's organizer is the ORGANIZER or the INTERNAL
- * CHAIR of the overlapping meeting E. Priority plays no role. Being only a member of E is not
- * blocking.
+ * True when `personId` is the ORGANIZER or the INTERNAL CHAIR of the meeting (SPEC.md §6.4).
+ * Being only a member of it is not leading it.
  */
+export function leads(
+  personId: string,
+  meeting: Pick<ExistingMeeting, 'organizerId' | 'chairId'>,
+): boolean {
+  return meeting.organizerId === personId || meeting.chairId === personId;
+}
+
+/** v1.12 name of `leads` for N's organizer (kept for readability at call sites and tests). */
 export function organizerIsBusy(
   candidateOrganizerId: string,
   meeting: Pick<ExistingMeeting, 'organizerId' | 'chairId'>,
 ): boolean {
-  return (
-    meeting.organizerId === candidateOrganizerId ||
-    meeting.chairId === candidateOrganizerId
-  );
+  return leads(candidateOrganizerId, meeting);
+}
+
+/**
+ * The lead rule (SPEC.md §6.4; v1.12 for the organizer, v1.13 also for the internal chair):
+ * nobody may be organizer or chair of two overlapping SCHEDULED meetings. Returns which of N's
+ * leads is busy in E (empty = not blocking). A chair who is also N's organizer counts once,
+ * as ORGANIZER. A guest chair has no account and is never checked.
+ */
+export function blockedRoles(
+  candidate: Pick<CandidateMeeting, 'organizerId' | 'chairId'>,
+  meeting: Pick<ExistingMeeting, 'organizerId' | 'chairId'>,
+): BlockedRole[] {
+  const roles: BlockedRole[] = [];
+  if (leads(candidate.organizerId, meeting)) roles.push('ORGANIZER');
+  const chair = candidate.chairId ?? null;
+  if (chair && chair !== candidate.organizerId && leads(chair, meeting))
+    roles.push('CHAIR');
+  return roles;
 }
 
 export interface Classification<M extends ExistingMeeting> {
   /** Never blocked, whatever the priorities: N is saved, a duplicate-meeting record is kept. */
   warnings: Clash<M>[];
-  /** The organizer rule: N must not be saved (409). */
+  /** The lead rule: N must not be saved (409). Each clash carries `blockedBy`. */
   blocking: Clash<M>[];
 }
 
 /**
- * SPEC.md §6.4 (v1.12): the ONLY blocking clash is the organizer rule (`organizerIsBusy`),
- * checked on create and when an edit moves the meeting (`checkOrganizer`). Every other clash
- * (shared officers, chair, members, the organizer as a member elsewhere) is a warning.
+ * SPEC.md §6.4: the ONLY blocking clash is the lead rule (`blockedRoles`), checked on create and
+ * when an edit changes the time or the chair (`checkLeads`). Every other clash (shared officers,
+ * members, a lead who is only a member elsewhere) is a warning.
  */
 export function classifyClashes<M extends ExistingMeeting>(
-  candidateOrganizerId: string,
+  candidate: Pick<CandidateMeeting, 'organizerId' | 'chairId'>,
   clashes: readonly Clash<M>[],
-  checkOrganizer = true,
+  checkLeads = true,
 ): Classification<M> {
   const warnings: Clash<M>[] = [];
   const blocking: Clash<M>[] = [];
   for (const clash of clashes) {
-    const busy =
-      checkOrganizer && organizerIsBusy(candidateOrganizerId, clash.meeting);
-    (busy ? blocking : warnings).push(clash);
+    const roles = checkLeads ? blockedRoles(candidate, clash.meeting) : [];
+    if (roles.length > 0) blocking.push({ ...clash, blockedBy: roles });
+    else warnings.push(clash);
   }
   return { warnings, blocking };
+}
+
+/**
+ * The 409 message names the busy role: CHAIR only when the chair alone is busy in every
+ * blocking clash; otherwise (organizer busy anywhere, or unknown) ORGANIZER.
+ */
+export function blockingRole(
+  blocking: ReadonlyArray<Pick<Clash, 'blockedBy'>>,
+): BlockedRole {
+  const chairOnly =
+    blocking.length > 0 &&
+    blocking.every(
+      (c) =>
+        c.blockedBy?.includes('CHAIR') && !c.blockedBy.includes('ORGANIZER'),
+    );
+  return chairOnly ? 'CHAIR' : 'ORGANIZER';
 }
 
 /**

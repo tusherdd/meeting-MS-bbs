@@ -3,8 +3,7 @@
  * - the internal chair may edit and cancel a meeting like the organizer (server-side check,
  *   audit with the real actor, the usual notices); a plain member may not; complete stays
  *   organizer/admin only;
- * - GET /meetings/:id/notice.pdf returns a PDF for the meeting's people and admins, 403 for
- *   others, 409 for cancelled meetings, and is audited;
+ * - (the generated notice PDF of v1.10 was removed in v1.13; see notices.e2e-spec.ts)
  * - follow-up from v1.9: completing a meeting stored without a venue works.
  * Own users, designations, wing and days (80+), so it never touches the other e2e files.
  */
@@ -53,7 +52,7 @@ interface Detail {
   room: string | null;
 }
 
-describe('v1.10: chair may edit/cancel, meeting notice PDF (e2e)', () => {
+describe('v1.10: chair may edit/cancel (e2e)', () => {
   let app: INestApplication<App>;
   let ds: DataSource;
   const ids = {} as Record<Who, string>;
@@ -70,16 +69,6 @@ describe('v1.10: chair may edit/cancel, meeting notice PDF (e2e)', () => {
       .post(`${API}/meetings/${id}/cancel`)
       .set(as(who))
       .send({ reason: 'সভাপতির সিদ্ধান্তে বাতিল' });
-  const notice = (who: Who, id: string) =>
-    http()
-      .get(`${API}/meetings/${id}/notice.pdf`)
-      .set(as(who))
-      .buffer(true)
-      .parse((res, done) => {
-        const chunks: Buffer[] = [];
-        res.on('data', (c: Buffer) => chunks.push(c));
-        res.on('end', () => done(null, Buffer.concat(chunks)));
-      });
   const audits = (action: AuditAction, entityId: string) =>
     ds.getRepository(AuditLog).find({ where: { action, entityId } });
   const notices = (who: Who, type: NotificationType) =>
@@ -214,39 +203,6 @@ describe('v1.10: chair may edit/cancel, meeting notice PDF (e2e)', () => {
       expect(
         await notices('org', NotificationType.MEETING_CANCELLED),
       ).not.toHaveLength(0);
-    });
-  });
-
-  describe('GET /meetings/:id/notice.pdf', () => {
-    let id: string;
-
-    beforeAll(async () => {
-      id = await meetingFor(81, 'নোটিশ পরীক্ষা সভা');
-    });
-
-    it('returns a PDF for a participant, with an ASCII file name, and audits it', async () => {
-      const res = await notice('member', id).expect(200);
-      expect(res.headers['content-type']).toBe('application/pdf');
-      expect(res.headers['content-disposition']).toBe(
-        `attachment; filename="meeting-notice-${day(81).toISODate()}-${id.slice(0, 8)}.pdf"`,
-      );
-      const body = res.body as Buffer;
-      expect(body.subarray(0, 5).toString('latin1')).toBe('%PDF-');
-      const [entry] = await audits(AuditAction.MEETING_NOTICE_EXPORTED, id);
-      expect(entry.actorId).toBe(ids.member);
-    });
-
-    it('an admin who is not a participant may export it', async () => {
-      await notice('admin', id).expect(200);
-    });
-
-    it('a non-participant officer gets 403', async () => {
-      await notice('stranger', id).expect(403);
-    });
-
-    it('a cancelled meeting is rejected (409)', async () => {
-      await cancel('org', id).expect(200);
-      await notice('member', id).expect(409);
     });
   });
 

@@ -5,9 +5,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Modal } from "@/components/ui/modal";
-import { useToast } from "@/components/ui/toast";
-import { saveBlob } from "@/lib/api";
-import { meetingsApi } from "@/lib/endpoints";
+import { openMeetingNotice } from "@/lib/notice-file";
 import { rowActions, type RowMeeting } from "@/lib/row-actions";
 import { useT } from "@/providers/locale-provider";
 import { CancelMeetingModal } from "./cancel-meeting-modal";
@@ -38,7 +36,6 @@ export function MeetingRowMenu({
   participant?: boolean;
 }) {
   const t = useT();
-  const toast = useToast();
   const menuId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -46,8 +43,8 @@ export function MeetingRowMenu({
   const [focusFirst, setFocusFirst] = useState<"first" | "last">("first");
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [exportError, setExportError] = useState<unknown>(null);
+  const [opening, setOpening] = useState(false);
+  const [noticeError, setNoticeError] = useState<unknown>(null);
   const can = rowActions(meeting, mine, new Date(), participant);
 
   const close = useCallback((returnFocus: boolean) => {
@@ -155,17 +152,17 @@ export function MeetingRowMenu({
     }
   }
 
-  async function onExport() {
+  // v1.13: the uploaded notice — PDF / image in a new tab, DOCX as a download.
+  async function onNotice() {
     close(true);
-    setExporting(true);
-    setExportError(null);
+    setOpening(true);
+    setNoticeError(null);
     try {
-      saveBlob(await meetingsApi.noticePdf(meeting.id));
-      toast.show(t.rowMenu.exportDone);
+      await openMeetingNotice(meeting.id);
     } catch (err) {
-      setExportError(err);
+      setNoticeError(err);
     } finally {
-      setExporting(false);
+      setOpening(false);
     }
   }
 
@@ -182,11 +179,11 @@ export function MeetingRowMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        aria-busy={exporting || undefined}
+        aria-busy={opening || undefined}
         onClick={() => (open ? close(false) : openMenu("first"))}
         onKeyDown={onButtonKeyDown}
         className="flex size-11 items-center justify-center rounded-full text-xl leading-none font-bold text-slate-700 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-60 sm:size-9"
-        disabled={exporting}
+        disabled={opening}
         data-row-menu-button
       >
         <span aria-hidden="true" data-row-menu-glyph>
@@ -220,9 +217,9 @@ export function MeetingRowMenu({
               {t.rowMenu.view}
             </Link>
           )}
-          {can.exportPdf && (
-            <button role="menuitem" tabIndex={-1} type="button" className={itemClass} onClick={onExport}>
-              {t.rowMenu.exportPdf}
+          {can.notice && (
+            <button role="menuitem" tabIndex={-1} type="button" className={itemClass} onClick={onNotice}>
+              {t.rowMenu.notice}
             </button>
           )}
           {can.uploadDecision && (
@@ -264,9 +261,9 @@ export function MeetingRowMenu({
         </div>
       )}
 
-      {exporting && (
+      {opening && (
         <span role="status" className="sr-only">
-          {t.rowMenu.exporting}
+          {t.notice.opening}
         </span>
       )}
       {can.cancel && (
@@ -278,11 +275,11 @@ export function MeetingRowMenu({
         />
       )}
       <Modal
-        open={exportError !== null}
-        onClose={() => setExportError(null)}
-        title={t.rowMenu.exportPdf}
+        open={noticeError !== null}
+        onClose={() => setNoticeError(null)}
+        title={t.rowMenu.notice}
       >
-        {exportError !== null && <ErrorAlert error={exportError} />}
+        {noticeError !== null && <ErrorAlert error={noticeError} />}
       </Modal>
     </div>
   );

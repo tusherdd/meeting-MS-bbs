@@ -1,29 +1,45 @@
 /**
- * Meeting decision files (v1.11, SPEC.md §6.9): type sniffing, image metadata stripping, safe
- * names. Pure functions (no disk access), unit-tested directly.
+ * Uploaded meeting files — minutes "সভা কার্যবিবরণী" (v1.11, SPEC.md §6.9) and the meeting notice
+ * "সভার নোটিশ" (v1.13, §6.8): type sniffing, image metadata stripping, safe names. Pure functions
+ * (no disk access), unit-tested directly.
  *
  * - The type comes ONLY from the bytes ("magic bytes"); the client's file name and Content-Type
- *   are ignored. Allowed: PDF, JPEG, PNG.
+ *   are ignored. Allowed: PDF, DOCX (v1.13), JPEG, PNG. Legacy .doc (OLE) and everything else
+ *   is refused.
  * - PDF: must start with "%PDF-" and end with an "%%EOF" marker (in the last 2 KB).
+ * - DOCX: a ZIP with [Content_Types].xml and word/document.xml, no macros (docx.ts).
  * - JPEG / PNG: sharp must decode the image as that same format (stops polyglots), then it is
  *   re-encoded without metadata (EXIF, GPS, comments are dropped; orientation is applied first).
  */
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';
 import { normalizeBangla } from '../../common/utils/bangla';
+import { checkDocx, looksLikeZip } from './docx';
 
-export type DecisionFileType = 'pdf' | 'jpeg' | 'png';
+export type DecisionFileType = 'pdf' | 'docx' | 'jpeg' | 'png';
+
+export const DOCX_MIME =
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 export const DECISION_MIME: Record<DecisionFileType, string> = {
   pdf: 'application/pdf',
+  docx: DOCX_MIME,
   jpeg: 'image/jpeg',
   png: 'image/png',
 };
 const EXTENSION: Record<DecisionFileType, string> = {
   pdf: '.pdf',
+  docx: '.docx',
   jpeg: '.jpg',
   png: '.png',
 };
+
+/** Only PDF and images may be shown inline; a DOCX is always downloaded (v1.13). */
+export function mayOpenInline(mime: string): boolean {
+  return (
+    mime === 'application/pdf' || mime === 'image/jpeg' || mime === 'image/png'
+  );
+}
 
 /** Rejects "decompression bombs" (tiny files that expand to huge images). */
 export const MAX_IMAGE_PIXELS = 60_000_000;
@@ -44,11 +60,13 @@ export function detectDecisionType(buffer: Buffer): DecisionFileType | null {
     return 'jpeg';
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(PNG_SIGNATURE))
     return 'png';
+  // Only a ZIP can be a DOCX; checkDocx decides whether it really is one.
+  if (looksLikeZip(buffer)) return 'docx';
   return null;
 }
 
 export class DecisionFileError extends Error {
-  constructor(readonly reason: 'type' | 'unreadable') {
+  constructor(readonly reason: 'type' | 'unreadable' | 'macro') {
     super(reason);
   }
 }
@@ -76,6 +94,12 @@ export async function processDecisionFile(
   let content: Buffer;
   if (type === 'pdf') {
     if (!hasPdfEnd(input)) throw new DecisionFileError('unreadable');
+    content = input;
+  } else if (type === 'docx') {
+    const check = checkDocx(input);
+    if (check === 'macro') throw new DecisionFileError('macro');
+    if (check === 'notDocx') throw new DecisionFileError('type');
+    if (check === 'broken') throw new DecisionFileError('unreadable');
     content = input;
   } else {
     const options = {

@@ -12,7 +12,7 @@ An office-wide web application where every officer can create and manage meeting
 Meetings carry a **priority taken from the chair's designation** (the organizer's when the chair is
 a guest officer or there is none, v1.5). Since v1.12 a clash with another meeting is **never blocked
 because of priority**: the form warns, the meeting is saved, and the people concerned are informed and
-may cancel or decide otherwise. Only the organizer's own schedule blocks (§6.4).
+may cancel or decide otherwise. Only the organizer's and the internal chair's own schedule blocks (§6.4, v1.13).
 Every officer has a personal dashboard with today / weekly / monthly / yearly reports,
 downloadable as PDF.
 
@@ -76,7 +76,8 @@ backend/
 │       ├── auth/                login, tokens, password reset / set-password links
 │       ├── users/  profile/  designations/  wings/  change-requests/
 │       ├── meetings/            includes the conflict engine (conflict-engine.service.ts + meeting-rules.ts)
-│       ├── decisions/           meeting decision files "সভা সিদ্ধান্ত" (v1.11, §6.9)
+│       ├── decisions/           meeting minutes "সভা কার্যবিবরণী" (v1.11 as "decisions", renamed v1.13, §6.9)
+│       ├── notices/             uploaded meeting notice "সভার নোটিশ" (v1.13, §6.8)
 │       ├── notifications/       NotificationsService.notify + channels (in-app, e-mail)
 │       ├── mail/                outbox entity, worker, templates, admin outbox API
 │       ├── reports/             summaries + PDF (Puppeteer)
@@ -198,7 +199,7 @@ On re-run, the seed updates the priority of an existing designation to match thi
   row (role `ORGANIZER`). Duration at most 12 h; start at most 5 minutes in the past. SUPER_ADMIN (no
   designation) cannot organize or be invited. Meetings that already ended cannot be edited, only completed.
 - Visibility: only the meeting's people and admins can open a meeting; everyone else gets 404 (exception: the
-  notice PDF answers 403, owner decision 2026-11-17, §6.8).
+  notice and minutes file routes answer 403, §6.8, §6.9).
 - A job every 15 minutes completes SCHEDULED meetings that ended more than 1 hour ago.
 
 ### 6.4 Conflict engine (the core rule)
@@ -210,8 +211,8 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
 
 | Case | Result |
 |---|---|
-| **Organizer rule:** N's organizer is E's organizer or E's **internal chair** | N is **blocked**, whatever the priorities. API returns `409 Conflict` (`code` `TIME_CONFLICT_BLOCKING`): "আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।" / "The organizer is already the organizer or chair of another meeting at this time." with the list of these meetings (`blocking`). Nothing is saved. On edit this rule is checked only when the time changes. |
-| Any other shared officer (chair, members, N's organizer who is only a **member** of E), **any priority** | **Never blocked.** N is saved. One `meeting_conflicts` row (status `PENDING`) per shared officer, kept (never duplicated) while the overlap lasts. Informational notices (below). |
+| **Lead rule** (organizer v1.12, chair v1.13): N's organizer **or N's internal chair** is E's organizer or E's **internal chair** | N is **blocked**, whatever the priorities. API returns `409 Conflict` with a message naming the role: organizer busy → `TIME_CONFLICT_BLOCKING` "আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।" / "The organizer is already the organizer or chair of another meeting at this time."; only the chair busy → `TIME_CONFLICT_CHAIR_BLOCKING` "সভাপতি একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি।" / "The chair is already the organizer or chair of another meeting at this time." The list of these meetings (`blocking`) carries `blockedBy` (`ORGANIZER` and/or `CHAIR`). Nothing is saved. Checked on create and on **every edit that changes the time or the chair** (v1.13; before: only time changes, organizer only). |
+| Any other shared officer (members, N's organizer or chair who is only a **member** of E), **any priority** | **Never blocked.** N is saved. One `meeting_conflicts` row (status `PENDING`) per shared officer, kept (never duplicated) while the overlap lasts. Informational notices (below). |
 
 - If any clash is blocking, the whole request is rejected (even if other clashes would only warn).
 - Record orientation: the meeting with the smaller priority number is "higher"; on **equal priority** the
@@ -230,17 +231,20 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
   resolves by itself; cancel / reschedule stay on the ডুপ্লিকেট সভা page. Guest officers are never part of
   the check and never get this notice.
 - `POST /meetings/check-conflicts` runs the same logic without saving (used by the form to warn live).
-  Response (v1.12): `{ allowed, blocking, warnings }` — `blocking` = organizer-rule clashes (saving gives 409),
-  `warnings` = all other clashes (saving works).
+  Response (v1.12): `{ allowed, blocking, warnings }` — `blocking` = lead-rule clashes (saving gives 409; each with
+  `blockedBy`, v1.13), `warnings` = all other clashes (saving works). The lead rule applies when there is no
+  `meetingId`, or the times or the chair differ from the stored meeting.
 - A pending conflict is marked `RESOLVED` automatically when E is cancelled, rescheduled out of the
   overlap, or the shared officer is removed from E.
 - Every participant is notified when invited, when time/room changes, and when a meeting is cancelled.
 - The conflict check and the insert run inside one DB transaction to avoid race conditions; the transaction
-  takes `pg_advisory_xact_lock` per person (sorted), so two parallel requests for the same organizer cannot both pass
-  the organizer rule (v1.12).
+  takes `pg_advisory_xact_lock` per person (sorted), so two parallel requests for the same organizer or chair cannot
+  both pass the lead rule (v1.12).
 - Touching meetings (10:00–11:00 and 11:00–12:00) do not overlap. The engine re-runs on update only when the
-  time or the people change; the meeting never clashes with itself.
-- 409 body: `{ message, blocking: [{ meetingId, title, startAt, endAt, priority, organizer, sharedOfficers }] }`.
+  time, the people or the chair change; the meeting never clashes with itself. Rules: `meeting-rules.ts`
+  (`blockedRoles`, `classifyClashes`, `blockingRole`), tests `meeting-rules.spec.ts`, `meetings.service.spec.ts`,
+  `test/notices.e2e-spec.ts` (v1.13 chair cases).
+- 409 body: `{ message, code, blocking: [{ meetingId, title, startAt, endAt, priority, organizer, sharedOfficers, blockedBy }] }`.
   Titles of other meetings are shown only to their people and admins ("অন্য একটি সভা" otherwise); the same
   rule applies to the conflict notice (N's title only for N's invitees).
 - A PENDING conflict is also RESOLVED when either meeting is completed or moved, or the shared officer is
@@ -306,45 +310,38 @@ People invited to a meeting who are not in the database. They never log in.
 - `GET /meetings/:id` returns `guests` (chair first). The phrase for outside guests used before is never
   used; the term is always "অতিথি কর্মকর্তা" (checked by `wording.spec.ts`).
 
-### 6.8 Meeting notice "সভার নোটিশ" (v1.10, owner decisions 2026-11-17)
-`GET /meetings/:id/notice.pdf`: a one-page (or longer) official notice for one meeting, rendered by the shared
-lazy `PdfService` (`reports/pdf/pdf.module.ts`, one browser for reports and notices). Code:
-`meetings/notice/notice-template.ts` (pure, unit-tested) and `meeting-notice.service.ts`.
-- **Access:** the meeting's people (organizer, chair, participants) and admins; anyone else **403**
-  (`NOTICE_FORBIDDEN`); unknown id 404; a **cancelled** meeting 409 (`NOTICE_CANCELLED`). Same PDF rate limit as
-  the reports. Audit `MEETING_NOTICE_EXPORTED` (actor = exporter). File name (ASCII):
-  `meeting-notice-YYYY-MM-DD-<first 8 hex of the id>.pdf` (meeting date, Asia/Dhaka).
-- **Always Bangla** (whatever the UI language), A4, NikoshBAN for Bangla + Tinos for Latin (embedded), Bangla
-  digits for system numbers, **no logo**, no memo number, no project line, no "অনুলিপি". Layout as
-  `docs/samples/meeting-notice-sample.html` (fictional data), top to bottom:
-  1. centred: "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" / **"বাংলাদেশ পরিসংখ্যান ব্যুরো"** / "ই-২৭/এ, আগারগাঁও, ঢাকা-১২০৭" /
-     underlined "www.bbs.gov.bd";
-  2. right: "তারিখ :" with the **export date** (Asia/Dhaka) as two lines split by a rule: Bangla calendar on top
-     ("২ অগ্রহায়ণ, ১৪৩৩"), Gregorian below ("১৭ নভেম্বর, ২০২৬");
-  3. centred, bold, underlined "সভার নোটিশ";
-  4. `"<title as typed>" শীর্ষক একটি সভা নিম্নবর্ণিত সময় অনুযায়ী অনুষ্ঠিত হবে:`;
-  5. label : value table — সভাপতি "জনাব <Bangla name>, <designation>" (guest chair: the guest's name and
-     designation; row left out without a chair) · তারিখ ও সময় "২০ নভেম্বর, ২০২৬; বেলা: ১১.০০ ঘটিকা" (start, 12-hour)
-     · স্থান: the venue ("স্থান উল্লেখ নেই" when empty), the online link on a new line · আলোচ্যসূচি: the agenda as
-     typed with its line breaks (row left out when there is no agenda);
-  6. "২। সভায় সংশ্লিষ্ট সকলকে যথাসময়ে উপস্থিত থাকার জন্য নির্দেশক্রমে অনুরোধ করা হলো।";
-  7. right: signature space (18 mm), then the **exporting user's** Bangla name and designation;
-  8. "বিতরণ: সদয় কার্যার্থে (জ্যেষ্ঠতার ক্রমানুসারে):" and a list numbered "১.", "২." …: every internal person
-     (organizer and chair included) by designation priority (most senior first), ties by Bangla name —
-     "জনাব <name>, <designation>, <wing>, বিবিএস, আগারগাঁও, ঢাকা-১২০৭।" (no wing → left out); then the guest officers
-     (chair first, then by name) — "জনাব <name>, <designation> (অতিথি কর্মকর্তা)।";
-  9. footer: page numbers "১/২".
-- Designation = the Bangla designation, plus the officer's `designationRemark` in brackets when set
-  ("উপমহাপরিচালক (যুগ্মসচিব)", owner decision 2026-11-17). Names always Bangla; title, agenda, venue, link and guest
-  data exactly as typed (HTML-escaped).
-- **Bangla calendar** (`common/utils/bangla-calendar.ts`): Bangladesh revised Bangabda (2019): 1 Boishakh =
-  14 April; Boishakh–Ashwin 31 days; Kartik, Agrahayan, Poush, Magh, Chaitra 30; Falgun 29, or 30 when it lies
-  in a Gregorian leap year.
-- Tests: `bangla-calendar.spec.ts`, `notice-template.spec.ts`, `meeting-notice.service.spec.ts`,
-  `test/meetings-v110.e2e-spec.ts`, `frontend/e2e/v110.spec.ts`.
+### 6.8 Meeting notice "সভার নোটিশ" — uploaded file (v1.13, owner decision 2026-11-19)
+The organizer uploads the official notice as a file (the system-generated notice PDF of v1.10 —
+`GET /meetings/:id/notice.pdf`, its template, the Bangla calendar utility and the samples — was removed in v1.13;
+the audit value `MEETING_NOTICE_EXPORTED` stays only so old audit rows keep their label). Module `modules/notices/`:
+pure rules in `notice-rules.ts`, `notices.service.ts`, `notices.controller.ts`.
+- **One file per meeting:** table `meeting_notice_files` (unique `meetingId`, §7). A new upload **replaces** the old file
+  (old row deleted, new row inserted, old bytes removed after the commit).
+- **Storage:** like the minutes (§6.9): `DECISION_UPLOAD_DIR/notices/<meetingId>/<random uuid>.<ext>`, folders 0700,
+  files 0600, never served statically; a hard delete of the meeting removes the folder.
+- **Files:** PDF, **DOCX**, JPEG, PNG — decided by the bytes with the same checker as the minutes (`decision-file.ts`,
+  `docx.ts`): a DOCX is a ZIP containing `[Content_Types].xml` and `word/document.xml` whose main part is a Word document;
+  **macro-enabled** files are refused (`vbaProject.bin` / `vbaData.xml`, or a `macroEnabled` / VBA content type);
+  legacy `.doc` (OLE) and everything else are refused. Max **10 MB**. Images are re-encoded without EXIF. Original
+  name sanitized; SHA-256 stored. Same upload rate limit as the minutes (30 per user per hour).
+- **Permissions:** upload, replace and remove — **only the meeting's organizer** (not the chair, not admins unless they
+  organize it): 403 `NOTICE_CHANGE_FORBIDDEN`. **Cancelled** meetings are frozen: 409 `NOTICE_CANCELLED` (upload,
+  replace and remove). Download — the meeting's people and admins (others 403 `NOTICE_FORBIDDEN`, unknown meeting
+  404), **also for cancelled meetings** when a file exists; no file → 404 `NOTICE_NOT_FOUND`.
+- **Download:** `GET /meetings/:id/notice` (`?inline=true` opens a PDF or image in the browser; a **DOCX is always an
+  attachment**), `Content-Disposition` with an ASCII fallback + UTF-8 name, `X-Content-Type-Options: nosniff`,
+  `Cache-Control: private, no-store`.
+- **Audit:** `MEETING_NOTICE_UPLOADED`, `MEETING_NOTICE_REPLACED` (before/after: name, type, size, hash),
+  `MEETING_NOTICE_REMOVED`.
+- **API fields:** `hasNotice` on meeting summaries, report rows and duplicate-meeting refs; `notice`
+  (`{ originalName, mime, size, uploadedAt, uploadedBy, canManage }` or null) on `GET /meetings/:id`.
+- **UI:** the meeting form field and the row menu item (§13.6, §13.18).
+- Tests: `decision-file.spec.ts` (DOCX), `notice-rules.spec.ts`, `notices.service.spec.ts`, `test/notices.e2e-spec.ts`,
+  `frontend/tests/unit/row-actions.test.ts`, `frontend/e2e/v113.spec.ts`.
 
-### 6.9 Meeting decisions "সভা সিদ্ধান্ত" (v1.11, owner decisions 2026-11-17)
-The decisions (minutes, signed resolutions) of a meeting are uploaded as files. Module `modules/decisions/`:
+### 6.9 Meeting minutes "সভা কার্যবিবরণী" (v1.11 as "সভা সিদ্ধান্ত", renamed v1.13; owner decisions 2026-11-17 / 2026-11-19)
+The minutes (signed resolutions) of a meeting are uploaded as files. v1.13: every user-visible text says
+"সভা কার্যবিবরণী" / "Meeting minutes"; code names and routes keep "decision". Module `modules/decisions/`:
 pure rules in `decision-rules.ts` and `decision-file.ts` (unit-tested), `decisions.service.ts`,
 `decision-storage.service.ts`.
 - **Status (derived, never stored):** **Complete** = at least one file; **Pending** = the meeting has started (or
@@ -352,11 +349,11 @@ pure rules in `decision-rules.ts` and `decision-file.ts` (unit-tested), `decisio
   **no** decision status (null). Deleting the last file makes it Pending again. `MeetingSummaryDto` carries
   `decisionFileCount` and `decisionStatus`; report rows carry `decisionFileCount`.
 - **Storage:** table `meeting_decision_files` (§7) + the bytes on disk under **`DECISION_UPLOAD_DIR`** (default
-  `./storage/uploads`, git-ignored), a folder per meeting, random names (`<uuid>.pdf|.jpg|.png`), folders 0700, files
+  `./storage/uploads`, git-ignored), a folder per meeting, random names (`<uuid>.pdf|.docx|.jpg|.png`), folders 0700, files
   0600. A separate variable from `UPLOAD_DIR` (owner decision 2026-11-17), because `UPLOAD_DIR` is served
   statically at `/uploads` for profile photos; decision files are **never** served statically and the API refuses to
   start when one folder lies inside the other. A hard delete of a meeting removes its folder.
-- **Files:** PDF, JPEG and PNG only, decided by the **bytes** (magic bytes; a PDF must also end with `%%EOF`;
+- **Files:** PDF, DOCX (v1.13, same checks and macro refusal as §6.8), JPEG and PNG only, decided by the **bytes** (magic bytes; a PDF must also end with `%%EOF`;
   images must decode as the same format), never by the extension or the client's type. At most **10 MB** per file
   and **10 files** per meeting. Images are re-encoded without metadata (EXIF/GPS removed, orientation applied).
   The original name is sanitized (last path segment, no control / bidi / reserved characters, max 150 + extension of
@@ -368,10 +365,11 @@ pure rules in `decision-rules.ts` and `decision-file.ts` (unit-tested), `decisio
   `DECISION_CANCELLED`). **Delete:** the uploader, the organizer or the chair (others 403).
 - **Download:** through the authenticated endpoint only, `Content-Disposition` with an ASCII fallback and the UTF-8
   name, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`; `?inline=true` opens images and PDFs
-  in a new browser tab.
+  in a new browser tab; a DOCX is always an attachment (v1.13). A macro-enabled Word file → 400 `DECISION_FILE_MACRO`.
 - **Audit:** `MEETING_DECISION_UPLOADED` (per file: name, type, size, hash) and `MEETING_DECISION_DELETED`.
 - **Notification:** after an upload the organizer and the chair (never the uploader) get a **bell** notice (no mail,
-  `MEETING_DECISION_UPLOADED`): `"[শিরোনাম]" সভার সিদ্ধান্ত আপলোড করা হয়েছে।`, linking to the decision page.
+  `MEETING_DECISION_UPLOADED`): title `সভা কার্যবিবরণী: [শিরোনাম]`, body `"[শিরোনাম]" সভার কার্যবিবরণী আপলোড করা হয়েছে।`
+  (v1.13; older notices keep their stored text), linking to the minutes page.
 - Tests: `decision-file.spec.ts`, `decision-rules.spec.ts`, `decisions.service.spec.ts`, `test/decisions.e2e-spec.ts`,
   `frontend/e2e/v111.spec.ts`.
 
@@ -399,7 +397,9 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
 - **meeting_guests** (v1.5): meetingId (→ meetings, CASCADE), name, designation, email (lowercased), isChair —
   unique (meetingId, lower(email)); one guest chair per meeting; never together with `meetings.chairId`
 - **meeting_decision_files** (v1.11): meetingId (→ meetings, CASCADE, indexed), uploadedById (→ users, RESTRICT),
-  originalName (sanitized), storedName (random), mime, size, sha256 — §6.9
+  originalName (sanitized), storedName (random), mime (varchar 100 since v1.13), size, sha256 — §6.9
+- **meeting_notice_files** (v1.13): meetingId (→ meetings, CASCADE, **unique**), uploadedById (→ users, RESTRICT),
+  originalName (sanitized), storedName (random), mime, size, sha256 — §6.8
 - **meeting_conflicts**: higherMeetingId, lowerMeetingId, userId (shared officer), status
   (`PENDING` | `RESOLVED`), resolvedAt
 - **notifications**: userId, type, title, body, link, readAt
@@ -480,14 +480,16 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | GET | `/meetings` | 👤 | My meetings by range (`from`, `to`, `status`, `role=organizer|participant`, page). Admin may pass `scope=all`. |
 | GET | `/meetings/:id` | 👤 | Detail (organizer, participants, admins only); people with designation and wing; guest officers |
 | POST | `/meetings/check-conflicts` | 👤 | Dry run of the conflict engine |
-| POST | `/meetings` | 👤 | Create (409 on blocking conflict) |
-| PATCH | `/meetings/:id` | 👤 | Update (organizer, internal chair or admin; re-runs conflict engine) |
+| POST | `/meetings` | 👤 | Create (409 on blocking conflict: lead rule, §6.4) |
+| PATCH | `/meetings/:id` | 👤 | Update (organizer, internal chair or admin; re-runs conflict engine; lead rule on time or chair change) |
 | POST | `/meetings/:id/cancel` | 👤 | Cancel with reason (organizer, internal chair or admin) |
-| GET | `/meetings/:id/notice.pdf` | 👤 | Meeting notice "সভার নোটিশ" as PDF (its people and admins; not cancelled), §6.8 |
+| POST | `/meetings/:id/notice` | 👤 | Upload or replace the meeting notice (multipart `file`; organizer only; not cancelled), §6.8 |
+| GET | `/meetings/:id/notice` | 👤 | Download the notice (`?inline=true` for PDF / images; its people and admins, also cancelled) |
+| DELETE | `/meetings/:id/notice` | 👤 | Remove the notice (organizer only; not cancelled) |
 | POST | `/meetings/:id/complete` | 👤 | Mark completed, save notes/minutes |
 | DELETE | `/meetings/:id` | 🛡 | Hard delete (admin only) |
 
-### Meeting decisions (v1.11, §6.9)
+### Meeting minutes "সভা কার্যবিবরণী" (v1.11, §6.9; routes keep "decision")
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/decisions/summary` | 👤 | Pending / Complete counts of meetings I organize or chair (sidebar count, `/decisions` tabs) |
@@ -556,14 +558,17 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
    required everywhere and must meet the password rule; it is allowed in production (owner decision
    2026-11-09), where startup logs one warning line "Default officer password is enabled" (never the value).
 9. Uploads: size limit, mime + magic-byte check, random file names, stored outside `src/`, served read-only.
-   Meeting decision files (v1.11, §6.9): magic bytes only, image metadata stripped, private folder
-   (`DECISION_UPLOAD_DIR`, never static), only through the authenticated download with `nosniff`.
+   Meeting minutes files (v1.11, §6.9) and the meeting notice (v1.13, §6.8): magic bytes only (DOCX: ZIP structure
+   checked, macro-enabled files and legacy .doc refused), image metadata stripped, private folder
+   (`DECISION_UPLOAD_DIR`, notices in `notices/`, never static), only through the authenticated download with
+   `nosniff`; DOCX always as an attachment.
 10. Authorization checked in services (organizer, internal chair or admin for meeting edit/cancel; organizer/admin
     for complete; SUPER_ADMIN protected).
 11. Only parameterized queries (TypeORM query builder / repositories). No string-built SQL.
 12. All tokens in links (reset, verify) are random 32 bytes, stored hashed, single-use, expiring.
 13. Audit log for: login, user create/update/role/status, change-request decisions, meeting create/update/cancel/delete,
-    meeting notice export (`MEETING_NOTICE_EXPORTED`, v1.10), decision file upload / delete
+    meeting notice upload / replace / remove (`MEETING_NOTICE_UPLOADED` / `_REPLACED` / `_REMOVED`, v1.13; the v1.10
+    `MEETING_NOTICE_EXPORTED` stays for old rows), minutes file upload / delete
     (`MEETING_DECISION_UPLOADED` / `_DELETED`, v1.11), designation priority changes.
 14. Swagger enabled only when `SWAGGER_ENABLED=true` (off by default); in production only behind HTTP basic auth
     (`SWAGGER_USER`, `SWAGGER_PASSWORD`).
@@ -605,7 +610,7 @@ MAIL_DRY_RUN=true            # true = log mails instead of sending (development)
 
 UPLOAD_DIR=./uploads
 MAX_UPLOAD_MB=2
-DECISION_UPLOAD_DIR=./storage/uploads   # v1.11: private decision files (never static; persistent, backed up)
+DECISION_UPLOAD_DIR=./storage/uploads   # v1.11: private minutes files, v1.13 also notices/ (never static; persistent, backed up)
 SWAGGER_ENABLED=true
 SCHEDULER_ENABLED=true          # cron jobs (mail worker, cleanups); false in e2e tests
 SWAGGER_USER=                   # production: basic auth for /api/docs (required if SWAGGER_ENABLED=true)
@@ -670,7 +675,13 @@ Release **v1.10** (2026-11-17, tag `v1.10`, part 2 of 3): (A) the three-dot row 
 and edit/cancel for the internal chair (§6.3); (B) the meeting notice PDF "সভার নোটিশ" (§6.8); (C) the admin
 office report page shows the organizer as the wing (§13.17), e2e test for completing a meeting without a venue.
 
-Release **v1.11** (2026-11-17, tag `v1.11`, part 3 of 3): meeting decisions "সভা সিদ্ধান্ত" (§6.9, §13.19).
+Release **v1.11** (2026-11-17, tag `v1.11`, part 3 of 3): meeting decisions (§6.9, §13.19; renamed in v1.13).
+
+Release **v1.12** (2026-11-19, tag `v1.12`, part A): duplicate meetings warn; only the organizer rule blocks (§6.4).
+
+Release **v1.13** (2026-11-19, tag `v1.13`, part B of 3): (A) the generated notice PDF removed; (B) the uploaded meeting
+notice "সভার নোটিশ" (§6.8, §13.6, §13.18); (C) "সভা সিদ্ধান্ত" → "সভা কার্যবিবরণী" / "Meeting minutes", minutes accept DOCX
+(§6.9, §13.19); (D) the lead rule also checks the internal chair, on every time or chair change (§6.4).
 
 ## 13. Frontend (`frontend/`)
 
@@ -713,7 +724,7 @@ frontend/
 | `/meetings` (filters, admin "সকল সভা"), `/meetings/new?start=&end=`, `/meetings/:id`, `/meetings/:id/edit` | app | F2 |
 | `/calendar` (week 08–18 grid / month / phone day list), `/conflicts` (pending, resolved, admin all), `/notifications` | app | F2 |
 | `/reports?period=&date=&page=` | app | F3 |
-| `/decisions`, `/meetings/:id/decision` (meeting decisions) | app | v1.11 |
+| `/decisions`, `/meetings/:id/decision` (meeting minutes "সভা কার্যবিবরণী") | app | v1.11 |
 | `/profile` | app | F3 |
 | `/admin`, `/admin/users` (+ `/new`, `/:id`), `/admin/designations`, `/admin/wings`, `/admin/change-requests`, `/admin/meetings`, `/admin/conflicts`, `/admin/reports`, `/admin/email-outbox`, `/admin/audit-logs` | app, ADMIN/SUPER_ADMIN only (others see the 404 page) | F3 |
 
@@ -776,8 +787,14 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
 - Whenever the time or the people change, `POST /meetings/check-conflicts` runs 600 ms later (older requests
   aborted): green = only the line "এই সময়ে নির্বাচিত কারও অন্য কোনো সভা নেই।" (no heading, v1.5), amber (v1.12) =
   "নির্বাচিত কর্মকর্তাদের কারও এই সময়ে আরেকটি সভা আছে" with the list of clashes; Save stays enabled, no extra
-  confirmation; red = only the organizer rule (§6.4): "আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি। সময় বদলান।",
-  Save disabled. Only an officer chair is sent to the check. A 409 on save shows the same red panel and keeps the form data.
+  confirmation; red = only the lead rule (§6.4): "আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি। সময় বদলান।" and/or
+  (v1.13, from `blockedBy`) "সভাপতি একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি। সময় বা সভাপতি বদলান।", Save disabled. Only an officer chair is sent to the check. A 409 on save shows the same red panel and keeps the form data.
+- **Meeting notice field (v1.13, §6.8)** `components/meetings/notice-field.tsx`: label "সভার নোটিশ" / "Meeting notice",
+  hint "PDF, DOCX, JPG বা PNG; সর্বোচ্চ ১০ MB" / "PDF, DOCX, JPG or PNG; max 10 MB"; optional but never marked
+  "ঐচ্ছিক" / "optional". Shown **only to the organizer** (not to a chair or an admin editing). Create: the file is
+  uploaded right after the meeting is saved; if that fails the meeting stays saved, a red toast explains why and the
+  edit page opens to retry. Edit: the current file (name, size) with "Replace" (upload at once) and "Remove"
+  (confirmation), independent of "Save Changes". Client pre-check of extension and size; the backend decides.
 - After create/edit/cancel/complete/delete, every cached "meetings", "conflicts", "notifications" and "reports"
   query is refreshed (`lib/invalidate.ts`).
 
@@ -924,7 +941,7 @@ English (Latin script); everything else stays Bangla.
 - Names stored in the database (for example the seeded account name "সুপার অ্যাডমিন") are data, not labels.
 - **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
   and statuses stay as in v1.2.**
-  - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, ডুপ্লিকেট সভা, সভা সিদ্ধান্ত (v1.11; en "Meeting decisions"),
+  - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, ডুপ্লিকেট সভা, সভা কার্যবিবরণী (v1.11, renamed v1.13; en "Meeting minutes"),
     রিপোর্ট, প্রোফাইল, অ্যাডমিন.
   - Admin menu: সারসংক্ষেপ, কর্মকর্তা, পদবি, উইং, পরিবর্তনের অনুরোধ, সকল সভা, সকল ডুপ্লিকেট সভা, অফিস রিপোর্ট, ইমেইল সারি, অডিট লগ.
 - **v1.5 (owner decision 2026-11-16):** the old Bangla word for "conflict" is gone everywhere (UI, mails,
@@ -1168,35 +1185,38 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   a click or tap outside closes it. The menu is `position: fixed` (never clipped by a table's scroll box), opens
   upwards near the bottom edge, follows the button on scroll. Buttons are 44 px on phones.
 - Items (action words in English in both languages, §13.12; rules in `lib/row-actions.ts`, unit-tested):
-  "View details" (everyone who sees the row); "Export PDF" (everyone who sees the row, not for cancelled meetings;
-  downloads the notice, §6.8); "Edit" and "Cancel" **only for the organizer and the internal chair** (`myRole`
+  "View details" (everyone who sees the row); "সভার নোটিশ" / "Meeting notice" (v1.13, replaces "Export PDF":
+  everyone who sees the row, **only when an uploaded notice exists** (`hasNotice`), also for cancelled meetings; PDF and
+  images open in a new tab, a DOCX is downloaded, `lib/notice-file.ts`); "Edit" and "Cancel" **only for the organizer and the internal chair** (`myRole`
   ORGANIZER / CHAIR, or `organizedByMe` / `chairedByMe` on duplicate meetings cards), with the usual status rules
   (edit: scheduled and not ended; cancel: scheduled; Cancel opens the usual reason dialog). Admins keep their
   rights on the detail page.
-- v1.11: "Upload decision" (opens `/meetings/:id/decision`) for the meeting's people (organizer, internal chair,
+- v1.11: "Upload minutes" (v1.13; was "Upload decision"; opens `/meetings/:id/decision`) for the meeting's people (organizer, internal chair,
   members; not admins as such), only while an upload is allowed (started or completed, not cancelled, fewer than
   10 files; `decisionFileCount` on summaries and report rows).
 - API support: `ConflictMeetingRefDto.chairedByMe`; office report rows carry the admin viewer's own `myRole`.
 - Tests: `tests/unit/row-actions.test.ts`, `e2e/v110.spec.ts`, `e2e/no-icons.spec.ts` (the glyph only inside its button).
 
-### 13.19 Meeting decisions UI (v1.11, owner decisions 2026-11-17)
-- **Sidebar:** "সভা সিদ্ধান্ত" / "Meeting decisions" between "ডুপ্লিকেট সভা" and "রিপোর্ট", with a small amber count of
+### 13.19 Meeting minutes UI "সভা কার্যবিবরণী" (v1.11, renamed v1.13)
+- **Sidebar:** "সভা কার্যবিবরণী" / "Meeting minutes" between "ডুপ্লিকেট সভা" and "রিপোর্ট", with a small amber count of
   Pending decisions of the meetings I organize or chair (`GET /decisions/summary`; Bangla digits in Bangla; hidden
-  when 0; screen readers hear "৩টি Pending সিদ্ধান্ত").
-- **`/decisions`** ("সভা সিদ্ধান্ত"): tabs "Pending (n)" and "Complete (n)" with the meetings I organize or chair (meeting
+  when 0; screen readers hear "৩টি Pending কার্যবিবরণী").
+- **`/decisions`** ("সভা কার্যবিবরণী"): tabs "Pending (n)" and "Complete (n)" with the meetings I organize or chair (meeting
   rows with the three-dot menu, paginated); below, the section "আমি সদস্য" / "As member": meetings where I am only a
   member and the decision is Pending (no counts for members), so members can upload.
-- **Dashboard:** no decision card. (A "সভা সিদ্ধান্ত" card with Pending / Complete counts shipped in v1.11 and was
+- **Dashboard:** no minutes card. (A decisions card with Pending / Complete counts shipped in v1.11 and was
   removed the same day, owner decision 2026-11-17; the `leads` field of `GET /decisions/summary`, used only by it,
   was removed too.)
 - **`/meetings/:id/decision`:** meeting summary (title, date and time, venue, organizer as the wing), status badge
   (Pending amber / Complete green; a note instead when the meeting has not started or is cancelled), the upload form
   (only when allowed: a labelled native file input with `multiple`, no icons; client pre-check of type, size and
   count; one request per file with a progress bar and per-file errors from the backend), and the file list (name,
-  uploader, time, size via `formatFileSize`, buttons View — opens in a new tab —, Download, Delete with confirmation
+  uploader, time, size via `formatFileSize`, buttons View — opens in a new tab; not for a DOCX (v1.13) —, Download, Delete with confirmation
   when allowed). Upload progress uses `apiUpload()` in `lib/api.ts` (XMLHttpRequest, same refresh and error rules).
 - All texts in `messages/en.ts` / `bn.ts` (`decisions.*`, `rowMenu.upload`, `nav.decisions`). After an upload or
   delete every "decisions" query is refreshed with the meeting data (`lib/invalidate.ts`).
 - Deployment (README §4.4 / §4.7 / §4.8): `DECISION_UPLOAD_DIR` on persistent storage, in the backups, writable only by
   the app user; nginx `client_max_body_size` at least `12m`.
-- Tests: `tests/unit/row-actions.test.ts`, `tests/unit/format.test.ts`, `e2e/v111.spec.ts`, `e2e/no-icons.spec.ts` (`/decisions`).
+- v1.13 wording guard: `backend/src/common/utils/wording.spec.ts` (the old name never in message files) and
+  `frontend/tests/unit/messages.test.ts`.
+- Tests: `tests/unit/row-actions.test.ts`, `tests/unit/format.test.ts`, `tests/unit/messages.test.ts`, `e2e/v111.spec.ts`, `e2e/no-icons.spec.ts` (`/decisions`).

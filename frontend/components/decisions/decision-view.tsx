@@ -13,6 +13,7 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
 import { isApiError, saveBlob } from "@/lib/api";
+import { opensInline } from "@/lib/notice-file";
 import { decisionsApi, queryKeys } from "@/lib/endpoints";
 import { invalidateMeetingData } from "@/lib/invalidate";
 import type { DecisionDetail, DecisionFile } from "@/lib/types";
@@ -20,9 +21,11 @@ import { useFormat, useNames, useT } from "@/providers/locale-provider";
 import { DecisionBadge } from "./decision-badge";
 
 /** Client-side pre-check only (the server checks the bytes); by extension or browser type. */
-const ACCEPT = ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
-const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
-const ALLOWED_EXTENSIONS = /\.(pdf|jpe?g|png)$/i;
+const DOCX_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+// v1.13: DOCX too (the backend checks the bytes and refuses macros).
+const ACCEPT = `.pdf,.docx,.jpg,.jpeg,.png,application/pdf,${DOCX_TYPE},image/jpeg,image/png`;
+const ALLOWED_TYPES = ["application/pdf", DOCX_TYPE, "image/jpeg", "image/png"];
+const ALLOWED_EXTENSIONS = /\.(pdf|docx|jpe?g|png)$/i;
 
 interface Progress {
   name: string;
@@ -307,9 +310,12 @@ function FileList({ id, files }: { id: string; files: DecisionFile[] }) {
                 <Td className="whitespace-nowrap">{formatFileSize(f.size)}</Td>
                 <Td>
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => void onView(f)}>
-                      {t.decisions.view}
-                    </Button>
+                    {/* v1.13: a DOCX is always downloaded, never opened in the browser. */}
+                    {opensInline(f.mime) && (
+                      <Button variant="secondary" size="sm" onClick={() => void onView(f)}>
+                        {t.decisions.view}
+                      </Button>
+                    )}
                     <Button variant="secondary" size="sm" onClick={() => void onDownload(f)}>
                       {t.decisions.download}
                     </Button>

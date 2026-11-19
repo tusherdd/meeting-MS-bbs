@@ -582,3 +582,84 @@ describe('MeetingsService.create: guest officer validation (v1.5)', () => {
     expect(meetingRepo.save).not.toHaveBeenCalled();
   });
 });
+
+describe('MeetingsService: lead rule for the chair (SPEC.md §6.4, v1.13)', () => {
+  const chairBusy = (): Clash<LoadedMeeting> => ({
+    meeting: loaded('CHAIRS', 9, ['chair']),
+    sharedPeopleIds: ['chair'],
+    blockedBy: ['CHAIR'],
+  });
+
+  it('create: the chair is sent to the engine; chair busy → 409 naming the chair', async () => {
+    const { service, engine, meetingRepo } = setup({
+      warnings: [],
+      blocking: [chairBusy()],
+    });
+    const err = await service
+      .create(secretary, dto, null)
+      .catch((e: unknown) => e);
+    expect(engine.evaluate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ organizerId: 'secretary', chairId: 'chair' }),
+    );
+    expect(err).toBeInstanceOf(ConflictException);
+    expect((err as ConflictException).getResponse()).toMatchObject({
+      message: MEETING_MESSAGES.chairBlocking,
+      blocking: [
+        expect.objectContaining({ meetingId: 'CHAIRS', blockedBy: ['CHAIR'] }),
+      ],
+    });
+    expect(meetingRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('update that changes ONLY the chair runs the lead rule and is blocked', async () => {
+    const parts = setup({ warnings: [], blocking: [chairBusy()] });
+    const { service, engine } = parts;
+    // The stored meeting: same time, chair "old-chair", member "chair" (becomes the chair).
+    const stored = Object.assign(new Meeting(), {
+      id: 'm1',
+      title: 'সভা',
+      status: MeetingStatus.SCHEDULED,
+      startAt: new Date('2030-01-01T04:30:00Z'),
+      endAt: new Date('2030-01-01T05:30:00Z'),
+      room: 'কক্ষ',
+      organizerId: 'secretary',
+      chairId: 'old-chair',
+      priority: 1,
+    });
+    const qb = {
+      where: jest.fn().mockReturnThis(),
+      setLock: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(stored),
+    };
+    Object.assign(parts.meetingRepo, {
+      createQueryBuilder: jest.fn(() => qb),
+    });
+    Object.assign(parts.participantRepo, {
+      findBy: jest.fn().mockResolvedValue([
+        { userId: 'secretary', role: ParticipantRole.ORGANIZER },
+        { userId: 'old-chair', role: ParticipantRole.CHAIR },
+        { userId: 'chair', role: ParticipantRole.MEMBER },
+      ]),
+    });
+    Object.assign(parts.guestRepo, { find: jest.fn().mockResolvedValue([]) });
+
+    const err = await service
+      .update(
+        secretary,
+        'm1',
+        { chairId: 'chair', participantIds: ['old-chair', 'chair'] },
+        null,
+      )
+      .catch((e: unknown) => e);
+    expect(engine.evaluate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ id: 'm1', chairId: 'chair' }),
+      true, // checkLeads: the chair changed (the time did not)
+    );
+    expect(err).toBeInstanceOf(ConflictException);
+    expect((err as ConflictException).getResponse()).toMatchObject({
+      message: MEETING_MESSAGES.chairBlocking,
+    });
+  });
+});

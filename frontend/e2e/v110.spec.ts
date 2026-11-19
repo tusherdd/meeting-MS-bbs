@@ -12,16 +12,16 @@ import {
 } from "./support/helpers";
 
 /**
- * v1.10 (SPEC.md §13.18, §6.8): the three-dot "আরও অপশন" menu at the end of meeting rows.
- * - organizer (dd1) and internal chair (dd2): View details, Export PDF, Edit, Cancel;
- * - plain member (so): View details, Export PDF;
+ * v1.10 (SPEC.md §13.18): the three-dot "আরও অপশন" menu at the end of meeting rows.
+ * - organizer (dd1) and internal chair (dd2): View details, Edit, Cancel;
+ * - plain member (so): View details;
  * - keyboard: arrows move, Escape closes and returns focus; a click outside closes;
- * - Export PDF downloads "meeting-notice-YYYY-MM-DD-<shortid>.pdf";
- * - the chair can open Edit and cancel the meeting from the menu.
+ * - the chair can open Edit (v1.13: without the notice field) and cancel the meeting from the menu.
+ * v1.13: "Export PDF" is gone; "সভার নোটিশ" appears only with an uploaded notice (v113.spec.ts).
  * Uses the personal report page of one far-away day, so no other test meeting is in the way.
  */
-const ALL = [bn.rowMenu.view, bn.rowMenu.exportPdf, bn.rowMenu.edit, bn.rowMenu.cancel];
-const READ_ONLY = [bn.rowMenu.view, bn.rowMenu.exportPdf];
+const ALL = [bn.rowMenu.view, bn.rowMenu.edit, bn.rowMenu.cancel];
+const READ_ONLY = [bn.rowMenu.view];
 
 async function openRowMenu(page: Page, date: string, title: string) {
   await page.goto(`/reports?period=day&date=${date}`);
@@ -39,7 +39,7 @@ async function itemsOf(page: Page): Promise<string[]> {
   return (await page.getByRole("menuitem").allInnerTexts()).map((s) => s.trim());
 }
 
-test("row menu items per role, keyboard, Export PDF and the chair's Edit / Cancel", async ({
+test("row menu items per role, keyboard and the chair's Edit / Cancel", async ({
   browser,
 }) => {
   const org = await pageAs(browser, "dd1");
@@ -57,44 +57,38 @@ test("row menu items per role, keyboard, Export PDF and the chair's Edit / Cance
   });
 
   try {
-    // Organizer: all four items.
-    await openRowMenu(org, date, title);
+    // Organizer: all three items; keyboard and outside click.
+    const { button } = await openRowMenu(org, date, title);
     expect(await itemsOf(org)).toEqual(ALL);
-
-    // Plain member: only View details and Export PDF; keyboard and outside click.
-    const { button } = await openRowMenu(member, date, title);
-    expect(await itemsOf(member)).toEqual(READ_ONLY);
-    await expect(member.getByRole("menuitem", { name: bn.rowMenu.view })).toBeFocused();
-    await member.keyboard.press("ArrowDown");
-    await expect(member.getByRole("menuitem", { name: bn.rowMenu.exportPdf })).toBeFocused();
-    await member.keyboard.press("ArrowDown"); // wraps around
-    await expect(member.getByRole("menuitem", { name: bn.rowMenu.view })).toBeFocused();
-    await member.keyboard.press("Escape");
-    await expect(member.getByRole("menu")).toHaveCount(0);
+    await expect(org.getByRole("menuitem", { name: bn.rowMenu.view })).toBeFocused();
+    await org.keyboard.press("ArrowDown");
+    await expect(org.getByRole("menuitem", { name: bn.rowMenu.edit })).toBeFocused();
+    await org.keyboard.press("End");
+    await expect(org.getByRole("menuitem", { name: bn.rowMenu.cancel })).toBeFocused();
+    await org.keyboard.press("ArrowDown"); // wraps around
+    await expect(org.getByRole("menuitem", { name: bn.rowMenu.view })).toBeFocused();
+    await org.keyboard.press("Escape");
+    await expect(org.getByRole("menu")).toHaveCount(0);
     await expect(button).toBeFocused();
     await button.click();
-    await expect(member.getByRole("menu")).toBeVisible();
-    await member.mouse.click(5, 5);
-    await expect(member.getByRole("menu")).toHaveCount(0);
+    await expect(org.getByRole("menu")).toBeVisible();
+    await org.mouse.click(5, 5);
+    await expect(org.getByRole("menu")).toHaveCount(0);
 
-    // Export PDF downloads the notice.
-    await button.click();
-    const download = member.waitForEvent("download");
-    await member.getByRole("menuitem", { name: bn.rowMenu.exportPdf }).click();
-    const file = await download;
-    expect(file.suggestedFilename()).toBe(
-      `meeting-notice-${date}-${meeting.id.slice(0, 8)}.pdf`,
-    );
+    // Plain member: only View details (no notice uploaded → no "সভার নোটিশ").
+    await openRowMenu(member, date, title);
+    expect(await itemsOf(member)).toEqual(READ_ONLY);
 
-    // Internal chair: all four items; Edit opens the form.
+    // Internal chair: all three items; Edit opens the form (v1.13: no notice field for the chair).
     await openRowMenu(chair, date, title);
     expect(await itemsOf(chair)).toEqual(ALL);
     await chair.getByRole("menuitem", { name: bn.rowMenu.edit }).click();
     await expect(chair).toHaveURL(new RegExp(`/meetings/${meeting.id}/edit$`));
     await expect(chair.getByRole("heading", { name: bn.meetingForm.editTitle })).toBeVisible();
     await expect(chair.getByText(bn.meetingForm.cannotEditEnded)).toHaveCount(0);
+    await expect(chair.getByTestId("notice-field")).toHaveCount(0);
 
-    // The chair cancels from the menu; afterwards the row offers no Export / Edit / Cancel.
+    // The chair cancels from the menu; afterwards the row offers no Edit / Cancel.
     await openRowMenu(chair, date, title);
     await chair.getByRole("menuitem", { name: bn.rowMenu.cancel }).click();
     const dialog = chair.getByRole("dialog");
