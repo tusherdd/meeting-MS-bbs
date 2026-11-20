@@ -47,7 +47,7 @@ export function OfficeReportView() {
       />
     );
   }
-  if (scope === "WING" && !user?.wing) {
+  if (scope === "WING" && (user?.officeReportWings.length ?? 0) === 0) {
     return <Blocked title={t.officeReport.noWingTitle} body={t.officeReport.noWingBody} />;
   }
   return <OfficeReport />;
@@ -77,10 +77,12 @@ function OfficeReport() {
   const { formatDate, formatNumber } = useFormat();
   const { when, activePeriod, page, get, update, choosePeriod, chooseRange } = useReportParams();
   const wingScope = user?.officeReportScope === "WING";
-  const ownWing = user?.wing ?? null;
+  // v1.16: own wing first, then the wings of WING-scope additional charges — only these.
+  const scopeWings = user?.officeReportWings ?? [];
+  const chosenWing = scopeWings.find((w) => w.id === get("wingId")) ?? scopeWings[0] ?? null;
 
   const filter: OfficeFilter = {
-    wingId: wingScope ? undefined : get("wingId") || undefined,
+    wingId: wingScope ? chosenWing?.id : get("wingId") || undefined,
     officerId: get("officerId") || undefined,
     status: oneOf(get("status"), STATUSES),
     organizerWingId: wingScope ? undefined : get("organizerWingId") || undefined,
@@ -134,9 +136,7 @@ function OfficeReport() {
             {subtitle}
           </p>
         </div>
-        <PdfDownloadButton
-          download={() => reportsApi.officePdf(when, filter, page)}
-        />
+        <PdfDownloadButton download={() => reportsApi.officePdf(when, filter, page)} />
       </div>
 
       <Card>
@@ -154,22 +154,24 @@ function OfficeReport() {
                   <Select
                     id={wingSelectId}
                     label={t.officeReport.wing}
-                    disabled
+                    // One wing: locked. More (charge wings, v1.16): limited to exactly those.
+                    disabled={scopeWings.length < 2}
                     aria-describedby={lockHintId}
-                    value={ownWing?.id ?? ""}
-                    options={
-                      ownWing
-                        ? [{ value: ownWing.id, label: names.pick(ownWing.nameBn, ownWing.nameEn) }]
-                        : []
-                    }
+                    value={chosenWing?.id ?? ""}
+                    options={scopeWings.map((w) => ({
+                      value: w.id,
+                      label: names.pick(w.nameBn, w.nameEn),
+                    }))}
                     className="appearance-none bg-slate-100 pr-9"
-                    onChange={() => undefined}
+                    onChange={(e) =>
+                      update({ wingId: e.target.value, officerId: undefined, role: undefined })
+                    }
                   />
                   <span className="pointer-events-none absolute right-3 bottom-3 text-slate-600 sm:bottom-2.5">
                     <LockIcon />
                   </span>
                   <span id={lockHintId} className="sr-only">
-                    {t.officeReport.wingLocked}
+                    {scopeWings.length < 2 ? t.officeReport.wingLocked : t.officeReport.wingLimited}
                   </span>
                 </div>
               ) : (
@@ -188,7 +190,7 @@ function OfficeReport() {
             </div>
             <OfficerPicker
               idPrefix="office-report"
-              wingId={wingScope ? (ownWing?.id ?? "") : (filter.wingId ?? "")}
+              wingId={filter.wingId ?? ""}
               value={filter.officerId ?? ""}
               valueLabel={officer ? names.pick(officer.nameBn, officer.nameEn) : null}
               onChange={(id) => update({ officerId: id, role: undefined })}

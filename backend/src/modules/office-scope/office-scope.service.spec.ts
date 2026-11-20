@@ -6,6 +6,7 @@ import { OfficeScopeService, type OfficeAccess } from './office-scope.service';
 describe('OfficeScopeService.canViewMeeting', () => {
   const actor = { id: 'viewer' };
   const wing = { id: 'w1', nameBn: 'উইং এক', nameEn: 'Wing One' };
+  const charge = { id: 'w2', nameBn: 'উইং দুই', nameEn: 'Wing Two' };
   const make = (rows: unknown[]) => {
     const query = jest.fn().mockResolvedValue(rows);
     return {
@@ -16,7 +17,7 @@ describe('OfficeScopeService.canViewMeeting', () => {
 
   it('OFFICE sees every meeting without a query', async () => {
     const { query, service } = make([]);
-    const access: OfficeAccess = { scope: S.OFFICE, wing: null };
+    const access: OfficeAccess = { scope: S.OFFICE, wing: null, wings: [] };
     await expect(service.canViewMeeting(actor, 'm', access)).resolves.toBe(
       true,
     );
@@ -26,10 +27,18 @@ describe('OfficeScopeService.canViewMeeting', () => {
   it('NONE and WING without a wing see nothing', async () => {
     const { query, service } = make([{ ok: 1 }]);
     await expect(
-      service.canViewMeeting(actor, 'm', { scope: S.NONE, wing: null }),
+      service.canViewMeeting(actor, 'm', {
+        scope: S.NONE,
+        wing: null,
+        wings: [],
+      }),
     ).resolves.toBe(false);
     await expect(
-      service.canViewMeeting(actor, 'm', { scope: S.WING, wing: null }),
+      service.canViewMeeting(actor, 'm', {
+        scope: S.WING,
+        wing: null,
+        wings: [],
+      }),
     ).resolves.toBe(false);
     expect(query).not.toHaveBeenCalled();
   });
@@ -37,16 +46,25 @@ describe('OfficeScopeService.canViewMeeting', () => {
   it('WING: only meetings organized by, or with an officer of, the own wing (checked in SQL)', async () => {
     const inScope = make([{ ok: 1 }]);
     await expect(
-      inScope.service.canViewMeeting(actor, 'm1', { scope: S.WING, wing }),
+      inScope.service.canViewMeeting(actor, 'm1', {
+        scope: S.WING,
+        wing,
+        wings: [wing, charge],
+      }),
     ).resolves.toBe(true);
-    const [sql, params] = inScope.query.mock.calls[0] as [string, string[]];
-    expect(params).toEqual(['m1', 'w1']);
-    expect(sql).toContain('o."wingId" = $2');
-    expect(sql).toContain('u."wingId" = $2');
+    const [sql, params] = inScope.query.mock.calls[0] as [string, unknown[]];
+    // v1.16: own wing AND the wing of a WING-scope additional charge.
+    expect(params).toEqual(['m1', ['w1', 'w2']]);
+    expect(sql).toContain('o."wingId" = ANY($2::uuid[])');
+    expect(sql).toContain('u."wingId" = ANY($2::uuid[])');
 
     const other = make([]);
     await expect(
-      other.service.canViewMeeting(actor, 'm2', { scope: S.WING, wing }),
+      other.service.canViewMeeting(actor, 'm2', {
+        scope: S.WING,
+        wing,
+        wings: [wing],
+      }),
     ).resolves.toBe(false);
   });
 });

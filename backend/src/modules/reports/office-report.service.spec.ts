@@ -44,7 +44,9 @@ describe('OfficeReportService scope checks', () => {
       getRepository: (entity: { name: string }) => repos[entity.name],
     } as unknown as DataSource;
     const officeScope = {
-      access: jest.fn().mockResolvedValue({ scope, wing }),
+      access: jest
+        .fn()
+        .mockResolvedValue({ scope, wing, wings: wing ? [wing] : [] }),
     } as unknown as OfficeScopeService;
     const render = jest.fn();
     const log = jest.fn();

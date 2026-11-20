@@ -54,6 +54,8 @@ interface OfficeContext {
   officer: User | null;
   /** Top 5 participants only from this wing (WING viewers, or a chosen wing). */
   topWingId: string | null;
+  /** WING viewers: the wings they may choose (own wing first, then charge wings, v1.16). */
+  scopeWings: Array<{ id: string; nameBn: string; nameEn: string }>;
 }
 
 interface OfficeData {
@@ -144,16 +146,18 @@ export class OfficeReportService {
     const scope = access.scope;
 
     let wingId = query.wingId ?? null;
+    // v1.16: WING viewers see their own wing and the wings of their WING-scope additional
+    // charges — one of them at a time (the first by default), never another one.
+    const allowed = access.wings.map((w) => w.id);
     if (scope === OfficeReportScope.WING) {
-      if (!access.wing)
+      if (allowed.length === 0)
         throw new ForbiddenException(OFFICE_REPORT_MESSAGES.noWing);
-      const own = access.wing.id;
       if (
-        (wingId && wingId !== own) ||
-        (query.organizerWingId && query.organizerWingId !== own)
+        (wingId && !allowed.includes(wingId)) ||
+        (query.organizerWingId && !allowed.includes(query.organizerWingId))
       )
         throw new ForbiddenException(OFFICE_REPORT_MESSAGES.outOfScope);
-      wingId = own;
+      wingId = wingId ?? allowed[0];
     }
     const wing = wingId
       ? await this.dataSource.getRepository(Wing).findOneBy({ id: wingId })
@@ -172,11 +176,17 @@ export class OfficeReportService {
     if (
       officer &&
       scope === OfficeReportScope.WING &&
-      officer.wingId !== access.wing?.id
+      !(officer.wingId && allowed.includes(officer.wingId))
     )
       throw new ForbiddenException(OFFICE_REPORT_MESSAGES.outOfScope);
 
-    return { scope, wing, officer, topWingId: wing?.id ?? null };
+    return {
+      scope,
+      wing,
+      officer,
+      topWingId: wing?.id ?? null,
+      scopeWings: scope === OfficeReportScope.WING ? access.wings : [],
+    };
   }
 
   // ---------------------------------------------------------------- data
@@ -214,6 +224,7 @@ export class OfficeReportService {
         to: p.range.end,
       },
       scope: ctx.scope,
+      scopeWings: ctx.scopeWings,
       wing: ctx.wing
         ? { id: ctx.wing.id, nameBn: ctx.wing.nameBn, nameEn: ctx.wing.nameEn }
         : null,

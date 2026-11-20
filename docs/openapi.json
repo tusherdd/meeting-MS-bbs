@@ -1141,6 +1141,16 @@
             }
           },
           {
+            "name": "chargesNeedReview",
+            "required": false,
+            "in": "query",
+            "description": "v1.16: true = officers with an additional charge that needs review (migrated free text)",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          },
+          {
             "name": "sortBy",
             "required": false,
             "in": "query",
@@ -5371,6 +5381,13 @@
               }
             ]
           },
+          "officeReportWings": {
+            "description": "v1.16: WING scope — the wings of the office report (own wing first, then the wings of WING-scope additional charges); empty otherwise",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeWingDto"
+            }
+          },
           "lastLoginAt": {
             "type": "string",
             "format": "date-time",
@@ -5390,6 +5407,7 @@
           "wing",
           "priority",
           "officeReportScope",
+          "officeReportWings",
           "lastLoginAt"
         ]
       },
@@ -5751,6 +5769,11 @@
             "example": true,
             "description": "Still uses the default officer password (admin view only)"
           },
+          "chargesNeedReview": {
+            "type": "boolean",
+            "example": false,
+            "description": "v1.16: at least one additional charge needs review (admin badge and filter)"
+          },
           "lastLoginAt": {
             "type": "string",
             "format": "date-time",
@@ -5775,8 +5798,31 @@
           "isActive",
           "mustChangePassword",
           "passwordIsDefault",
+          "chargesNeedReview",
           "lastLoginAt",
           "createdAt"
+        ]
+      },
+      "ChargeRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "পরিচালক"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Director"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn"
         ]
       },
       "AdditionalChargeDto": {
@@ -5786,14 +5832,41 @@
             "type": "string",
             "format": "uuid"
           },
-          "description": {
+          "designation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChargeRefDto"
+              }
+            ]
+          },
+          "wing": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChargeRefDto"
+              }
+            ]
+          },
+          "note": {
             "type": "string",
-            "example": "ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল"
+            "nullable": true,
+            "example": "চলতি দায়িত্ব"
+          },
+          "needsReview": {
+            "type": "boolean",
+            "example": false,
+            "description": "Migrated from the old free text; an admin still has to choose the designation"
           }
         },
         "required": [
           "id",
-          "description"
+          "designation",
+          "wing",
+          "note",
+          "needsReview"
         ]
       },
       "UserDetailDto": {
@@ -5868,6 +5941,11 @@
             "type": "boolean",
             "example": true,
             "description": "Still uses the default officer password (admin view only)"
+          },
+          "chargesNeedReview": {
+            "type": "boolean",
+            "example": false,
+            "description": "v1.16: at least one additional charge needs review (admin badge and filter)"
           },
           "lastLoginAt": {
             "type": "string",
@@ -5947,6 +6025,7 @@
           "isActive",
           "mustChangePassword",
           "passwordIsDefault",
+          "chargesNeedReview",
           "lastLoginAt",
           "createdAt",
           "pendingNotificationEmail",
@@ -5960,6 +6039,31 @@
           "failedLoginCount",
           "additionalCharges",
           "updatedAt"
+        ]
+      },
+      "AdditionalChargeInputDto": {
+        "type": "object",
+        "properties": {
+          "designationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Designation of the charge"
+          },
+          "wingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Optional wing of the charge"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "example": "চলতি দায়িত্ব",
+            "description": "Optional note (max 300)"
+          }
+        },
+        "required": [
+          "designationId"
         ]
       },
       "CreateUserDto": {
@@ -6036,13 +6140,10 @@
             "example": "২৭তম"
           },
           "additionalCharges": {
-            "example": [
-              "ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল"
-            ],
-            "description": "Replaces the whole list. Empty entries and duplicates are removed.",
+            "description": "v1.16: replaces the whole list (admin only). Each charge: designation (required), wing and note (optional); no charge twice (same designation and wing).",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/AdditionalChargeInputDto"
             }
           }
         },
@@ -6127,13 +6228,10 @@
             "example": "২৭তম"
           },
           "additionalCharges": {
-            "example": [
-              "ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল"
-            ],
-            "description": "Replaces the whole list. Empty entries and duplicates are removed.",
+            "description": "v1.16: replaces the whole list (admin only). Each charge: designation (required), wing and note (optional); no charge twice (same designation and wing).",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/AdditionalChargeInputDto"
             }
           }
         }
@@ -6470,6 +6568,11 @@
             "example": true,
             "description": "Still uses the default officer password (admin view only)"
           },
+          "chargesNeedReview": {
+            "type": "boolean",
+            "example": false,
+            "description": "v1.16: at least one additional charge needs review (admin badge and filter)"
+          },
           "lastLoginAt": {
             "type": "string",
             "format": "date-time",
@@ -6542,6 +6645,7 @@
           "role",
           "mustChangePassword",
           "passwordIsDefault",
+          "chargesNeedReview",
           "lastLoginAt",
           "createdAt",
           "pendingNotificationEmail",
@@ -6598,16 +6702,6 @@
             "type": "string",
             "nullable": true,
             "example": "+880 2 55007375"
-          },
-          "additionalCharges": {
-            "example": [
-              "ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল"
-            ],
-            "description": "Replaces the whole list. Empty entries and duplicates are removed.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         }
       },
@@ -8943,9 +9037,16 @@
             ],
             "description": "The viewer's scope"
           },
+          "scopeWings": {
+            "description": "v1.16 WING viewers: the wings they may choose (own wing first, then the wings of their WING-scope additional charges); empty for OFFICE",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfficeWingRefDto"
+            }
+          },
           "wing": {
             "nullable": true,
-            "description": "The wing filter: the chosen wing (OFFICE) or the own, locked wing (WING); null = সকল উইং",
+            "description": "The wing filter: the chosen wing (OFFICE: any; WING: one of scopeWings, default the first); null = সকল উইং",
             "type": "object",
             "allOf": [
               {
@@ -8995,6 +9096,7 @@
         "required": [
           "period",
           "scope",
+          "scopeWings",
           "wing",
           "officer",
           "cards",

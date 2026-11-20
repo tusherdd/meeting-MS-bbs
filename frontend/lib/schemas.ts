@@ -161,9 +161,43 @@ export function createSchemas(t: Messages) {
       .max(50, tooLong)
       .refine((v) => v === "" || PHONE_PATTERN.test(normalizePhone(v)), t.validation.phoneInvalid);
 
+  /**
+   * v1.16 (SPEC.md §6.2): structured additional charges, admin only. A row that still needs review
+   * may stay without a designation while the list is not changed; once the list is saved every row
+   * needs a designation (checked on submit, see chargesProblems). No charge twice.
+   */
   const additionalCharges = z
-    .array(z.object({ value: z.string().trim().max(300, t.validation.chargeTooLong) }))
-    .max(MAX_ADDITIONAL_CHARGES, t.validation.tooManyCharges);
+    .array(
+      z.object({
+        designationId: z.string(),
+        wingId: z.string(),
+        note: z.string().trim().max(300, t.validation.chargeTooLong),
+        needsReview: z.boolean(),
+      }),
+    )
+    .max(MAX_ADDITIONAL_CHARGES, t.validation.tooManyCharges)
+    .superRefine((list, ctx) => {
+      const seen = new Set<string>();
+      list.forEach((c, i) => {
+        if (!c.designationId) {
+          if (!c.needsReview)
+            ctx.addIssue({
+              code: "custom",
+              path: [i, "designationId"],
+              message: t.validation.chargeDesignationRequired,
+            });
+          return;
+        }
+        const key = `${c.designationId}|${c.wingId}`;
+        if (seen.has(key))
+          ctx.addIssue({
+            code: "custom",
+            path: [i, "designationId"],
+            message: t.validation.chargeDuplicate,
+          });
+        seen.add(key);
+      });
+    });
 
   /** Fields an officer may edit on their own profile (PATCH /profile). */
   const profileFormSchema = z.object({
@@ -184,7 +218,6 @@ export function createSchemas(t: Messages) {
     mobileAlt: optionalMobile,
     officePhone: optionalPhone(t.validation.phoneTooLong),
     fax: optionalPhone(t.validation.faxTooLong),
-    additionalCharges,
   });
 
   /** Admin: create / edit an officer (POST /users, PATCH /users/:id). */
@@ -193,6 +226,7 @@ export function createSchemas(t: Messages) {
     designationId: z.string().min(1, t.validation.designationRequired),
     organizationBn: optionalText(300, t.validation.organizationTooLong),
     organizationEn: optionalText(300, t.validation.organizationTooLong),
+    additionalCharges,
   });
 
   const emailFormSchema = z.object({ email });
@@ -264,7 +298,6 @@ export type DesignationFormValues = z.infer<Schemas["designationFormSchema"]>;
 /** "" → null, Bangla digits → English, mobiles → 01XXXXXXXXX (what the backend stores). */
 export function toProfilePayload(v: ProfileFormValues) {
   const orNull = (s: string) => (s.trim() === "" ? null : s.trim());
-  const charges = v.additionalCharges.map((c) => c.value.trim()).filter(Boolean);
   return {
     nameBn: v.nameBn.trim(),
     nameEn: v.nameEn.trim(),
@@ -274,11 +307,14 @@ export function toProfilePayload(v: ProfileFormValues) {
     mobileAlt: v.mobileAlt.trim() ? normalizeMobile(v.mobileAlt) : null,
     officePhone: v.officePhone.trim() ? normalizePhone(v.officePhone) : null,
     fax: v.fax.trim() ? normalizePhone(v.fax) : null,
-    additionalCharges: [...new Set(charges)],
   };
 }
 
-export function toUserPayload(v: UserFormValues) {
+/**
+ * Admin user payload. v1.16: `additionalCharges` is sent only when `withCharges` (new officer, or
+ * the list was changed): it replaces the whole list, so untouched needs-review rows stay as they are.
+ */
+export function toUserPayload(v: UserFormValues, withCharges = true) {
   const orNull = (s: string) => (s.trim() === "" ? null : s.trim());
   return {
     ...toProfilePayload(v),
@@ -286,5 +322,22 @@ export function toUserPayload(v: UserFormValues) {
     designationId: v.designationId,
     organizationBn: orNull(v.organizationBn),
     organizationEn: orNull(v.organizationEn),
+    ...(withCharges
+      ? {
+          additionalCharges: v.additionalCharges.map((c) => ({
+            designationId: c.designationId,
+            wingId: c.wingId || null,
+            note: c.note.trim() || null,
+          })),
+        }
+      : {}),
   };
+}
+
+/**
+ * v1.16: before the charge list is saved, every row (also one that needed review) must have a
+ * designation. Returns the row indexes without one.
+ */
+export function chargesWithoutDesignation(v: Pick<UserFormValues, "additionalCharges">): number[] {
+  return v.additionalCharges.flatMap((c, i) => (c.designationId ? [] : [i]));
 }

@@ -7,7 +7,7 @@ import { OFFICERS } from "./support/officers";
 /** A real 64×64 PNG (the backend checks magic bytes and re-encodes it with sharp). */
 const PHOTO = readFileSync(join(__dirname, "fixtures", "photo.png"));
 
-test("profile: edit with Bangla digits, charges list, photo upload and remove", async ({
+test("profile: edit with Bangla digits, charges read-only, photo upload and remove", async ({
   browser,
 }) => {
   const page = await pageAs(browser, "officer");
@@ -17,30 +17,22 @@ test("profile: edit with Bangla digits, charges list, photo upload and remove", 
 
     // Mobile in Bangla digits with +880 → stored as 01XXXXXXXXX.
     await page.getByLabel("Mobile", { exact: true }).fill("+৮৮০ ১৭১১-০০০০০১");
-    // Additional charges: an editable list.
-    await page.getByRole("button", { name: "দায়িত্ব যোগ করুন" }).click();
-    const charge = `ই২ই ফোকাল পয়েন্ট ${Date.now().toString(36)}`;
-    await page.getByLabel("অতিরিক্ত দায়িত্ব ১", { exact: true }).fill(charge);
+    // v1.16: additional charges are read-only here (admin only).
+    await expect(page.getByTestId("additional-charges")).toContainText(
+      "অতিরিক্ত দায়িত্ব শুধু অ্যাডমিন বদলাতে পারেন।",
+    );
+    await expect(page.getByRole("button", { name: "দায়িত্ব যোগ করুন" })).toHaveCount(0);
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Profile হালনাগাদ হয়েছে।")).toBeVisible();
 
     await page.reload();
     await expect(page.getByLabel("Mobile", { exact: true })).toHaveValue("01711000001");
-    await expect(page.getByLabel("অতিরিক্ত দায়িত্ব ১", { exact: true })).toHaveValue(charge);
 
     // A wrong mobile is caught before sending.
     await page.getByLabel("Mobile", { exact: true }).fill("১২৩");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText(/সঠিক Mobile নম্বর দিন/)).toBeVisible();
     await page.getByRole("button", { name: "আগের অবস্থায় ফেরান" }).click();
-
-    // Remove the charge again (keeps the test account clean).
-    await page
-      .getByRole("button", { name: /^বাদ দিন/ })
-      .first()
-      .click();
-    await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText("Profile হালনাগাদ হয়েছে।").first()).toBeVisible();
 
     // Photo: a non-image is refused in the browser already.
     const fileInput = page.getByLabel("ছবি বেছে নিন");

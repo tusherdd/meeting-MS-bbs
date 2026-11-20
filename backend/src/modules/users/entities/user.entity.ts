@@ -142,4 +142,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => UserAdditionalCharge, (charge) => charge.user)
   additionalCharges!: Relation<UserAdditionalCharge>[];
+
+  /** v1.16: filled by the admin list (loadRelationCountAndMap), not a column. */
+  reviewChargeCount?: number;
 }

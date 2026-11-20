@@ -19,6 +19,7 @@ import { DESIGNATION_MESSAGES } from '../src/modules/designations/designations.m
 import { Designation } from '../src/modules/designations/entities/designation.entity';
 import { EmailOutbox } from '../src/modules/mail/entities/email-outbox.entity';
 import { Meeting } from '../src/modules/meetings/entities/meeting.entity';
+import { UserAdditionalCharge } from '../src/modules/users/entities/user-additional-charge.entity';
 import { User } from '../src/modules/users/entities/user.entity';
 import { UserRole } from '../src/modules/users/enums/user-role.enum';
 import { USER_MESSAGES } from '../src/modules/users/users.messages';
@@ -321,6 +322,67 @@ describe('Users, designations, wings (e2e)', () => {
 
   // ------------------------------------------------------------------ create / update
 
+  describe('v1.16 structured additional charges (admin only)', () => {
+    it('validates: designation required, same charge twice → 400', async () => {
+      await http()
+        .patch(`${API}/users/${ids.officer}`)
+        .set(as('admin'))
+        .send({ additionalCharges: [{ wingId }] })
+        .expect(400);
+      await http()
+        .patch(`${API}/users/${ids.officer}`)
+        .set(as('admin'))
+        .send({ additionalCharges: ['এসডিজি সেল'] })
+        .expect(400);
+      const dup = await http()
+        .patch(`${API}/users/${ids.officer}`)
+        .set(as('admin'))
+        .send({
+          additionalCharges: [
+            { designationId, wingId },
+            { designationId, wingId, note: 'বিকল্প' },
+          ],
+        })
+        .expect(400);
+      expect(JSON.stringify(dup.body)).toContain('দুবার');
+    });
+
+    it('needs-review rows: flag on the user and the admin filter', async () => {
+      await ds.getRepository(UserAdditionalCharge).insert({
+        userId: ids.officer,
+        designationId: null,
+        note: 'পুরনো লেখা',
+        needsReview: true,
+      });
+      const list = await http()
+        .get(`${API}/users`)
+        .query({ chargesNeedReview: true, limit: 100 })
+        .set(as('admin'))
+        .expect(200);
+      const items = (
+        list.body as {
+          items: Array<{ id: string; chargesNeedReview: boolean }>;
+        }
+      ).items;
+      expect(items.find((u) => u.id === ids.officer)).toMatchObject({
+        chargesNeedReview: true,
+      });
+      expect(items.every((u) => u.chargesNeedReview)).toBe(true);
+      // Fixing it: the admin saves a structured list (the review row is replaced).
+      const fixed = await http()
+        .patch(`${API}/users/${ids.officer}`)
+        .set(as('admin'))
+        .send({ additionalCharges: [{ designationId, note: 'পুরনো লেখা' }] })
+        .expect(200);
+      expect(fixed.body).toMatchObject({
+        chargesNeedReview: false,
+        additionalCharges: [
+          expect.objectContaining({ note: 'পুরনো লেখা', needsReview: false }),
+        ],
+      });
+    });
+  });
+
   describe('POST /users and PATCH /users/:id', () => {
     it('creates an officer with the default password; the mail never contains it', async () => {
       const res = await http()
@@ -332,16 +394,25 @@ describe('Users, designations, wings (e2e)', () => {
           nameEn: 'E2EU New',
           designationId,
           mobile: '০১৮১১১১১১১১',
-          additionalCharges: ['এসডিজি সেল', ' এসডিজি সেল ', ''],
+          additionalCharges: [
+            { designationId, wingId, note: '  চলতি দায়িত্ব ' },
+          ],
         })
         .expect(201);
       expect(res.body).toMatchObject({
         loginEmail: email('new.officer'),
         role: 'OFFICER',
         mobile: '01811111111',
+        // v1.16: structured — designation, wing, note (trimmed), not under review.
         additionalCharges: [
-          expect.objectContaining({ description: 'এসডিজি সেল' }),
+          {
+            designation: { id: designationId },
+            wing: { id: wingId },
+            note: 'চলতি দায়িত্ব',
+            needsReview: false,
+          },
         ],
+        chargesNeedReview: false,
       });
       expect(JSON.stringify(res.body)).not.toMatch(
         /"password"|passwordHash|token/i,

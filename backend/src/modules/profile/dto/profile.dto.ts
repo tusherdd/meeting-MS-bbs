@@ -9,6 +9,7 @@ import { UserDetailDto } from '../../users/dto/user-response.dto';
  * The ONLY fields an officer may change on their own profile (SPEC.md §6.2). Anything else —
  * loginEmail, designationId, role, isActive, ... — is rejected by the global ValidationPipe
  * (forbidNonWhitelisted). Login email and designation change through change requests.
+ * v1.16: additional charges are admin only (their designation grants office report scope).
  */
 export class UpdateProfileDto extends PartialType(
   PickType(CreateUserDto, [
@@ -20,7 +21,6 @@ export class UpdateProfileDto extends PartialType(
     'fax',
     'wingId',
     'designationRemark',
-    'additionalCharges',
   ] as const),
 ) {}
 

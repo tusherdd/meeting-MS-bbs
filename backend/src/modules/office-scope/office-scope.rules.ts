@@ -1,12 +1,12 @@
 /**
- * v1.15 office report access (SPEC.md §6.10), pure rules (unit-tested in office-scope.rules.spec.ts).
+ * Office report access (SPEC.md §6.10), pure rules (unit-tested in office-scope.rules.spec.ts).
  *
  * - ADMIN and SUPER_ADMIN always have OFFICE.
- * - Everyone else: the highest scope of their designation and of the designations named by their
- *   additional charges (user_additional_charges).
- * - Additional charges are free text. A charge "is" a designation when its text starts with that
- *   designation's Bangla or English name as a whole word ("পরিচালক (বিকল্প), সেন্সাস উইং" → পরিচালক);
- *   the longest matching name wins, so "উপপরিচালক" is never read as "পরিচালক".
+ * - Everyone else: the highest scope of their designation and of the DESIGNATIONS of their
+ *   structured additional charges (v1.16; charges that still need review have none and count
+ *   for nothing). The old guessing from the charge text (v1.15) is gone.
+ * - WING viewers may see their own wing and (v1.16) the wing of every additional charge whose
+ *   designation has WING scope.
  */
 import { OfficeReportScope } from '../designations/enums/office-report-scope.enum';
 import { UserRole } from '../users/enums/user-role.enum';
@@ -25,58 +25,39 @@ export function maxScope(
   return best;
 }
 
-export interface ScopedDesignation {
-  id: string;
-  nameBn: string;
-  nameEn: string;
-  officeReportScope: OfficeReportScope;
-}
-
-/** After the name: the end, a space or punctuation — never another letter or a vowel sign. */
-const BOUNDARY = /^($|[\s(),\-–—।:;/])/u;
-
-function startsWithWord(text: string, name: string): boolean {
-  const n = name.trim();
-  if (!n || !text.startsWith(n)) return false;
-  return BOUNDARY.test(text.slice(n.length));
-}
-
-/** The designation an additional charge names, or null ("এসডিজি সেল", "ফোকাল পয়েন্ট …" → null). */
-export function chargeDesignation<T extends ScopedDesignation>(
-  charge: string,
-  designations: readonly T[],
-): T | null {
-  const text = charge.trim();
-  const lower = text.toLowerCase();
-  let best: { d: T; length: number } | null = null;
-  for (const d of designations) {
-    for (const [hay, name] of [
-      [text, d.nameBn],
-      [lower, d.nameEn.toLowerCase()],
-    ] as const) {
-      if (startsWithWord(hay, name) && (!best || name.length > best.length)) {
-        best = { d, length: name.length };
-      }
-    }
-  }
-  return best?.d ?? null;
-}
-
 export function isAdminRole(role: UserRole): boolean {
   return role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
+}
+
+/** One additional charge as the scope needs it: its designation's scope and its own wing. */
+export interface ScopeCharge {
+  /** null = no designation (needs review). */
+  scope: OfficeReportScope | null;
+  wingId: string | null;
 }
 
 export function resolveScope(input: {
   role: UserRole;
   designationScope: OfficeReportScope | null;
-  charges: readonly string[];
-  designations: readonly ScopedDesignation[];
+  charges: readonly ScopeCharge[];
 }): OfficeReportScope {
   if (isAdminRole(input.role)) return OfficeReportScope.OFFICE;
-  return maxScope(
-    input.designationScope,
-    ...input.charges.map(
-      (c) => chargeDesignation(c, input.designations)?.officeReportScope,
-    ),
-  );
+  return maxScope(input.designationScope, ...input.charges.map((c) => c.scope));
+}
+
+/**
+ * Wings a WING viewer may see, own wing first: their own wing and the wing of every additional
+ * charge with WING scope (no duplicates). Empty → "no wing" (403 OFFICE_REPORT_NO_WING).
+ */
+export function scopeWingIds(
+  ownWingId: string | null,
+  charges: readonly ScopeCharge[],
+): string[] {
+  const ids = [
+    ownWingId,
+    ...charges
+      .filter((c) => c.scope === OfficeReportScope.WING)
+      .map((c) => c.wingId),
+  ].filter((id): id is string => !!id);
+  return [...new Set(ids)];
 }

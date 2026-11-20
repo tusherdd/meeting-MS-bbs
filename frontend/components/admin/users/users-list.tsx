@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,7 @@ export function UsersList() {
     role: ROLES.includes(role as Role) ? (role as Role) : undefined,
     isActive: parseBool(get("isActive")),
     passwordIsDefault: parseBool(get("passwordIsDefault")),
+    chargesNeedReview: parseBool(get("chargesNeedReview")),
     page,
   };
 
@@ -77,7 +79,8 @@ export function UsersList() {
     !!query.designationId ||
     !!query.role ||
     query.isActive !== undefined ||
-    query.passwordIsDefault !== undefined;
+    query.passwordIsDefault !== undefined ||
+    query.chargesNeedReview !== undefined;
 
   return (
     <div className="space-y-6">
@@ -94,7 +97,7 @@ export function UsersList() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           <Select
             id="users-wing"
             label={t.admin.filterWing}
@@ -135,6 +138,14 @@ export function UsersList() {
             onChange={(e) => set({ passwordIsDefault: e.target.value })}
             options={boolOptions(t.admin.defaultYes, t.admin.defaultNo)}
           />
+          <Select
+            id="users-charges-review"
+            label={t.admin.filterChargesReview}
+            placeholder={t.admin.all}
+            value={get("chargesNeedReview")}
+            onChange={(e) => set({ chargesNeedReview: e.target.value })}
+            options={boolOptions(t.admin.chargesReviewYes, t.admin.chargesReviewNo)}
+          />
         </div>
         {filtered && (
           <Button
@@ -149,6 +160,7 @@ export function UsersList() {
                 role: "",
                 isActive: "",
                 passwordIsDefault: "",
+                chargesNeedReview: "",
               });
             }}
           >
@@ -203,6 +215,11 @@ export function UsersList() {
                         <span className="block text-xs break-all text-slate-600">
                           {u.loginEmail}
                         </span>
+                        {u.chargesNeedReview && (
+                          <span className="mt-1 block" data-testid="charges-review-badge">
+                            <Badge tone="amber">{t.profile.chargeNeedsReview}</Badge>
+                          </span>
+                        )}
                       </Td>
                       <Td>
                         {names.maybe(u.designation) ?? t.profile.none}

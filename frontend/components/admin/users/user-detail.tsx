@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Alert, ErrorAlert } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
+import { AdditionalChargesList } from "@/components/profile/additional-charges-list";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -180,6 +181,7 @@ function AccountCard({
             <dd>{formatDateTime(u.createdAt)}</dd>
           </div>
         </dl>
+        <AdditionalChargesList charges={u.additionalCharges} />
 
         {!can.protected && (
           <div className="flex flex-wrap gap-2" data-testid="user-actions">

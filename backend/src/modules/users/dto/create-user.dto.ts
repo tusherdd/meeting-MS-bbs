@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -10,6 +10,7 @@ import {
   IsUUID,
   Matches,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
 import {
   normalizeEmail,
@@ -26,16 +27,37 @@ export const PHONE_PATTERN = /^\+?[0-9][0-9 -]{3,}[0-9]$/;
 const PHONE_MESSAGE = 'সঠিক Phone নম্বর দিন (শুধু সংখ্যা, +, স্পেস বা -)।';
 const MOBILE_MESSAGE = 'সঠিক Mobile নম্বর দিন (যেমন 01712345678)।';
 
-/** Trims each charge, drops empty ones and duplicates (order kept). Non-arrays untouched. */
-const trimCharges = ({ value }: { value: unknown }): unknown => {
-  if (!Array.isArray(value)) return value;
-  const items = (value as unknown[])
-    .map((v): unknown =>
-      typeof v === 'string' ? v.trim().replace(/\s+/g, ' ') : v,
-    )
-    .filter((v) => v !== '');
-  return [...new Set(items)];
-};
+/**
+ * v1.16 (SPEC.md §6.2): one structured additional charge — a designation (required), an optional
+ * wing and an optional note ("বিকল্প", "চলতি দায়িত্ব"). Admin only.
+ */
+export class AdditionalChargeInputDto {
+  @ApiProperty({ format: 'uuid', description: 'Designation of the charge' })
+  @IsUUID('4', { message: 'অতিরিক্ত দায়িত্বের পদবি বেছে নিন।' })
+  designationId!: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description: 'Optional wing of the charge',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: 'অবৈধ উইং আইডি।' })
+  wingId?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: 'চলতি দায়িত্ব',
+    description: 'Optional note (max 300)',
+  })
+  @IsOptional()
+  @Transform(trimToNull)
+  @IsString({ message: 'নোট লেখা হতে হবে।' })
+  @MaxLength(300, { message: 'নোট সর্বোচ্চ ৩০০ অক্ষরের হতে পারে।' })
+  note?: string | null;
+}
 
 export class CreateUserDto {
   @ApiProperty({
@@ -168,19 +190,14 @@ export class CreateUserDto {
   bcsBatch?: string | null;
 
   @ApiPropertyOptional({
-    type: [String],
-    example: ['ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল'],
+    type: [AdditionalChargeInputDto],
     description:
-      'Replaces the whole list. Empty entries and duplicates are removed.',
+      'v1.16: replaces the whole list (admin only). Each charge: designation (required), wing and note (optional); no charge twice (same designation and wing).',
   })
   @IsOptional()
-  @Transform(trimCharges)
   @IsArray({ message: 'অতিরিক্ত দায়িত্ব একটি তালিকা হতে হবে।' })
   @ArrayMaxSize(20, { message: 'সর্বোচ্চ ২০টি অতিরিক্ত দায়িত্ব দেওয়া যাবে।' })
-  @IsString({ each: true, message: 'প্রতিটি অতিরিক্ত দায়িত্ব লেখা হতে হবে।' })
-  @MaxLength(300, {
-    each: true,
-    message: 'প্রতিটি অতিরিক্ত দায়িত্ব সর্বোচ্চ ৩০০ অক্ষরের হতে পারে।',
-  })
-  additionalCharges?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => AdditionalChargeInputDto)
+  additionalCharges?: AdditionalChargeInputDto[];
 }

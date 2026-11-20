@@ -26,12 +26,35 @@ export class WingRefDto {
   nameEn!: string;
 }
 
+export class ChargeRefDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ example: 'পরিচালক' }) nameBn!: string;
+  @ApiProperty({ example: 'Director' }) nameEn!: string;
+}
+
+/**
+ * v1.16 structured additional charge (SPEC.md §6.2). Shown as "[পদবি] (অতিরিক্ত দায়িত্ব), [উইং]" + the
+ * note. Migrated rows without a safe match: `designation` null, `needsReview` true, old text as note.
+ */
 export class AdditionalChargeDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
-  @ApiProperty({ example: 'ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল' })
-  description!: string;
+  @ApiProperty({ type: ChargeRefDto, nullable: true })
+  designation!: ChargeRefDto | null;
+
+  @ApiProperty({ type: ChargeRefDto, nullable: true })
+  wing!: ChargeRefDto | null;
+
+  @ApiProperty({ type: String, nullable: true, example: 'চলতি দায়িত্ব' })
+  note!: string | null;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'Migrated from the old free text; an admin still has to choose the designation',
+  })
+  needsReview!: boolean;
 }
 
 /** One row of the admin user list. Never contains password or token hashes. */
@@ -77,6 +100,13 @@ export class UserSummaryDto {
     description: 'Still uses the default officer password (admin view only)',
   })
   passwordIsDefault!: boolean;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'v1.16: at least one additional charge needs review (admin badge and filter)',
+  })
+  chargesNeedReview!: boolean;
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   lastLoginAt!: Date | null;

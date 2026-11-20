@@ -151,11 +151,14 @@ export class AuthService {
       relations: { designation: true, wing: true },
     });
     if (!user) throw new UnauthorizedException(AUTH_MESSAGES.sessionExpired);
-    const officeReportScope = this.officeScope
-      ? (await this.officeScope.access(user)).scope
-      : isAdminRole(user.role)
-        ? OfficeReportScope.OFFICE
-        : OfficeReportScope.NONE;
+    const access = this.officeScope
+      ? await this.officeScope.access(user)
+      : {
+          scope: isAdminRole(user.role)
+            ? OfficeReportScope.OFFICE
+            : OfficeReportScope.NONE,
+          wings: [],
+        };
 
     // Explicit mapping: only these fields ever leave the API (never passwordHash / token hashes).
     return {
@@ -183,7 +186,8 @@ export class AuthService {
           }
         : null,
       priority: user.designation?.priority ?? null,
-      officeReportScope,
+      officeReportScope: access.scope,
+      officeReportWings: access.wings,
       lastLoginAt: user.lastLoginAt,
     };
   }

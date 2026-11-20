@@ -224,10 +224,17 @@ export class OfficeReportDto {
   scope!: OfficeReportScope;
 
   @ApiProperty({
+    type: [OfficeWingRefDto],
+    description:
+      'v1.16 WING viewers: the wings they may choose (own wing first, then the wings of their WING-scope additional charges); empty for OFFICE',
+  })
+  scopeWings!: OfficeWingRefDto[];
+
+  @ApiProperty({
     type: OfficeWingRefDto,
     nullable: true,
     description:
-      'The wing filter: the chosen wing (OFFICE) or the own, locked wing (WING); null = সকল উইং',
+      'The wing filter: the chosen wing (OFFICE: any; WING: one of scopeWings, default the first); null = সকল উইং',
   })
   wing!: OfficeWingRefDto | null;
 

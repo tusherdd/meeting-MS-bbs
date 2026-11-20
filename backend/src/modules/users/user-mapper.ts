@@ -3,7 +3,11 @@
  * no password or token hashes — ever leaves the API.
  */
 import type { EntityManager } from 'typeorm';
-import type { UserDetailDto, UserSummaryDto } from './dto/user-response.dto';
+import type {
+  AdditionalChargeDto,
+  UserDetailDto,
+  UserSummaryDto,
+} from './dto/user-response.dto';
 import { UserAdditionalCharge } from './entities/user-additional-charge.entity';
 import type { User } from './entities/user.entity';
 
@@ -32,6 +36,9 @@ export function toUserSummary(u: User): UserSummaryDto {
     isActive: u.isActive,
     mustChangePassword: u.mustChangePassword,
     passwordIsDefault: u.passwordIsDefault,
+    chargesNeedReview:
+      (u.reviewChargeCount ??
+        (u.additionalCharges ?? []).filter((c) => c.needsReview).length) > 0,
     lastLoginAt: u.lastLoginAt,
     createdAt: u.createdAt,
   };
@@ -49,25 +56,59 @@ export function toUserDetail(u: User): UserDetailDto {
     organizationEn: u.organizationEn,
     bcsBatch: u.bcsBatch,
     failedLoginCount: u.failedLoginCount,
-    additionalCharges: (u.additionalCharges ?? []).map((c) => ({
-      id: c.id,
-      description: c.description,
-    })),
+    additionalCharges: (u.additionalCharges ?? []).map(toChargeDto),
     updatedAt: u.updatedAt,
   };
 }
 
-/** Replaces a user's additional charges with `descriptions` (inside the caller's transaction). */
+const ref = (r: { id: string; nameBn: string; nameEn: string } | null) =>
+  r ? { id: r.id, nameBn: r.nameBn, nameEn: r.nameEn } : null;
+
+export function toChargeDto(c: UserAdditionalCharge): AdditionalChargeDto {
+  return {
+    id: c.id,
+    designation: ref(c.designation ?? null),
+    wing: ref(c.wing ?? null),
+    note: c.note,
+    needsReview: c.needsReview,
+  };
+}
+
+/** v1.16: what an additional charge stores (also the audit snapshot). */
+export interface ChargeValue {
+  designationId: string;
+  wingId: string | null;
+  note: string | null;
+}
+
+/** Same list (order and values)? Used to skip writes and audit entries when nothing changed. */
+export function sameCharges(
+  current: readonly UserAdditionalCharge[],
+  next: readonly ChargeValue[],
+): boolean {
+  return (
+    current.length === next.length &&
+    current.every(
+      (c, i) =>
+        !c.needsReview &&
+        c.designationId === next[i].designationId &&
+        (c.wingId ?? null) === next[i].wingId &&
+        (c.note ?? null) === next[i].note,
+    )
+  );
+}
+
+/** Replaces a user's additional charges (inside the caller's transaction). */
 export async function replaceAdditionalCharges(
   manager: EntityManager,
   userId: string,
-  descriptions: string[],
+  charges: readonly ChargeValue[],
 ): Promise<void> {
   const repo = manager.getRepository(UserAdditionalCharge);
   await repo.delete({ userId });
-  if (descriptions.length > 0) {
+  if (charges.length > 0) {
     await repo.insert(
-      descriptions.map((description) => ({ userId, description })),
+      charges.map((c) => ({ userId, ...c, needsReview: false })),
     );
   }
 }

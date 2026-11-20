@@ -130,7 +130,9 @@ describe('UsersService.create', () => {
     nameBn: 'নতুন কর্মকর্তা',
     nameEn: 'New Officer',
     designationId: 'd1',
-    additionalCharges: ['এসডিজি সেল'],
+    additionalCharges: [
+      { designationId: 'd2', wingId: 'w1', note: 'চলতি দায়িত্ব' },
+    ],
   };
 
   it('sets the default officer password (no forced change); the mail never contains it', async () => {
@@ -270,19 +272,64 @@ describe('UsersService.update', () => {
     );
   });
 
-  it('replaces additional charges and audits the list change', async () => {
+  it('v1.16: replaces the structured additional charges and audits the list change', async () => {
     const { service, txOther, audit } = setup();
-    await service.update('u1', { additionalCharges: ['এসডিজি সেল'] }, ctx);
+    await service.update(
+      'u1',
+      { additionalCharges: [{ designationId: 'd2', wingId: null }] },
+      ctx,
+    );
     expect(txOther.delete).toHaveBeenCalledWith({ userId: 'u1' });
     expect(txOther.insert).toHaveBeenCalledWith([
-      { userId: 'u1', description: 'এসডিজি সেল' },
+      {
+        userId: 'u1',
+        designationId: 'd2',
+        wingId: null,
+        note: null,
+        needsReview: false,
+      },
     ]);
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({
         before: { additionalCharges: [] },
-        after: { additionalCharges: ['এসডিজি সেল'] },
+        after: {
+          additionalCharges: [
+            { designationId: 'd2', wingId: null, note: null },
+          ],
+        },
       }),
       expect.anything(),
+    );
+  });
+
+  it('v1.16: the same charge (designation and wing) twice → 400; nothing written', async () => {
+    const { service, txOther } = setup();
+    await expect(
+      service.update(
+        'u1',
+        {
+          additionalCharges: [
+            { designationId: 'd2', wingId: 'w1', note: 'এক' },
+            { designationId: 'd2', wingId: 'w1', note: 'দুই' },
+          ],
+        },
+        ctx,
+      ),
+    ).rejects.toThrow(new BadRequestException(USER_MESSAGES.chargeDuplicate));
+    expect(txOther.insert).not.toHaveBeenCalled();
+  });
+
+  it('v1.16: an inactive designation or wing in a charge → 400', async () => {
+    const { service, lookup } = setup();
+    lookup.findOne.mockResolvedValue({ id: 'd2', isActive: false });
+    await expect(
+      service.update(
+        'u1',
+        { additionalCharges: [{ designationId: 'd2' }] },
+        ctx,
+      ),
+    ).rejects.toThrow(
+      new BadRequestException(USER_MESSAGES.designationInactive),
     );
   });
 });

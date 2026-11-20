@@ -1,13 +1,12 @@
 "use client";
 
-import { useFieldArray, useFormState, type UseFormReturn } from "react-hook-form";
-import { Button } from "@/components/ui/button";
+import { useFormState, type UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 
-import { MAX_ADDITIONAL_CHARGES, type ProfileFormValues } from "@/lib/schemas";
+import { type ProfileFormValues } from "@/lib/schemas";
 import type { Profile, Wing } from "@/lib/types";
-import { useFormat, useT } from "@/providers/locale-provider";
+import { useT } from "@/providers/locale-provider";
 import type { NameHelpers } from "@/lib/display-name";
 
 /** Form defaults from a profile / user record ("" for empty values). */
@@ -21,7 +20,6 @@ export function profileDefaults(p: Profile): ProfileFormValues {
     mobileAlt: p.mobileAlt ?? "",
     officePhone: p.officePhone ?? "",
     fax: p.fax ?? "",
-    additionalCharges: p.additionalCharges.map((c) => ({ value: c.description })),
   };
 }
 
@@ -47,7 +45,8 @@ export function wingOptions(
 
 /**
  * The fields an officer may edit on their own profile (PATCH /profile). The admin user form
- * shows the same fields plus login email, designation and organisation.
+ * shows the same fields plus login email, designation, organisation and (v1.16, admin only) the
+ * structured additional charges.
  */
 export function ProfileFields({
   form,
@@ -59,12 +58,10 @@ export function ProfileFields({
   wingOptions: { value: string; label: string }[];
 }) {
   const t = useT();
-  const { formatNumber } = useFormat();
   const { register, control } = form;
   // Subscribe explicitly: this is a child of the form owner, so reading form.formState here
   // would not re-render it when errors change (the React Compiler memoizes on `form`).
   const { errors } = useFormState({ control });
-  const charges = useFieldArray({ control, name: "additionalCharges" });
   const id = (name: string) => `${idPrefix}-${name}`;
 
   return (
@@ -131,47 +128,6 @@ export function ProfileFields({
           {...register("fax")}
         />
       </div>
-
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-slate-800">{t.profile.charges}</legend>
-        <p className="text-xs text-slate-600">{t.profile.chargesHint}</p>
-        {charges.fields.length === 0 && (
-          <p className="text-sm text-slate-500">{t.profile.noCharges}</p>
-        )}
-        <ul className="space-y-2" data-testid={id("charges")}>
-          {charges.fields.map((field, index) => (
-            <li key={field.id} className="flex items-end gap-2">
-              <div className="flex-1">
-                <Input
-                  id={id(`charge-${index}`)}
-                  label={t.profile.chargeLabel(formatNumber(index + 1))}
-                  error={errors.additionalCharges?.[index]?.value?.message}
-                  {...register(`additionalCharges.${index}.value` as const)}
-                />
-              </div>
-              <Button
-                variant="secondary"
-                className="mb-0.5"
-                onClick={() => charges.remove(index)}
-                aria-label={`${t.profile.removeCharge}: ${t.profile.chargeLabel(formatNumber(index + 1))}`}
-              >
-                {t.profile.removeCharge}
-              </Button>
-            </li>
-          ))}
-        </ul>
-        {errors.additionalCharges?.message && (
-          <p className="text-sm text-red-700">{errors.additionalCharges.message}</p>
-        )}
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={charges.fields.length >= MAX_ADDITIONAL_CHARGES}
-          onClick={() => charges.append({ value: "" }, { shouldFocus: true })}
-        >
-          {t.profile.addCharge}
-        </Button>
-      </fieldset>
     </div>
   );
 }

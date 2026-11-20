@@ -35,7 +35,8 @@ type Who =
   | 'officer'
   | 'charged'
   | 'w1member'
-  | 'w2org';
+  | 'w2org'
+  | 'dirExtra';
 
 function binary(
   res: request.Response,
@@ -128,6 +129,7 @@ describe('Office report scope (v1.15, e2e)', () => {
       ['charged', dNone, wings.w2, UserRole.OFFICER],
       ['w1member', dNone, wings.w1, UserRole.OFFICER],
       ['w2org', dNone, wings.w2, UserRole.OFFICER],
+      ['dirExtra', dWing, wings.w1, UserRole.OFFICER],
     ];
     for (const [who, designationId, wingId, role] of people) {
       const email = `${who.toLowerCase()}@e2e-office.test`;
@@ -145,11 +147,20 @@ describe('Office report scope (v1.15, e2e)', () => {
         })
       ).identifiers[0].id as string;
     }
-    // An additional charge that names the OFFICE designation → OFFICE.
-    await ds.getRepository(UserAdditionalCharge).insert({
-      userId: ids.charged,
-      description: 'অফিস-পরীক্ষা মহাপরিচালক (চলতি দায়িত্ব)',
-    });
+    // v1.16 structured additional charges:
+    // - an OFFICE-scope designation as a charge → OFFICE;
+    // - a WING-scope charge with its own wing → that wing too;
+    // - a migrated row that still needs review → counts for nothing (even if its text names the DG).
+    await ds.getRepository(UserAdditionalCharge).insert([
+      { userId: ids.charged, designationId: dOffice, note: 'চলতি দায়িত্ব' },
+      { userId: ids.dirExtra, designationId: dWing, wingId: wings.w2 },
+      {
+        userId: ids.officer,
+        designationId: null,
+        note: 'অফিস-পরীক্ষা মহাপরিচালক',
+        needsReview: true,
+      },
+    ]);
     for (const [who] of people) {
       const res = await http()
         .post(`${API}/auth/login`)
@@ -368,4 +379,43 @@ describe('Office report scope (v1.15, e2e)', () => {
     });
     expect(audit?.after).toMatchObject({ wingId: wings.w2, page: 2, rows: 1 });
   }, 60_000);
+
+  it('v1.16: a WING-scope additional charge with its own wing adds THAT wing (and only that)', async () => {
+    const me = (
+      await http().get(`${API}/auth/me`).set(as('dirExtra')).expect(200)
+    ).body as {
+      officeReportScope: string;
+      officeReportWings: Array<{ id: string }>;
+    };
+    expect(me.officeReportScope).toBe('WING');
+    expect(me.officeReportWings.map((w) => w.id)).toEqual([wings.w1, wings.w2]);
+
+    // Default: the own wing first; the charge wing can be chosen.
+    const own = await office('dirExtra').expect(200);
+    expect(own.body).toMatchObject({
+      wing: { id: wings.w1 },
+      scopeWings: [{ id: wings.w1 }, { id: wings.w2 }],
+      cards: { total: 1 },
+    });
+    const extra = await office('dirExtra', { wingId: wings.w2 }).expect(200);
+    expect(extra.body).toMatchObject({
+      wing: { id: wings.w2 },
+      cards: { total: 2 },
+    });
+    await office('dirExtra', { officerId: ids.w2org }).expect(200);
+    // Meeting B (wing 2 only) opens read-only for this viewer, not for the plain director.
+    await http()
+      .get(`${API}/meetings/${meetings.B}`)
+      .set(as('dirExtra'))
+      .expect(200);
+    await http()
+      .get(`${API}/meetings/${meetings.B}`)
+      .set(as('director'))
+      .expect(404);
+    // A needs-review row gives nothing.
+    const officer = (
+      await http().get(`${API}/auth/me`).set(as('officer')).expect(200)
+    ).body as { officeReportScope: string };
+    expect(officer.officeReportScope).toBe('NONE');
+  });
 });

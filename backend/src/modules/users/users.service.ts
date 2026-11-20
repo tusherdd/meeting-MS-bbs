@@ -38,7 +38,10 @@ import { ChannelName } from '../notifications/channels/notification-channel';
 import { NotificationType } from '../notifications/enums/notification-type.enum';
 import { NotificationsService } from '../notifications/notifications.service';
 import { Wing } from '../wings/entities/wing.entity';
-import type { CreateUserDto } from './dto/create-user.dto';
+import type {
+  AdditionalChargeInputDto,
+  CreateUserDto,
+} from './dto/create-user.dto';
 import type {
   UpdateUserDto,
   UpdateUserRoleDto,
@@ -59,6 +62,8 @@ import { User } from './entities/user.entity';
 import { UserRole } from './enums/user-role.enum';
 import {
   replaceAdditionalCharges,
+  sameCharges,
+  type ChargeValue,
   toUserDetail,
   toUserSummary,
 } from './user-mapper';
@@ -144,7 +149,13 @@ export class UsersService {
     const qb = this.users
       .createQueryBuilder('u')
       .leftJoinAndSelect('u.designation', 'd')
-      .leftJoinAndSelect('u.wing', 'w');
+      .leftJoinAndSelect('u.wing', 'w')
+      .loadRelationCountAndMap(
+        'u.reviewChargeCount',
+        'u.additionalCharges',
+        'rc',
+        (sub) => sub.where('rc.needsReview = true'),
+      );
 
     if (query.q) {
       const like = `%${escapeLike(query.q)}%`;
@@ -172,6 +183,11 @@ export class UsersService {
       qb.andWhere('u.passwordIsDefault = :passwordIsDefault', {
         passwordIsDefault: query.passwordIsDefault,
       });
+    }
+    if (query.chargesNeedReview !== undefined) {
+      qb.andWhere(
+        `${query.chargesNeedReview ? '' : 'NOT '}EXISTS (SELECT 1 FROM user_additional_charges c WHERE c."userId" = u.id AND c."needsReview")`,
+      );
     }
     if (query.isActive !== undefined) {
       qb.andWhere('u.isActive = :isActive', { isActive: query.isActive });
@@ -267,7 +283,7 @@ export class UsersService {
 
     const password = await defaultPasswordColumns(this.defaultPassword);
     const notificationEmail = dto.notificationEmail ?? dto.loginEmail;
-    const charges = dto.additionalCharges ?? [];
+    const charges = await this.chargeValues(dto.additionalCharges ?? []);
 
     const id = await this.dataSource
       .transaction(async (manager) => {
@@ -339,12 +355,13 @@ export class UsersService {
     }
 
     const changes = pickChanges(target as Pick<User, EditableField>, patch);
-    const currentCharges = this.chargeList(target);
-    const newCharges = dto.additionalCharges;
+    const currentCharges = target.additionalCharges ?? [];
+    const newCharges =
+      dto.additionalCharges === undefined
+        ? undefined
+        : await this.chargeValues(dto.additionalCharges);
     const chargesChanged =
-      newCharges !== undefined &&
-      (newCharges.length !== currentCharges.length ||
-        newCharges.some((c, i) => c !== currentCharges[i]));
+      newCharges !== undefined && !sameCharges(currentCharges, newCharges);
     if (!changes && !chargesChanged) return toUserDetail(target);
 
     if (changes && 'designationId' in changes.after) {
@@ -360,7 +377,12 @@ export class UsersService {
     const before = { ...(changes?.before ?? {}) };
     const after = { ...(changes?.after ?? {}) };
     if (chargesChanged) {
-      before.additionalCharges = currentCharges;
+      before.additionalCharges = currentCharges.map((c) => ({
+        designationId: c.designationId,
+        wingId: c.wingId,
+        note: c.note,
+        needsReview: c.needsReview,
+      }));
       after.additionalCharges = newCharges;
     }
 
@@ -369,7 +391,7 @@ export class UsersService {
         if (changes) {
           await manager.getRepository(User).update(id, changes.after);
         }
-        if (chargesChanged)
+        if (chargesChanged && newCharges)
           await replaceAdditionalCharges(manager, id, newCharges);
         await this.audit.log(
           {
@@ -514,7 +536,11 @@ export class UsersService {
   private async loadWithRelations(id: string): Promise<User> {
     const user = await this.users.findOne({
       where: { id },
-      relations: { designation: true, wing: true, additionalCharges: true },
+      relations: {
+        designation: true,
+        wing: true,
+        additionalCharges: { designation: true, wing: true },
+      },
       order: { additionalCharges: { createdAt: 'ASC' } },
     });
     if (!user) throw new NotFoundException(USER_MESSAGES.notFound);
@@ -558,7 +584,25 @@ export class UsersService {
     throw err;
   }
 
-  private chargeList(user: User): string[] {
-    return (user.additionalCharges ?? []).map((c) => c.description);
+  /**
+   * v1.16: checks the structured charges (designation and wing exist and are active, no charge
+   * twice) and returns what is stored. Admin only (PATCH /profile no longer accepts charges).
+   */
+  private async chargeValues(
+    input: readonly AdditionalChargeInputDto[],
+  ): Promise<ChargeValue[]> {
+    const values = input.map((c) => ({
+      designationId: c.designationId,
+      wingId: c.wingId ?? null,
+      note: c.note ?? null,
+    }));
+    const keys = values.map((v) => `${v.designationId}|${v.wingId ?? ''}`);
+    if (new Set(keys).size !== keys.length)
+      throw new BadRequestException(USER_MESSAGES.chargeDuplicate);
+    for (const id of new Set(values.map((v) => v.designationId)))
+      await this.assertDesignationUsable(id);
+    for (const id of new Set(values.map((v) => v.wingId).filter(Boolean)))
+      await this.assertWingUsable(id as string);
+    return values;
   }
 }

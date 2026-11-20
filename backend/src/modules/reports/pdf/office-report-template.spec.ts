@@ -47,6 +47,7 @@ function report(over: Partial<OfficeReportDto> = {}): OfficeReportDto {
       to: new Date('2026-11-30T18:00:00Z'),
     },
     scope: OfficeReportScope.OFFICE,
+    scopeWings: [],
     wing: null,
     officer: null,
     cards: {

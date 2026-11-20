@@ -9,6 +9,7 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { profileApi, queryKeys } from "@/lib/endpoints";
 
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
+import { AdditionalChargesList } from "./additional-charges-list";
 import { ChangeRequestsSection } from "./change-requests-section";
 import { NotificationEmailSection } from "./notification-email-section";
 import { PhotoSection } from "./photo-section";
@@ -75,6 +76,10 @@ export function ProfileView() {
               </dd>
             </div>
           </dl>
+          {/* v1.16: additional charges are admin only; shown here read-only. */}
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <AdditionalChargesList charges={p.additionalCharges} adminOnlyNote />
+          </div>
         </CardBody>
       </Card>
 

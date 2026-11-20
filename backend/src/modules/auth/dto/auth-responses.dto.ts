@@ -113,6 +113,13 @@ export class MeResponseDto {
   })
   officeReportScope!: OfficeReportScope;
 
+  @ApiProperty({
+    type: [MeWingDto],
+    description:
+      'v1.16: WING scope — the wings of the office report (own wing first, then the wings of WING-scope additional charges); empty otherwise',
+  })
+  officeReportWings!: MeWingDto[];
+
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   lastLoginAt!: Date | null;
 }

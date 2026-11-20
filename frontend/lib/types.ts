@@ -34,6 +34,8 @@ export type AccessTokenResponse = S["AccessTokenResponseDto"];
 
 // Users, designations, wings, profile ------------------------------------------------------------
 export type DirectoryEntry = S["DirectoryEntryDto"];
+/** v1.16 structured additional charge (SPEC.md §6.2). */
+export type AdditionalCharge = S["AdditionalChargeDto"];
 export type UserSummary = S["UserSummaryDto"];
 export type UserDetail = S["UserDetailDto"];
 export type CreateUserInput = S["CreateUserDto"];

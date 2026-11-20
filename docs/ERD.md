@@ -15,6 +15,8 @@ erDiagram
     wings ||--o{ users : "has (RESTRICT)"
 
     users ||--o{ user_additional_charges : "holds (CASCADE)"
+    designations |o--o{ user_additional_charges : "charge designation (RESTRICT, v1.16)"
+    wings |o--o{ user_additional_charges : "charge wing (RESTRICT, v1.16)"
     users ||--o{ refresh_tokens : "owns (CASCADE)"
     users ||--o{ password_reset_tokens : "owns (CASCADE)"
     refresh_tokens |o--o| refresh_tokens : "replacedBy (SET NULL)"
@@ -81,7 +83,10 @@ erDiagram
     }
     user_additional_charges {
         uuid userId FK
-        varchar description
+        uuid designationId FK "v1.16; null only while needsReview"
+        uuid wingId FK "v1.16; optional"
+        varchar note "v1.16; old text of migrated rows"
+        boolean needsReview "v1.16"
     }
     refresh_tokens {
         uuid userId FK "indexed"
@@ -243,6 +248,7 @@ erDiagram
 | `1794903513329-MeetingDecisionFiles` | `meeting_decision_files` (meeting minutes "সভা কার্যবিবরণী", v1.11) |
 | `1795000000000-MeetingNoticeFiles` | `meeting_notice_files` (uploaded meeting notice, one per meeting, v1.13); minutes `mime` widened to 100 |
 | `1795100000000-DesignationOfficeReportScope` | `designations.officeReportScope` (enum `office_report_scope_enum`, default `NONE`, v1.15 office report); backfill: সচিব and মহাপরিচালক → `OFFICE`, পরিচালক → `WING` |
+| `1795200000000-StructuredAdditionalCharges` | `user_additional_charges.description` → `note`; `designationId`, `wingId` (RESTRICT), `needsReview`, check "designation unless needs review"; old rows matched safely (whole-word names), the rest need review (v1.16) |
 
 Schema changes are made only through migrations (`synchronize` is always `false`):
 `npm run migration:generate -- src/database/migrations/<Name>`, then `npm run migration:run`.

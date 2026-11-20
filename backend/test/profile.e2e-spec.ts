@@ -274,7 +274,6 @@ describe('Profile, photo, notification email, change requests (e2e)', () => {
           nameBn: 'ই২ইপি অফিসার',
           wingId,
           designationRemark: 'চলতি দায়িত্ব',
-          additionalCharges: ['এসডিজি সেল', 'ফোকাল পয়েন্ট'],
         })
         .expect(200);
       expect(res.body).toMatchObject({
@@ -282,11 +281,12 @@ describe('Profile, photo, notification email, change requests (e2e)', () => {
         wing: { id: wingId },
         designationRemark: 'চলতি দায়িত্ব',
       });
-      expect(
-        (
-          res.body as { additionalCharges: Array<{ description: string }> }
-        ).additionalCharges.map((c) => c.description),
-      ).toEqual(['এসডিজি সেল', 'ফোকাল পয়েন্ট']);
+      // v1.16: additional charges are admin only — the profile refuses them.
+      await http()
+        .patch(`${API}/profile`)
+        .set(as('officer'))
+        .send({ additionalCharges: [] })
+        .expect(400);
 
       const audits = await ds.getRepository(AuditLog).find({
         where: { actorId: ids.officer, action: AuditAction.PROFILE_UPDATE },

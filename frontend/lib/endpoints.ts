@@ -126,6 +126,8 @@ export interface UserListQuery {
   passwordIsDefault?: boolean;
   page?: number;
   limit?: number;
+  /** v1.16: officers with an additional charge that needs review. */
+  chargesNeedReview?: boolean;
 }
 
 export interface AuditLogQuery {

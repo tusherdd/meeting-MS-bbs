@@ -10,6 +10,8 @@ export const USER_MESSAGES = {
   selfDeactivate: 'আপনি নিজের অ্যাকাউন্ট Inactive করতে পারবেন না।',
   selfRoleChange: 'আপনি নিজের ভূমিকা (role) পরিবর্তন করতে পারবেন না।',
   designationNotFound: 'নির্বাচিত পদবিটি পাওয়া যায়নি।',
+  /** v1.16 structured additional charges. */
+  chargeDuplicate: 'একই অতিরিক্ত দায়িত্ব (পদবি ও উইং) দুবার দেওয়া যাবে না।',
   designationInactive: 'নির্বাচিত পদবিটি Inactive।',
   wingNotFound: 'নির্বাচিত উইংটি পাওয়া যায়নি।',
   wingInactive: 'নির্বাচিত উইংটি Inactive।',

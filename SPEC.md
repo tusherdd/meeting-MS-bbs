@@ -150,7 +150,25 @@ On re-run, the seed updates the priority of an existing designation to match thi
   The current address gets a short "change requested" notice.
 - **Mobile numbers** are stored as `01XXXXXXXXX` (Bangla/English digits and `+880` accepted on input).
 - Officer can edit directly: name (bn/en), photo, mobile, office phone, fax, wing, designation remark,
-  additional charges, password, notification email (with verification).
+  password, notification email (with verification). Additional charges are **admin only** since v1.16 (below).
+- **Additional charges — structured (v1.16, owner decision 2026-11-20).** Each row of `user_additional_charges` has a
+  designation (required, from the designations list), an optional wing and an optional note (free text, e.g.
+  "বিকল্প", "চলতি দায়িত্ব"; max 300); at most 20, no charge twice (same designation and wing). Only an admin edits
+  them (Admin → officer add / edit form; `POST /users`, `PATCH /users/:id` with `additionalCharges:
+  [{ designationId, wingId?, note? }]`, replacing the whole list); `PATCH /profile` refuses them (400) because a
+  charge's designation grants office report scope (§6.10). Until v1.15 officers could edit them as free text.
+  - Shown everywhere as "[পদবি] (অতিরিক্ত দায়িত্ব), [উইং]" + " — [note]" (en "[Designation] (additional charge),
+    [Wing]"; names by the §13.15 display rule; `frontend/lib/additional-charge.ts`): profile (read-only, "অতিরিক্ত দায়িত্ব
+    শুধু অ্যাডমিন বদলাতে পারেন।"), admin officer detail.
+  - Migration `StructuredAdditionalCharges1795200000000`: `description` became `note` (the old text is kept; nothing
+    deleted); `designationId`, `wingId` (both RESTRICT), `needsReview`; check "a designation unless needs review". Old
+    rows were matched by `modules/users/additional-charge-match.ts` (also used by the seed): a designation / wing name as
+    a WHOLE word; exactly one designation → matched; none or several designations, or several wings → `needsReview`
+    (designation null); a designation name inside a wing name ("Director General's Office") never counts. Dev database
+    2026-11-20: 16 rows → 1 matched, 15 need review (counts only).
+  - Needs review: amber badge "যাচাই দরকার" in the form, the detail and the users list; Admin filter "অতিরিক্ত দায়িত্ব:
+    যাচাই দরকার" (`GET /users?chargesNeedReview=true`, `chargesNeedReview` on every user row). Untouched rows stay; once
+    the admin changes the list every row needs a designation.
 - **Designation change** needs admin approval (it changes priority). Until approved, the old designation applies.
 - **Default password (owner decision 2026-11-09):** every officer account (OFFICER and ADMIN, never the
   SUPER_ADMIN) uses one default password, `DEFAULT_OFFICER_PASSWORD` from the environment (never in code,
@@ -421,18 +439,21 @@ One page and one route (`/office-report`) for everyone who may see it; layout as
   default NONE), edited on Admin → "পদবি ও অগ্রাধিকার" as "অফিস রিপোর্ট: নেই / নিজ উইং / পুরো অফিস". Backfill: সচিব and
   মহাপরিচালক → OFFICE, পরিচালক → WING (dev database 2026-11-20: exactly these three); the seed sets the same on create only.
   - ADMIN and SUPER_ADMIN always have OFFICE.
-  - Additional charges (`user_additional_charges`, free text): a charge counts as a designation when its text starts with
-    that designation's Bangla or English name as a whole word (longest name wins: "উপপরিচালক…" is never "পরিচালক…");
-    the viewer gets the highest scope of their designation and these (`office-scope.rules.ts`).
-  - WING uses the viewer's own wing; a WING viewer without a wing gets 403 `OFFICE_REPORT_NO_WING` and the page shows
-    "আপনার প্রোফাইলে কোনো উইং নেই, তাই অফিস রিপোর্ট দেখানো যাবে না।…" instead of data.
-  - `/auth/me` returns `officeReportScope` (menu).
+  - Additional charges (v1.16, structured, §6.2): each charge counts with ITS designation's scope; the viewer gets the
+    highest of their designation and these (`office-scope.rules.ts`; rows that need review count for nothing). The
+    v1.15 guessing from the start of the charge text is gone.
+  - WING uses the viewer's own wing and (v1.16) the wing of every additional charge whose designation has WING scope
+    (`scopeWingIds`: own wing first). The report shows one of them at a time (the first by default); any other wing,
+    organizer wing or officer → 403. A WING viewer with none of these gets 403 `OFFICE_REPORT_NO_WING` and the page
+    shows "আপনার প্রোফাইলে কোনো উইং নেই, তাই অফিস রিপোর্ট দেখানো যাবে না।…" instead of data.
+  - `/auth/me` returns `officeReportScope` (menu) and `officeReportWings` (v1.16, the WING list); the report returns
+    `scopeWings`.
 - **Server checks** (every endpoint the page uses): NONE → 403 `OFFICE_REPORT_FORBIDDEN` "অফিস রিপোর্ট দেখার অনুমতি আপনার নেই।"
   on `/reports/office` and `/reports/office/pdf`; a WING viewer asking for another wing, another wing's officer or another
   organizer wing → 403 `OFFICE_REPORT_OUT_OF_SCOPE`. Report viewers get **read-only** access to meetings in their scope:
   meeting detail (`GET /meetings/:id`), notice download, minutes view / download (never upload, edit, cancel or delete).
-  OFFICE: every meeting. WING: meetings organized by an officer of their wing, or with any officer of their wing among
-  its people (= every meeting their report can list). Others keep 404 (detail) / 403 (notice, minutes).
+  OFFICE: every meeting. WING: meetings organized by an officer of one of their wings (own + charge wings, v1.16), or
+  with any officer of those wings among its people (= every meeting their report can list). Others keep 404 (detail) / 403 (notice, minutes).
 - **Data** (`GET /reports/office`, period or `from`/`to`, §6.6): meetings STARTING in the range —
   OFFICE: all, or those organized by the chosen wing's officers; WING: those organized by their wing's officers;
   with an officer selected (`officerId`): that officer's meetings in every role and every wing.
@@ -469,7 +490,8 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
   organizationBn, organizationEn (e.g. "বাংলাদেশ পরিসংখ্যান ব্যুরো" / "Bangladesh Bureau of Statistics"),
   bcsBatch, role (enum), isActive, mustChangePassword, passwordIsDefault, failedLoginCount, lockedUntil,
   lastLoginAt
-- **user_additional_charges**: userId, description
+- **user_additional_charges**: userId, designationId (→ designations, nullable only while `needsReview`), wingId
+  (→ wings, optional), note (max 300; the old text for migrated rows), needsReview (v1.16, §6.2)
 - **refresh_tokens**: userId, tokenHash, expiresAt, revokedAt, replacedById, userAgent, ip
 - **password_reset_tokens**: userId, tokenHash, purpose (`RESET` | `SET_INITIAL`), expiresAt, usedAt
 - **change_requests**: userId, type (`LOGIN_EMAIL` | `DESIGNATION`), newValue (json), status
@@ -516,7 +538,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/profile` | 👤 | My full profile |
-| PATCH | `/profile` | 👤 | Update names, mobile, phone, fax, wing, designation remark, additional charges |
+| PATCH | `/profile` | 👤 | Update names, mobile, phone, fax, wing, designation remark (additional charges: admin only since v1.16) |
 | POST | `/profile/photo` | 👤 | Upload photo (jpeg/png/webp, max 2 MB) |
 | DELETE | `/profile/photo` | 👤 | Remove photo |
 | POST | `/profile/notification-email` | 👤 | Request change → verification mail to the new address |
@@ -529,7 +551,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/users/directory` | 👤 | Minimal active officer list (id, names, designation, wing, photo) for the participant picker |
-| GET | `/users` | 🛡 | Search/filter/paginate (q, wingId, designationId, role, isActive, passwordIsDefault) |
+| GET | `/users` | 🛡 | Search/filter/paginate (q, wingId, designationId, role, isActive, passwordIsDefault, chargesNeedReview v1.16) |
 | GET | `/users/:id` | 🛡 | Full user |
 | POST | `/users` | 🛡 | Create officer with the default officer password (no forced change); the welcome mail never contains the password |
 | PATCH | `/users/:id` | 🛡 | Edit any field including loginEmail and designation |
@@ -774,7 +796,7 @@ Release **v1.15** (2026-11-20, tag `v1.15`; progress in `docs/progress/v1.15.md`
 (4) the office report "অফিস রিপোর্ট" rebuilt for admins, OFFICE and WING viewers (§6.10, §13.21).
 
 Release **v1.16** (2026-11-20, tag `v1.16`; progress in `docs/progress/v1.16.md`): (1) one label for every PDF button
-(§13.12).
+(§13.12); (2) structured additional charges, admin only, used for the office report scope (§6.2, §6.10).
 
 ## 13. Frontend (`frontend/`)
 
@@ -911,7 +933,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   the same filters, shows "তৈরি হচ্ছে…", saves it under the `Content-Disposition` file name and shows the
   backend's message on failure.
 - **Profile** (`/profile`): only the fields `PATCH /profile` accepts; mobiles accept Bangla digits and `+880`
-  and are sent as `01XXXXXXXXX`; additional charges as an editable list (max 20). Photo: preview, client-side
+  and are sent as `01XXXXXXXXX`; additional charges read-only (v1.16: admin only, §6.2). Photo: preview, client-side
   type/size check (JPEG/PNG/WebP, 2 MB; the server decides), remove with confirmation; the photo is shown next
   to the name in the header. Notification email: current address, request form, "যাচাইয়ের অপেক্ষায়: …" while
   pending. Change requests: login email and designation (the select shows names only, v1.5), history with status
@@ -1361,7 +1383,8 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   page shows "৪০৩" with "অফিস রিপোর্ট দেখার অনুমতি আপনার নেই।" (the API answers 403). `/admin/reports` redirects.
 - **Top to bottom:** title "অফিস রিপোর্ট" with the range under it (no "পুরো অফিস" text; with an officer selected:
   "জনাব [name], [designation] · [wing] · [range]") and the button "PDF ডাউনলোড" / "Download PDF" (the shared label, §13.12); the filter bar (§13.7 period buttons, divider, date range picker, then "উইং" — OFFICE: "সকল উইং" + every wing;
-  WING: their own wing, disabled, with the small lock — and "কর্মকর্তা", a searchable picker over `GET /users/directory`
+  WING: their own wing plus (v1.16) the wings of their WING-scope additional charges — one wing: disabled; more: only
+  those can be chosen — with the small lock — and "কর্মকর্তা", a searchable picker over `GET /users/directory`
   of the chosen wing or everyone, WING: own wing only); five cards; "উইংভিত্তিক তালিকা" (OFFICE, no wing / officer chosen;
   exactly 5 rows visible, the rest scroll inside the box under a sticky header; a wing name sets the wing filter; no
   helper text); "শীর্ষ ৫ অংশগ্রহণকারী" (name, designation on a small second line, + wing for OFFICE; সভা, ঘণ্টা; note

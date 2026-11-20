@@ -1217,6 +1217,8 @@ export interface components {
              * @example NONE
              */
             officeReportScope: components["schemas"]["OfficeReportScope"];
+            /** @description v1.16: WING scope — the wings of the office report (own wing first, then the wings of WING-scope additional charges); empty otherwise */
+            officeReportWings: components["schemas"]["MeWingDto"][];
             /** Format: date-time */
             lastLoginAt: string | null;
         };
@@ -1387,16 +1389,36 @@ export interface components {
              * @example true
              */
             passwordIsDefault: boolean;
+            /**
+             * @description v1.16: at least one additional charge needs review (admin badge and filter)
+             * @example false
+             */
+            chargesNeedReview: boolean;
             /** Format: date-time */
             lastLoginAt: string | null;
             /** Format: date-time */
             createdAt: string;
         };
+        ChargeRefDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example পরিচালক */
+            nameBn: string;
+            /** @example Director */
+            nameEn: string;
+        };
         AdditionalChargeDto: {
             /** Format: uuid */
             id: string;
-            /** @example ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল */
-            description: string;
+            designation: components["schemas"]["ChargeRefDto"] | null;
+            wing: components["schemas"]["ChargeRefDto"] | null;
+            /** @example চলতি দায়িত্ব */
+            note: string | null;
+            /**
+             * @description Migrated from the old free text; an admin still has to choose the designation
+             * @example false
+             */
+            needsReview: boolean;
         };
         UserDetailDto: {
             /** Format: uuid */
@@ -1429,6 +1451,11 @@ export interface components {
              * @example true
              */
             passwordIsDefault: boolean;
+            /**
+             * @description v1.16: at least one additional charge needs review (admin badge and filter)
+             * @example false
+             */
+            chargesNeedReview: boolean;
             /** Format: date-time */
             lastLoginAt: string | null;
             /** Format: date-time */
@@ -1456,6 +1483,23 @@ export interface components {
             additionalCharges: components["schemas"]["AdditionalChargeDto"][];
             /** Format: date-time */
             updatedAt: string;
+        };
+        AdditionalChargeInputDto: {
+            /**
+             * Format: uuid
+             * @description Designation of the charge
+             */
+            designationId: string;
+            /**
+             * Format: uuid
+             * @description Optional wing of the charge
+             */
+            wingId?: string | null;
+            /**
+             * @description Optional note (max 300)
+             * @example চলতি দায়িত্ব
+             */
+            note?: string | null;
         };
         CreateUserDto: {
             /**
@@ -1501,13 +1545,8 @@ export interface components {
             organizationEn?: string | null;
             /** @example ২৭তম */
             bcsBatch?: string | null;
-            /**
-             * @description Replaces the whole list. Empty entries and duplicates are removed.
-             * @example [
-             *       "ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল"
-             *     ]
-             */
-            additionalCharges?: string[];
+            /** @description v1.16: replaces the whole list (admin only). Each charge: designation (required), wing and note (optional); no charge twice (same designation and wing). */
+            additionalCharges?: components["schemas"]["AdditionalChargeInputDto"][];
         };
         UpdateUserDto: {
             /**
@@ -1553,13 +1592,8 @@ export interface components {
             organizationEn?: string | null;
             /** @example ২৭তম */
             bcsBatch?: string | null;
-            /**
-             * @description Replaces the whole list. Empty entries and duplicates are removed.
-             * @example [
-             *       "ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল"
-             *     ]
-             */
-            additionalCharges?: string[];
+            /** @description v1.16: replaces the whole list (admin only). Each charge: designation (required), wing and note (optional); no charge twice (same designation and wing). */
+            additionalCharges?: components["schemas"]["AdditionalChargeInputDto"][];
         };
         UpdateUserStatusDto: {
             /**
@@ -1731,6 +1765,11 @@ export interface components {
              * @example true
              */
             passwordIsDefault: boolean;
+            /**
+             * @description v1.16: at least one additional charge needs review (admin badge and filter)
+             * @example false
+             */
+            chargesNeedReview: boolean;
             /** Format: date-time */
             lastLoginAt: string | null;
             /** Format: date-time */
@@ -1777,13 +1816,6 @@ export interface components {
             officePhone?: string | null;
             /** @example +880 2 55007375 */
             fax?: string | null;
-            /**
-             * @description Replaces the whole list. Empty entries and duplicates are removed.
-             * @example [
-             *       "ফোকাল পয়েন্ট কর্মকর্তা, এসডিজি সেল"
-             *     ]
-             */
-            additionalCharges?: string[];
         };
         PhotoUploadDto: {
             /**
@@ -2757,7 +2789,9 @@ export interface components {
              * @enum {string}
              */
             scope: "WING" | "OFFICE";
-            /** @description The wing filter: the chosen wing (OFFICE) or the own, locked wing (WING); null = সকল উইং */
+            /** @description v1.16 WING viewers: the wings they may choose (own wing first, then the wings of their WING-scope additional charges); empty for OFFICE */
+            scopeWings: components["schemas"]["OfficeWingRefDto"][];
+            /** @description The wing filter: the chosen wing (OFFICE: any; WING: one of scopeWings, default the first); null = সকল উইং */
             wing: components["schemas"]["OfficeWingRefDto"] | null;
             officer: components["schemas"]["OfficeOfficerRefDto"] | null;
             cards: components["schemas"]["OfficeCardsDto"];
@@ -3372,6 +3406,8 @@ export interface operations {
                 isActive?: boolean;
                 /** @description true = accounts that still use the default officer password */
                 passwordIsDefault?: boolean;
+                /** @description v1.16: true = officers with an additional charge that needs review (migrated free text) */
+                chargesNeedReview?: boolean;
                 /** @description priority = designation priority (then English name) */
                 sortBy?: "priority" | "nameEn" | "nameBn" | "loginEmail" | "createdAt" | "lastLoginAt";
                 sortOrder?: "asc" | "desc";

@@ -69,7 +69,7 @@ async function expectNoIcons(page: Page, where: string) {
   // allowed symbol outside the header, only as the aria-hidden glyph inside its labelled button.
   const locks = await page.locator("svg[data-lock-icon]").evaluateAll((elements) =>
     elements.map((e) => ({
-      inPlace: !!e.closest("[data-locked-wing]")?.querySelector("select:disabled"),
+      inPlace: !!e.closest("[data-locked-wing]")?.querySelector("select"),
       hidden: e.getAttribute("aria-hidden") === "true",
     })),
   );

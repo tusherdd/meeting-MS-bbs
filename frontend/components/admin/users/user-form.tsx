@@ -12,7 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { designationsApi, queryKeys, usersApi, wingsApi } from "@/lib/endpoints";
-import { toUserPayload, type ProfileFormValues, type UserFormValues } from "@/lib/schemas";
+import {
+  chargesWithoutDesignation,
+  toUserPayload,
+  type ProfileFormValues,
+  type UserFormValues,
+} from "@/lib/schemas";
+import { AdditionalChargesEditor } from "./additional-charges-editor";
 import { useSchemas } from "@/lib/hooks/use-schemas";
 import type { UserDetail } from "@/lib/types";
 import type { Messages } from "@/messages";
@@ -27,7 +33,6 @@ const EMPTY_PROFILE: ProfileFormValues = {
   mobileAlt: "",
   officePhone: "",
   fax: "",
-  additionalCharges: [],
 };
 
 function defaults(t: Messages, user?: UserDetail): UserFormValues {
@@ -38,6 +43,7 @@ function defaults(t: Messages, user?: UserDetail): UserFormValues {
       designationId: "",
       organizationBn: t.app.org,
       organizationEn: t.admin.defaultOrgEn,
+      additionalCharges: [],
     };
   }
   return {
@@ -46,6 +52,12 @@ function defaults(t: Messages, user?: UserDetail): UserFormValues {
     designationId: user.designation?.id ?? "",
     organizationBn: user.organizationBn ?? "",
     organizationEn: user.organizationEn ?? "",
+    additionalCharges: user.additionalCharges.map((c) => ({
+      designationId: c.designation?.id ?? "",
+      wingId: c.wing?.id ?? "",
+      note: c.note ?? "",
+      needsReview: c.needsReview,
+    })),
   };
 }
 
@@ -77,7 +89,8 @@ export function UserForm({ user }: { user?: UserDetail }) {
 
   const save = useMutation({
     mutationFn: (values: UserFormValues) => {
-      const payload = toUserPayload(values);
+      // v1.16: the charge list is sent (and replaces the stored one) only when it was changed.
+      const payload = toUserPayload(values, !user || !!dirtyFields.additionalCharges);
       return user ? usersApi.update(user.id, payload) : usersApi.create(payload);
     },
     onSuccess: async (saved) => {
@@ -102,11 +115,39 @@ export function UserForm({ user }: { user?: UserDetail }) {
       label: names.of(d),
     }));
 
+  // v1.16 charges: active designations / wings, plus those the officer's charges already use.
+  const usedDesignations = new Set(user?.additionalCharges.map((c) => c.designation?.id));
+  const chargeDesignationChoices = (designations.data ?? [])
+    .filter((d) => d.isActive || usedDesignations.has(d.id))
+    .map((d) => ({ value: d.id, label: names.of(d) }));
+  const usedWings = new Set(user?.additionalCharges.map((c) => c.wing?.id));
+  const chargeWingChoices = (wings.data ?? [])
+    .filter((w) => w.isActive || usedWings.has(w.id))
+    .map((w) => ({ value: w.id, label: names.of(w) }));
+
   return (
     <Card>
       <CardHeader title={editing ? t.admin.editTitle : t.admin.createTitle} />
       <CardBody>
-        <form noValidate className="space-y-4" onSubmit={form.handleSubmit((v) => save.mutate(v))}>
+        <form
+          noValidate
+          className="space-y-4"
+          onSubmit={form.handleSubmit((v) => {
+            // A changed list replaces every row: rows that needed review need a designation now.
+            if (!user || dirtyFields.additionalCharges) {
+              const missing = chargesWithoutDesignation(v);
+              if (missing.length > 0) {
+                for (const i of missing) {
+                  form.setError(`additionalCharges.${i}.designationId`, {
+                    message: t.validation.chargeDesignationRequired,
+                  });
+                }
+                return;
+              }
+            }
+            save.mutate(v);
+          })}
+        >
           {!editing && <Alert tone="info">{t.admin.createNote}</Alert>}
           {save.isError && <ErrorAlert error={save.error} />}
 
@@ -157,6 +198,12 @@ export function UserForm({ user }: { user?: UserDetail }) {
               {...form.register("organizationEn")}
             />
           </div>
+
+          <AdditionalChargesEditor
+            form={form}
+            designationOptions={chargeDesignationChoices}
+            wingOptions={chargeWingChoices}
+          />
 
           <div className="flex flex-wrap gap-2">
             <Button type="submit" loading={save.isPending} loadingText={t.profile.saving}>

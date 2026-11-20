@@ -22,7 +22,7 @@ import { NotificationType } from '../notifications/enums/notification-type.enum'
 import { NotificationsService } from '../notifications/notifications.service';
 import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
-import { replaceAdditionalCharges, toUserDetail } from '../users/user-mapper';
+import { toUserDetail } from '../users/user-mapper';
 import { Wing } from '../wings/entities/wing.entity';
 import { AvatarImageError, processAvatar } from './avatar-image';
 import { AvatarStorageService } from './avatar-storage.service';
@@ -104,26 +104,13 @@ export class ProfileService {
     }
 
     const changes = pickChanges(user as Pick<User, ProfileField>, patch);
-    const current = (user.additionalCharges ?? []).map((c) => c.description);
-    const charges = dto.additionalCharges;
-    const chargesChanged =
-      charges !== undefined &&
-      (charges.length !== current.length ||
-        charges.some((c, i) => c !== current[i]));
-    if (!changes && !chargesChanged) return this.toProfile(user);
+    if (!changes) return this.toProfile(user);
 
     // Audit: changed field NAMES only — no phone numbers or other values (step 6).
-    const fields = [
-      ...Object.keys(changes?.after ?? {}),
-      ...(chargesChanged ? ['additionalCharges'] : []),
-    ];
+    const fields = Object.keys(changes.after);
 
     await this.dataSource.transaction(async (manager) => {
-      if (changes) {
-        await manager.getRepository(User).update(user.id, changes.after);
-      }
-      if (chargesChanged)
-        await replaceAdditionalCharges(manager, user.id, charges);
+      await manager.getRepository(User).update(user.id, changes.after);
       await this.audit.log(
         {
           actorId: user.id,
@@ -331,7 +318,11 @@ export class ProfileService {
   private async load(userId: string): Promise<User> {
     const user = await this.users.findOne({
       where: { id: userId },
-      relations: { designation: true, wing: true, additionalCharges: true },
+      relations: {
+        designation: true,
+        wing: true,
+        additionalCharges: { designation: true, wing: true },
+      },
       order: { additionalCharges: { createdAt: 'ASC' } },
     });
     if (!user) throw new UnauthorizedException();

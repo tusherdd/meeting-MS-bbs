@@ -9,6 +9,7 @@
 import { EntityManager, In } from 'typeorm';
 import { hashPassword } from '../../common/utils/password';
 import { Designation } from '../../modules/designations/entities/designation.entity';
+import { matchCharge } from '../../modules/users/additional-charge-match';
 import { UserAdditionalCharge } from '../../modules/users/entities/user-additional-charge.entity';
 import { defaultPasswordColumns } from '../../modules/users/default-password';
 import { User } from '../../modules/users/entities/user.entity';
@@ -186,6 +187,14 @@ async function insertOfficers(
     defaultPasswordColumns(defaultPassword),
   );
 
+  const refs = {
+    designations: await manager
+      .getRepository(Designation)
+      .find({ select: { id: true, nameBn: true, nameEn: true } }),
+    wings: await manager
+      .getRepository(Wing)
+      .find({ select: { id: true, nameBn: true, nameEn: true } }),
+  };
   let chargesCreated = 0;
   for (const [i, officer] of officers.entries()) {
     const result = await manager.getRepository(User).insert({
@@ -210,11 +219,14 @@ async function insertOfficers(
 
     const { additionalCharges } = officer;
     if (additionalCharges.length > 0) {
-      await manager
-        .getRepository(UserAdditionalCharge)
-        .insert(
-          additionalCharges.map((description) => ({ userId, description })),
-        );
+      // v1.16: structured — the same safe matching as the migration; unmatched rows need review.
+      await manager.getRepository(UserAdditionalCharge).insert(
+        additionalCharges.map((text) => ({
+          userId,
+          note: text,
+          ...matchCharge(text, refs.designations, refs.wings),
+        })),
+      );
       chargesCreated += additionalCharges.length;
     }
   }

@@ -869,6 +869,22 @@ export const MESSAGE_CATALOG = {
     bn: 'সঠিক তারিখ দিন (YYYY-MM-DD)।',
     en: 'Enter a valid date (YYYY-MM-DD).',
   },
+  CHARGE_DUPLICATE: {
+    bn: 'একই অতিরিক্ত দায়িত্ব (পদবি ও উইং) দুবার দেওয়া যাবে না।',
+    en: 'The same additional charge (designation and wing) cannot be given twice.',
+  },
+  CHARGE_DESIGNATION_REQUIRED: {
+    bn: 'অতিরিক্ত দায়িত্বের পদবি বেছে নিন।',
+    en: 'Choose the designation of the additional charge.',
+  },
+  CHARGE_NOTE_TOO_LONG: {
+    bn: 'নোট সর্বোচ্চ ৩০০ অক্ষরের হতে পারে।',
+    en: 'The note can be at most 300 characters.',
+  },
+  CHARGES_NEED_REVIEW_INVALID: {
+    bn: 'chargesNeedReview true অথবা false হতে হবে।',
+    en: 'chargesNeedReview must be true or false.',
+  },
   OFFICE_REPORT_FORBIDDEN: {
     bn: 'অফিস রিপোর্ট দেখার অনুমতি আপনার নেই।',
     en: 'You do not have access to the office report.',
