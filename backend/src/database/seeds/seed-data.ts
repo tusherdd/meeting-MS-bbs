@@ -3,10 +3,17 @@
  * an existing designation is updated to match this table (SPEC.md §6.1).
  */
 
+import { OfficeReportScope } from '../../modules/designations/enums/office-report-scope.enum';
+
 export interface DesignationSeed {
   nameBn: string;
   nameEn: string;
   priority: number;
+  /**
+   * v1.15 (SPEC.md §6.10): office report access, set only when the seed CREATES the designation
+   * (a re-run never overwrites what an admin changed). Default NONE.
+   */
+  officeReportScope?: OfficeReportScope;
 }
 
 export interface WingSeed {
@@ -16,10 +23,25 @@ export interface WingSeed {
 
 /** SPEC.md §6.1 — lower number = higher priority. */
 export const DESIGNATIONS: readonly DesignationSeed[] = [
-  { priority: 1, nameBn: 'সচিব', nameEn: 'Secretary' },
-  { priority: 2, nameBn: 'মহাপরিচালক', nameEn: 'Director General' },
+  {
+    priority: 1,
+    nameBn: 'সচিব',
+    nameEn: 'Secretary',
+    officeReportScope: OfficeReportScope.OFFICE,
+  },
+  {
+    priority: 2,
+    nameBn: 'মহাপরিচালক',
+    nameEn: 'Director General',
+    officeReportScope: OfficeReportScope.OFFICE,
+  },
   { priority: 3, nameBn: 'উপমহাপরিচালক', nameEn: 'Deputy Director General' },
-  { priority: 4, nameBn: 'পরিচালক', nameEn: 'Director' },
+  {
+    priority: 4,
+    nameBn: 'পরিচালক',
+    nameEn: 'Director',
+    officeReportScope: OfficeReportScope.WING,
+  },
   { priority: 5, nameBn: 'যুগ্মপরিচালক', nameEn: 'Joint Director' },
   { priority: 5, nameBn: 'সিস্টেম এনালিস্ট', nameEn: 'System Analyst' },
   { priority: 5, nameBn: 'সিনিয়র প্রোগ্রামার', nameEn: 'Senior Programmer' },

@@ -87,6 +87,7 @@
                 "MEETING_NOTICE_REMOVED",
                 "MEETING_DECISION_UPLOADED",
                 "MEETING_DECISION_DELETED",
+                "OFFICE_REPORT_EXPORTED",
                 "CONFLICT_CREATED",
                 "CONFLICT_RESOLVED"
               ]
@@ -4447,6 +4448,7 @@
     },
     "/api/v1/reports/office": {
       "get": {
+        "description": "Scope (SPEC.md §6.10): ADMIN / SUPER_ADMIN and OFFICE designations see the whole office; WING designations only their own wing (another wingId, organizerWingId or an officer of another wing → 403); NONE → 403. Cards, the wing list (by the organizer’s wing), top 5 participants (all roles), the busiest 5 days and the filtered, paginated meeting list. Period: `period`/`date` or `from`/`to`.",
         "operationId": "ReportsController_office",
         "parameters": [
           {
@@ -4520,18 +4522,68 @@
             "name": "wingId",
             "required": false,
             "in": "query",
+            "description": "উইং: OFFICE viewers choose any wing (empty = সকল উইং); WING viewers always see their own wing (another one → 403)",
             "schema": {
               "format": "uuid",
               "type": "string"
             }
           },
           {
-            "name": "designationId",
+            "name": "officerId",
             "required": false,
             "in": "query",
+            "description": "কর্মকর্তা: that officer's meetings in every role and every wing (WING viewers: only officers of their own wing)",
             "schema": {
               "format": "uuid",
               "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Meeting list filter অবস্থা",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SCHEDULED",
+                "CANCELLED",
+                "COMPLETED"
+              ]
+            }
+          },
+          {
+            "name": "organizerWingId",
+            "required": false,
+            "in": "query",
+            "description": "Meeting list filter আয়োজক উইং (OFFICE viewers only)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "chair",
+            "required": false,
+            "in": "query",
+            "description": "Meeting list filter সভাপতি: a `key` from `filterOptions.chairs` (\"user:<id>\" or \"guest:<name>\")",
+            "schema": {
+              "example": "user:7b0c2f0e-1f7a-4c55-9a51-0d1f3c1b9e11",
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Meeting list filter ভূমিকা: the selected officer's role (only with officerId)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ORGANIZER",
+                "CHAIR",
+                "MEMBER"
+              ]
             }
           },
           {
@@ -4561,7 +4613,7 @@
             }
           },
           "403": {
-            "description": "Not an admin"
+            "description": "No office report access, no wing (WING), or outside the scope"
           }
         },
         "security": [
@@ -4569,23 +4621,44 @@
             "bearer": []
           }
         ],
-        "summary": "Office-wide report (ADMIN), filterable by the organizer’s wing and designation",
+        "summary": "Office report \"অফিস রিপোর্ট\" (v1.15): admins, OFFICE and WING viewers",
         "tags": [
           "Reports"
-        ],
-        "x-access": "ADMIN"
+        ]
       }
     },
     "/api/v1/reports/office/pdf": {
       "get": {
-        "description": "Schedule of the office meetings in the period (wing / designation filters) without cancelled ones; the header names the downloading admin.",
+        "description": "The same query as GET /reports/office (filters AND page): the PDF holds exactly the meeting rows shown on screen. Same scope rules; audited as OFFICE_REPORT_EXPORTED.",
         "operationId": "ReportsController_officePdf",
         "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
           {
             "name": "period",
             "required": false,
             "in": "query",
-            "description": "Week = Sunday–Saturday, year = January–December (Asia/Dhaka)",
             "schema": {
               "default": "month",
               "type": "string",
@@ -4601,7 +4674,6 @@
             "name": "date",
             "required": false,
             "in": "query",
-            "description": "Any day inside the period (default: today in Dhaka)",
             "schema": {
               "example": "2026-12-01",
               "type": "string"
@@ -4631,20 +4703,68 @@
             "name": "wingId",
             "required": false,
             "in": "query",
-            "description": "Organizer's wing",
+            "description": "উইং: OFFICE viewers choose any wing (empty = সকল উইং); WING viewers always see their own wing (another one → 403)",
             "schema": {
               "format": "uuid",
               "type": "string"
             }
           },
           {
-            "name": "designationId",
+            "name": "officerId",
             "required": false,
             "in": "query",
-            "description": "Organizer's designation",
+            "description": "কর্মকর্তা: that officer's meetings in every role and every wing (WING viewers: only officers of their own wing)",
             "schema": {
               "format": "uuid",
               "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Meeting list filter অবস্থা",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SCHEDULED",
+                "CANCELLED",
+                "COMPLETED"
+              ]
+            }
+          },
+          {
+            "name": "organizerWingId",
+            "required": false,
+            "in": "query",
+            "description": "Meeting list filter আয়োজক উইং (OFFICE viewers only)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "chair",
+            "required": false,
+            "in": "query",
+            "description": "Meeting list filter সভাপতি: a `key` from `filterOptions.chairs` (\"user:<id>\" or \"guest:<name>\")",
+            "schema": {
+              "example": "user:7b0c2f0e-1f7a-4c55-9a51-0d1f3c1b9e11",
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Meeting list filter ভূমিকা: the selected officer's role (only with officerId)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ORGANIZER",
+                "CHAIR",
+                "MEMBER"
+              ]
             }
           },
           {
@@ -4675,7 +4795,7 @@
             }
           },
           "403": {
-            "description": "Not an admin"
+            "description": "No office report access, no wing (WING), or outside the scope"
           },
           "503": {
             "description": "PDF rendering took longer than 30 s"
@@ -4686,11 +4806,10 @@
             "bearer": []
           }
         ],
-        "summary": "Office report as PDF (\"কর্মসূচি\", ADMIN)",
+        "summary": "Office report as PDF (v1.15, always Bangla, A4 landscape)",
         "tags": [
           "Reports"
-        ],
-        "x-access": "ADMIN"
+        ]
       }
     },
     "/api/v1/admin/stats": {
@@ -4910,6 +5029,7 @@
               "MEETING_NOTICE_REMOVED",
               "MEETING_DECISION_UPLOADED",
               "MEETING_DECISION_DELETED",
+              "OFFICE_REPORT_EXPORTED",
               "CONFLICT_CREATED",
               "CONFLICT_RESOLVED"
             ],
@@ -5167,6 +5287,15 @@
           "nameEn"
         ]
       },
+      "OfficeReportScope": {
+        "type": "string",
+        "enum": [
+          "NONE",
+          "WING",
+          "OFFICE"
+        ],
+        "description": "v1.15: office report access — NONE (no menu item, 403), WING (own wing), OFFICE (whole office; always for admins)"
+      },
       "MeResponseDto": {
         "type": "object",
         "properties": {
@@ -5233,6 +5362,15 @@
             "example": 6,
             "description": "Meeting priority from the designation (null for the super admin)"
           },
+          "officeReportScope": {
+            "example": "NONE",
+            "description": "v1.15: office report access — NONE (no menu item, 403), WING (own wing), OFFICE (whole office; always for admins)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OfficeReportScope"
+              }
+            ]
+          },
           "lastLoginAt": {
             "type": "string",
             "format": "date-time",
@@ -5251,6 +5389,7 @@
           "designation",
           "wing",
           "priority",
+          "officeReportScope",
           "lastLoginAt"
         ]
       },
@@ -6068,6 +6207,14 @@
             "type": "boolean",
             "example": true
           },
+          "officeReportScope": {
+            "example": "NONE",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OfficeReportScope"
+              }
+            ]
+          },
           "userCount": {
             "type": "number",
             "example": 41,
@@ -6088,6 +6235,7 @@
           "nameEn",
           "priority",
           "isActive",
+          "officeReportScope",
           "userCount",
           "createdAt",
           "updatedAt"
@@ -6116,6 +6264,15 @@
             "type": "boolean",
             "example": true,
             "default": true
+          },
+          "officeReportScope": {
+            "default": "NONE",
+            "description": "v1.15 office report access: NONE = নেই, WING = নিজ উইং, OFFICE = পুরো অফিস",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OfficeReportScope"
+              }
+            ]
           }
         },
         "required": [
@@ -6147,6 +6304,15 @@
             "type": "boolean",
             "example": true,
             "default": true
+          },
+          "officeReportScope": {
+            "default": "NONE",
+            "description": "v1.15 office report access: NONE = নেই, WING = নিজ উইং, OFFICE = পুরো অফিস",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OfficeReportScope"
+              }
+            ]
           }
         }
       },
@@ -8368,79 +8534,111 @@
           "meetings"
         ]
       },
-      "OfficeFiltersDto": {
+      "OfficeWingRefDto": {
         "type": "object",
         "properties": {
-          "wingBn": {
+          "id": {
             "type": "string",
-            "nullable": true,
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
             "example": "কম্পিউটার উইং"
           },
-          "wingEn": {
+          "nameEn": {
             "type": "string",
             "nullable": true,
             "example": "Computer Wing"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn"
+        ]
+      },
+      "OfficeOfficerRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
           },
           "designationBn": {
             "type": "string",
-            "nullable": true,
-            "example": "উপপরিচালক"
+            "nullable": true
           },
           "designationEn": {
             "type": "string",
-            "nullable": true,
-            "example": "Deputy Director"
-          }
-        },
-        "required": [
-          "wingBn",
-          "wingEn",
-          "designationBn",
-          "designationEn"
-        ]
-      },
-      "GroupCountDto": {
-        "type": "object",
-        "properties": {
-          "id": {
+            "nullable": true
+          },
+          "wingBn": {
             "type": "string",
-            "nullable": true,
-            "format": "uuid"
+            "nullable": true
           },
-          "nameBn": {
+          "wingEn": {
             "type": "string",
-            "example": "কম্পিউটার উইং"
-          },
-          "nameEn": {
-            "type": "string",
-            "nullable": true,
-            "example": "Computer Wing",
-            "description": "null = no wing / no designation (v1.7)"
-          },
-          "meetings": {
-            "type": "number",
-            "example": 7
-          },
-          "hours": {
-            "type": "number",
-            "example": 9.5
+            "nullable": true
           }
         },
         "required": [
           "id",
           "nameBn",
           "nameEn",
-          "meetings",
+          "designationBn",
+          "designationEn",
+          "wingBn",
+          "wingEn"
+        ]
+      },
+      "OfficeCardsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "মোট সভা (all statuses)"
+          },
+          "scheduled": {
+            "type": "number",
+            "example": 12,
+            "description": "চলমান (SCHEDULED)"
+          },
+          "completed": {
+            "type": "number",
+            "example": 26
+          },
+          "cancelled": {
+            "type": "number",
+            "example": 4
+          },
+          "hours": {
+            "type": "number",
+            "example": 63,
+            "description": "মোট ঘণ্টা (cancelled meetings excluded)"
+          }
+        },
+        "required": [
+          "total",
+          "scheduled",
+          "completed",
+          "cancelled",
           "hours"
         ]
       },
-      "DesignationCountDto": {
+      "OfficeWingRowDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
-            "nullable": true,
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "nameBn": {
             "type": "string",
@@ -8448,22 +8646,23 @@
           },
           "nameEn": {
             "type": "string",
-            "nullable": true,
-            "example": "Computer Wing",
-            "description": "null = no wing / no designation (v1.7)"
+            "nullable": true
           },
           "meetings": {
             "type": "number",
-            "example": 7
+            "example": 12
+          },
+          "completed": {
+            "type": "number",
+            "example": 8
+          },
+          "cancelled": {
+            "type": "number",
+            "example": 1
           },
           "hours": {
             "type": "number",
-            "example": 9.5
-          },
-          "priority": {
-            "type": "number",
-            "nullable": true,
-            "example": 6
+            "example": 18
           }
         },
         "required": [
@@ -8471,11 +8670,12 @@
           "nameBn",
           "nameEn",
           "meetings",
-          "hours",
-          "priority"
+          "completed",
+          "cancelled",
+          "hours"
         ]
       },
-      "OrganizerCountDto": {
+      "OfficeParticipantRowDto": {
         "type": "object",
         "properties": {
           "userId": {
@@ -8483,30 +8683,34 @@
             "format": "uuid"
           },
           "nameBn": {
-            "type": "string",
-            "example": "আকলিমা খাতুন"
+            "type": "string"
           },
           "nameEn": {
-            "type": "string",
-            "example": "Aklima Khatun"
+            "type": "string"
           },
           "designationBn": {
             "type": "string",
-            "nullable": true,
-            "example": "উপপরিচালক"
+            "nullable": true
           },
           "designationEn": {
             "type": "string",
-            "nullable": true,
-            "example": "Deputy Director"
+            "nullable": true
+          },
+          "wingBn": {
+            "type": "string",
+            "nullable": true
+          },
+          "wingEn": {
+            "type": "string",
+            "nullable": true
           },
           "meetings": {
             "type": "number",
-            "example": 4
+            "example": 18
           },
           "hours": {
             "type": "number",
-            "example": 6
+            "example": 27
           }
         },
         "required": [
@@ -8515,82 +8719,214 @@
           "nameEn",
           "designationBn",
           "designationEn",
+          "wingBn",
+          "wingEn",
           "meetings",
           "hours"
         ]
       },
-      "ConflictCountsDto": {
+      "OfficeChairOptionDto": {
         "type": "object",
         "properties": {
-          "pending": {
-            "type": "number",
-            "example": 2
+          "key": {
+            "type": "string",
+            "example": "user:7b0c2f0e-1f7a-4c55-9a51-0d1f3c1b9e11"
           },
-          "resolved": {
-            "type": "number",
-            "example": 9
+          "nameBn": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "designationBn": {
+            "type": "string",
+            "nullable": true
+          },
+          "designationEn": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
-          "pending",
-          "resolved"
+          "key",
+          "nameBn",
+          "nameEn",
+          "designationBn",
+          "designationEn"
         ]
       },
-      "OfficeSummaryDto": {
+      "OfficeFilterOptionsDto": {
         "type": "object",
         "properties": {
-          "totalMeetings": {
-            "type": "number",
-            "example": 120
-          },
-          "byStatus": {
-            "$ref": "#/components/schemas/StatusCountsDto"
-          },
-          "totalHours": {
-            "type": "number",
-            "example": 180.5
-          },
-          "byWing": {
-            "description": "By the organizer's wing",
+          "organizerWings": {
+            "description": "আয়োজক উইং options (empty for WING viewers)",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/GroupCountDto"
+              "$ref": "#/components/schemas/OfficeWingRefDto"
             }
           },
-          "byDesignation": {
-            "description": "By the organizer's designation, priority order",
+          "chairs": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DesignationCountDto"
-            }
-          },
-          "topOrganizers": {
-            "description": "Top 10 organizers",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OrganizerCountDto"
-            }
-          },
-          "conflicts": {
-            "$ref": "#/components/schemas/ConflictCountsDto"
-          },
-          "busiestDays": {
-            "description": "Top 5 days by number of meetings",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DayCountDto"
+              "$ref": "#/components/schemas/OfficeChairOptionDto"
             }
           }
         },
         "required": [
-          "totalMeetings",
-          "byStatus",
-          "totalHours",
-          "byWing",
-          "byDesignation",
-          "topOrganizers",
-          "conflicts",
-          "busiestDays"
+          "organizerWings",
+          "chairs"
+        ]
+      },
+      "OfficeMeetingRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "room": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SCHEDULED",
+              "CANCELLED",
+              "COMPLETED"
+            ]
+          },
+          "organizerWingBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "কম্পিউটার উইং"
+          },
+          "organizerWingEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "organizerDesignationBn": {
+            "type": "string",
+            "nullable": true,
+            "description": "Organizer's designation (shown when the organizer has no wing)"
+          },
+          "organizerDesignationEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "chairNameBn": {
+            "type": "string",
+            "nullable": true
+          },
+          "chairNameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "chairDesignationBn": {
+            "type": "string",
+            "nullable": true,
+            "example": "মহাপরিচালক",
+            "description": "সভাপতি column: the chair’s designation"
+          },
+          "chairDesignationEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "myRole": {
+            "type": "string",
+            "enum": [
+              "ORGANIZER",
+              "CHAIR",
+              "MEMBER"
+            ],
+            "nullable": true,
+            "description": "The VIEWER's role (row menu: Edit / বাতিল করুন only for the organizer or the chair)"
+          },
+          "officerRole": {
+            "type": "string",
+            "enum": [
+              "ORGANIZER",
+              "CHAIR",
+              "MEMBER"
+            ],
+            "nullable": true,
+            "description": "ভূমিকা column: the selected officer's role (null without officerId)"
+          },
+          "decisionFileCount": {
+            "type": "number",
+            "example": 0,
+            "description": "Minutes files (\"কার্যবিবরণী দেখুন\")"
+          },
+          "hasNotice": {
+            "type": "boolean",
+            "example": false,
+            "description": "Uploaded notice (\"সভার নোটিশ\")"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "startAt",
+          "endAt",
+          "room",
+          "status",
+          "organizerWingBn",
+          "organizerWingEn",
+          "organizerDesignationBn",
+          "organizerDesignationEn",
+          "chairNameBn",
+          "chairNameEn",
+          "chairDesignationBn",
+          "chairDesignationEn",
+          "myRole",
+          "officerRole",
+          "decisionFileCount",
+          "hasNotice"
+        ]
+      },
+      "OfficeMeetingPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfficeMeetingRowDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 16
+          },
+          "page": {
+            "type": "number",
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "example": 20
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
         ]
       },
       "OfficeReportDto": {
@@ -8599,20 +8935,73 @@
           "period": {
             "$ref": "#/components/schemas/PeriodDto"
           },
-          "filters": {
-            "$ref": "#/components/schemas/OfficeFiltersDto"
+          "scope": {
+            "type": "string",
+            "enum": [
+              "WING",
+              "OFFICE"
+            ],
+            "description": "The viewer's scope"
           },
-          "summary": {
-            "$ref": "#/components/schemas/OfficeSummaryDto"
+          "wing": {
+            "nullable": true,
+            "description": "The wing filter: the chosen wing (OFFICE) or the own, locked wing (WING); null = সকল উইং",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OfficeWingRefDto"
+              }
+            ]
+          },
+          "officer": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OfficeOfficerRefDto"
+              }
+            ]
+          },
+          "cards": {
+            "$ref": "#/components/schemas/OfficeCardsDto"
+          },
+          "wings": {
+            "nullable": true,
+            "description": "উইংভিত্তিক তালিকা (by the organizer’s wing); null when hidden (WING viewer, a wing or an officer selected)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfficeWingRowDto"
+            }
+          },
+          "topParticipants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfficeParticipantRowDto"
+            }
+          },
+          "busiestDays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayCountDto"
+            }
+          },
+          "filterOptions": {
+            "$ref": "#/components/schemas/OfficeFilterOptionsDto"
           },
           "meetings": {
-            "$ref": "#/components/schemas/ReportMeetingPageDto"
+            "$ref": "#/components/schemas/OfficeMeetingPageDto"
           }
         },
         "required": [
           "period",
-          "filters",
-          "summary",
+          "scope",
+          "wing",
+          "officer",
+          "cards",
+          "wings",
+          "topParticipants",
+          "busiestDays",
+          "filterOptions",
           "meetings"
         ]
       },

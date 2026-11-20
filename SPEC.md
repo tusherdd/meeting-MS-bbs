@@ -99,8 +99,8 @@ Controllers stay thin; business rules live in services. Every endpoint has Swagg
 | Role | Who | Can do |
 |---|---|---|
 | `SUPER_ADMIN` | `admin@bbs.gov.bd` (seeded) | Everything. Cannot be demoted or deactivated by anyone. |
-| `ADMIN` | Officers promoted from the admin dashboard | Manage users, designations, wings, approve change requests, see all meetings and admin reports. Cannot change SUPER_ADMIN. |
-| `OFFICER` | Every officer | Own profile, create meetings, edit/cancel meetings they organize or chair (internal chair, v1.10), see meetings they are part of, own reports. |
+| `ADMIN` | Officers promoted from the admin dashboard | Manage users, designations, wings, approve change requests, see all meetings and the office report (always the whole office, §6.10). Cannot change SUPER_ADMIN. |
+| `OFFICER` | Every officer | Own profile, create meetings, edit/cancel meetings they organize or chair (internal chair, v1.10), see meetings they are part of, own reports; the office report only when their designation allows it (v1.15, §6.10). |
 
 - Accounts are created **only by admins**. No self-registration.
 - Seeded super admin has `mustChangePassword = true`; until changed, only `/auth/change-password`, `/auth/me` and `/auth/logout` work.
@@ -276,7 +276,7 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
   fiscal-year আর সমর্থিত নয়।" / "… fiscal-year is no longer supported."; an old `/reports?period=fiscal-year` link
   opens the month.
 - Officer report: meetings I organized / attended, counts by status, total hours, conflicts raised against my meetings.
-- Admin report: same, across the office, filterable by wing and designation.
+- Office report "অফিস রিপোর্ট" (v1.15, §6.10): admins and the designations with office report access.
 - PDF download for every report: the schedule "কর্মসূচি" (v1.14, below).
 - Guest officers (v1.5): every meeting row of the day/week/month/year reports (web pages) shows
   its chair (`chairNameBn`: the internal chair, else the guest chair's name) and, under the meeting, its
@@ -297,11 +297,11 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
 - Hours count SCHEDULED and COMPLETED meetings (cancelled meetings take no time).
 - Officer report: totalMeetings, organized, attended, byStatus, totalHours, conflictsRaisedAgainstMyMeetings,
   conflictsIRaised, byDay, plus a paginated meeting list with my role.
-- Office report: same totals plus byWing, byDesignation (the **organizer's** wing/designation), top 10
-  organizers, pending/resolved conflicts and the 5 busiest days; filters `wingId`, `designationId`.
+- Office report: rebuilt in v1.15 (§6.10); the old byDesignation, top 10 organizers, conflict counts and the
+  `designationId` filter are gone.
 - **PDF "কর্মসূচি" (v1.14, owner decision 2026-11-19; layout `docs/samples/report-schedule-sample.html` and
-  `docs/samples/saptahik-kormosuchi-nomuna.pdf`).** The same for "my report" (`/reports/me/pdf`) and the office report
-  (`/reports/office/pdf`); the web report pages are unchanged. Code: `reports/pdf/schedule-format.ts` (pure rules),
+  `docs/samples/saptahik-kormosuchi-nomuna.pdf`).** For "my report" (`/reports/me/pdf`); since v1.15 the office report has its
+  own PDF (§6.10). Code: `reports/pdf/schedule-format.ts` (pure rules),
   `report-template.ts` (HTML), `schedule-pdf.ts` (two passes), `PdfService.measure()`.
   - **Page:** A4 landscape, margins 14/14/16/14 mm, always Bangla (whatever the UI language), NikoshBAN for Bangla and
     Tinos for Latin (embedded, §13.10), Bangla digits for system numbers, user text as typed (§13.11), no logo. Footer:
@@ -412,11 +412,55 @@ pure rules in `decision-rules.ts` and `decision-file.ts` (unit-tested), `decisio
 - Tests: `decision-file.spec.ts`, `decision-rules.spec.ts`, `decisions.service.spec.ts`, `test/decisions.e2e-spec.ts`,
   `frontend/e2e/v111.spec.ts`.
 
+### 6.10 Office report "অফিস রিপোর্ট" (v1.15, owner decision 2026-11-20)
+One page and one route (`/office-report`) for everyone who may see it; layout as `docs/samples/office-report/`
+(`office-report-1-admin.png`, `-2-sochib-dg.png`, `-3-porichalok.png`; fictional data, the yellow "নমুনা" label and the
+"লগইন: …" header text are only for the samples). Backend: `modules/office-scope/` (scope rules + service),
+`reports/office-report.service.ts`, `office-report-math.ts` (pure, unit-tested), `pdf/office-report-template.ts`.
+- **Scope** `designations.officeReportScope` NONE | WING | OFFICE (migration `DesignationOfficeReportScope1795100000000`,
+  default NONE), edited on Admin → "পদবি ও অগ্রাধিকার" as "অফিস রিপোর্ট: নেই / নিজ উইং / পুরো অফিস". Backfill: সচিব and
+  মহাপরিচালক → OFFICE, পরিচালক → WING (dev database 2026-11-20: exactly these three); the seed sets the same on create only.
+  - ADMIN and SUPER_ADMIN always have OFFICE.
+  - Additional charges (`user_additional_charges`, free text): a charge counts as a designation when its text starts with
+    that designation's Bangla or English name as a whole word (longest name wins: "উপপরিচালক…" is never "পরিচালক…");
+    the viewer gets the highest scope of their designation and these (`office-scope.rules.ts`).
+  - WING uses the viewer's own wing; a WING viewer without a wing gets 403 `OFFICE_REPORT_NO_WING` and the page shows
+    "আপনার প্রোফাইলে কোনো উইং নেই, তাই অফিস রিপোর্ট দেখানো যাবে না।…" instead of data.
+  - `/auth/me` returns `officeReportScope` (menu).
+- **Server checks** (every endpoint the page uses): NONE → 403 `OFFICE_REPORT_FORBIDDEN` "অফিস রিপোর্ট দেখার অনুমতি আপনার নেই।"
+  on `/reports/office` and `/reports/office/pdf`; a WING viewer asking for another wing, another wing's officer or another
+  organizer wing → 403 `OFFICE_REPORT_OUT_OF_SCOPE`. Report viewers get **read-only** access to meetings in their scope:
+  meeting detail (`GET /meetings/:id`), notice download, minutes view / download (never upload, edit, cancel or delete).
+  OFFICE: every meeting. WING: meetings organized by an officer of their wing, or with any officer of their wing among
+  its people (= every meeting their report can list). Others keep 404 (detail) / 403 (notice, minutes).
+- **Data** (`GET /reports/office`, period or `from`/`to`, §6.6): meetings STARTING in the range —
+  OFFICE: all, or those organized by the chosen wing's officers; WING: those organized by their wing's officers;
+  with an officer selected (`officerId`): that officer's meetings in every role and every wing.
+  - Cards: মোট সভা (all statuses, cancelled too), চলমান, সম্পন্ন, বাতিল, মোট ঘণ্টা (cancelled excluded).
+  - "উইংভিত্তিক তালিকা" (OFFICE only; `wings: null` when a wing or an officer is selected): by the ORGANIZER's wing —
+    উইং, মোট সভা, সম্পন্ন, বাতিল, মোট ঘণ্টা; most meetings first.
+  - "শীর্ষ ৫ অংশগ্রহণকারী": officers by meetings in ANY role (organizer, internal chair, member), cancelled excluded; WING
+    (or a chosen wing): only that wing's officers. "সবচেয়ে ব্যস্ত ৫ দিন": the old rule, in scope.
+  - "সভার তালিকা": filters `status`, `organizerWingId` (OFFICE only), `chair` ("user:<id>" / "guest:<name>" from
+    `filterOptions.chairs`), `role` (only with an officer); paginated; rows carry the viewer's `myRole` and the selected
+    officer's `officerRole`.
+- **PDF** `GET /reports/office/pdf` (same query incl. `page` / `limit`): always Bangla, NikoshBAN + Tinos, Bangla digits,
+  A4 landscape, footer "১/২". Centered green title "বাংলাদেশ পরিসংখ্যান ব্যুরো — অফিস রিপোর্ট", then label : value lines —
+  কর্মকর্তা ("জনাব " + the downloader), পদবি (+ " মহোদয়" for priority 1–3), সময়কাল, উইং (the selected wing or "সকল উইং"),
+  কর্মকর্তা ফিল্টার (only with an officer: "জনাব নাম, পদবি · উইং"), প্রস্তুতের সময় — and a green rule. Body: the 5 cards, the
+  FULL wing list (when shown), top 5 + busiest 5 side by side, and EXACTLY the meeting rows on screen (same filters,
+  same page; a new PDF page only when they do not fit). No sidebar, buttons, filters or "⋮"; "জনাব" before person names
+  (never doubled), no "মহোদয়" in tables. The server recomputes everything (never client HTML) and checks the scope.
+  File `office-report-<period key>.pdf`. Audit `OFFICE_REPORT_EXPORTED` (period, range, filters, page, row count).
+- Tests: `office-scope.rules.spec.ts`, `office-report-math.spec.ts`, `pdf/office-report-template.spec.ts`,
+  `test/office-report.e2e-spec.ts`, `test/reports-admin.e2e-spec.ts`; frontend `tests/unit/office-nav.test.ts`,
+  `row-actions.test.ts`, `e2e/office-report.spec.ts`, `e2e/no-icons.spec.ts`.
+
 ## 7. Data model (TypeORM entities)
 
 All tables have `id` (uuid), `createdAt`, `updatedAt`.
 
-- **designations**: nameBn, nameEn, priority (int), isActive
+- **designations**: nameBn, nameEn, priority (int), isActive, officeReportScope (`NONE` | `WING` | `OFFICE`, v1.15, §6.10)
 - **wings**: nameBn, nameEn, isActive
 - **users**: loginEmail (unique, citext/lowercased), notificationEmail, pendingNotificationEmail,
   notificationEmailTokenHash, notificationEmailTokenExpiresAt, passwordHash, nameBn, nameEn,
@@ -557,8 +601,8 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 |---|---|---|---|
 | GET | `/reports/me?period=&date=` or `?from=&to=` (v1.15) | 👤 | My summary + meeting list |
 | GET | `/reports/me/pdf?period=&date=` or `?from=&to=` | 👤 | My report as PDF |
-| GET | `/reports/office?period=&date=&wingId=&designationId=` | 🛡 | Office-wide summary |
-| GET | `/reports/office/pdf?...` | 🛡 | Office report as PDF |
+| GET | `/reports/office?period=&date=` or `from=&to=`, `wingId`, `officerId`, `status`, `organizerWingId`, `chair`, `role`, page | 👤 scope (§6.10) | Office report "অফিস রিপোর্ট" (v1.15) |
+| GET | `/reports/office/pdf?...` (same query incl. page) | 👤 scope (§6.10) | Office report PDF, exactly the on-screen rows; audited |
 
 ### Admin
 | Method | Path | Access | Purpose |
@@ -726,7 +770,8 @@ Release **v1.14** (2026-11-20, tag `v1.14`, part C of 3): the report PDFs (my re
 schedule "কর্মসূচি" (A4 landscape, one table, §6.6); the web report pages are unchanged.
 
 Release **v1.15** (2026-11-20, tag `v1.15`; progress in `docs/progress/v1.15.md`): (1) the calendar removed (§13.12);
-(2) the fiscal year removed from the reports (§6.6); (3) the date range picker on "আমার রিপোর্ট" (§6.6, §13.7).
+(2) the fiscal year removed from the reports (§6.6); (3) the date range picker on "আমার রিপোর্ট" (§6.6, §13.7);
+(4) the office report "অফিস রিপোর্ট" rebuilt for admins, OFFICE and WING viewers (§6.10, §13.21).
 
 ## 13. Frontend (`frontend/`)
 
@@ -769,9 +814,10 @@ frontend/
 | `/meetings` (filters, admin "সকল সভা"), `/meetings/new?start=&end=`, `/meetings/:id`, `/meetings/:id/edit` | app | F2 |
 | `/conflicts` (pending, resolved, admin all), `/notifications` | app | F2 |
 | `/reports?period=&date=&page=` | app | F3 |
+| `/office-report` (v1.15, §6.10, §13.21; `/admin/reports` redirects here with the same query) | app; admins, OFFICE and WING viewers (NONE: the page shows 403, the API answers 403) | v1.15 |
 | `/decisions`, `/meetings/:id/decision` (meeting minutes "সভা কার্যবিবরণী") | app | v1.11 |
 | `/profile` | app | F3 |
-| `/admin`, `/admin/users` (+ `/new`, `/:id`), `/admin/designations`, `/admin/wings`, `/admin/change-requests`, `/admin/meetings`, `/admin/conflicts`, `/admin/reports`, `/admin/email-outbox`, `/admin/audit-logs` | app, ADMIN/SUPER_ADMIN only (others see the 404 page) | F3 |
+| `/admin`, `/admin/users` (+ `/new`, `/:id`), `/admin/designations`, `/admin/wings`, `/admin/change-requests`, `/admin/meetings`, `/admin/conflicts`, `/admin/email-outbox`, `/admin/audit-logs` | app, ADMIN/SUPER_ADMIN only (others see the 404 page) | F3 |
 
 Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page with "আবার চেষ্টা করুন".
 
@@ -802,7 +848,9 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   message are `aria-live`. Text and badge colours keep a contrast of at least 4.5:1.
 - **No icons in the UI, except two in the top header: the notification bell and the profile icon** (owner
   decisions 2026-11-09 and 2026-11-14), **and the three-dot "⋮" button of the meeting row menu** (v1.10, owner
-  decision 2026-11-17, §13.18). Everything else stays text-only: no other SVG icons, no icon components or
+  decision 2026-11-17, §13.18), **and a small lock in the locked wing select of the office report** (v1.15, owner
+  decision 2026-11-20, §13.21: `components/reports/lock-icon.tsx`, `data-lock-icon`, `aria-hidden`, only inside
+  `[data-locked-wing]` next to the disabled select). Everything else stays text-only: no other SVG icons, no icon components or
   libraries, no emoji or symbols used as icons, no other icon-only buttons. Examples: "মেনু", "বন্ধ করুন",
   "আগের" / "পরের", status and conflicts as coloured text badges, the protected SUPER_ADMIN as the text badge
   "সুরক্ষিত". The browser-tab favicon stays; charts are allowed. The BBS logo is not an icon and is allowed only in
@@ -1253,7 +1301,10 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
 - v1.11: "Upload minutes" (v1.13; was "Upload decision"; opens `/meetings/:id/decision`) for the meeting's people (organizer, internal chair,
   members; not admins as such), only while an upload is allowed (started or completed, not cancelled, fewer than
   10 files; `decisionFileCount` on summaries and report rows).
-- API support: `ConflictMeetingRefDto.chairedByMe`; office report rows carry the admin viewer's own `myRole`.
+- v1.15 office report rows (`mode="officeReport"`): "বিস্তারিত দেখুন" (read-only), "সভার নোটিশ" (only with a file),
+  "কার্যবিবরণী দেখুন" / "View minutes" (only when minutes exist; view / download only, never "Upload minutes"), and "Edit" /
+  "বাতিল করুন" ONLY when the viewer organizes or chairs that meeting.
+- API support: `ConflictMeetingRefDto.chairedByMe`; office report rows carry the viewer's own `myRole`.
 - Tests: `tests/unit/row-actions.test.ts`, `e2e/v110.spec.ts`, `e2e/no-icons.spec.ts` (the glyph only inside its button).
 
 ### 13.19 Meeting minutes UI "সভা কার্যবিবরণী" (v1.11, renamed v1.13)
@@ -1295,3 +1346,22 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
 - Texts: `dashboard.filterLabel`, `dashboard.filters.*` in `messages/en.ts` / `bn.ts`. "চলমান" / "Pending" is also the
   SCHEDULED status label everywhere (`meeting.status.SCHEDULED`, §13.12).
 - Tests: `tests/unit/dashboard-filter.test.ts`, `e2e/dashboard.spec.ts`.
+
+### 13.21 Office report page "অফিস রিপোর্ট" (v1.15, owner decision 2026-11-20)
+`app/(app)/office-report/page.tsx`, `components/reports/office-report-view.tsx` (samples: `docs/samples/office-report/`).
+- **Menu:** admins keep "অফিস রিপোর্ট" in the admin section (link `/office-report`); non-admin OFFICE / WING officers get it
+  as the LAST main menu item, below "প্রোফাইল" (`navFor(admin, t, officeReportScope)`); NONE officers see no item and the
+  page shows "৪০৩" with "অফিস রিপোর্ট দেখার অনুমতি আপনার নেই।" (the API answers 403). `/admin/reports` redirects.
+- **Top to bottom:** title "অফিস রিপোর্ট" with the range under it (no "পুরো অফিস" text; with an officer selected:
+  "জনাব [name], [designation] · [wing] · [range]") and the button "PDF ডাউনলোড" / "Download PDF" (owner wording for this
+  page); the filter bar (§13.7 period buttons, divider, date range picker, then "উইং" — OFFICE: "সকল উইং" + every wing;
+  WING: their own wing, disabled, with the small lock — and "কর্মকর্তা", a searchable picker over `GET /users/directory`
+  of the chosen wing or everyone, WING: own wing only); five cards; "উইংভিত্তিক তালিকা" (OFFICE, no wing / officer chosen;
+  exactly 5 rows visible, the rest scroll inside the box under a sticky header; a wing name sets the wing filter; no
+  helper text); "শীর্ষ ৫ অংশগ্রহণকারী" (name, designation on a small second line, + wing for OFFICE; সভা, ঘণ্টা; note
+  "আয়োজক, সভাপতি ও সদস্য — সব ভূমিকার সভা গোনা হয়েছে।") next to "সবচেয়ে ব্যস্ত ৫ দিন" (তারিখ, সভা, ঘণ্টা); "সভার তালিকা"
+  with the selects অবস্থা, আয়োজক উইং (OFFICE), সভাপতি, ভূমিকা (with an officer) and the columns তারিখ (dd/mm/yyyy), সময়
+  (24-hour HH:mm, `formatNumericDate` / `formatClock`), বিষয়, আয়োজক উইং, সভাপতি (the chair's designation, as in the
+  samples), স্থান, [ভূমিকা badge], অবস্থা, ⋮ (§13.18 office mode). No charts; the old "পদবি অনুযায়ী" and "শীর্ষ ১০ আয়োজক"
+  are gone. All filters live in the address; "PDF ডাউনলোড" sends the same filters and page.
+- Texts: `officeReport.*`, `nav.officeReport`, `rowMenu.viewMinutes`, `admin.officeReportScope*` in en / bn.

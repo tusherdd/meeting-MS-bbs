@@ -972,7 +972,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Office-wide report (ADMIN), filterable by the organizer’s wing and designation */
+        /**
+         * Office report "অফিস রিপোর্ট" (v1.15): admins, OFFICE and WING viewers
+         * @description Scope (SPEC.md §6.10): ADMIN / SUPER_ADMIN and OFFICE designations see the whole office; WING designations only their own wing (another wingId, organizerWingId or an officer of another wing → 403); NONE → 403. Cards, the wing list (by the organizer’s wing), top 5 participants (all roles), the busiest 5 days and the filtered, paginated meeting list. Period: `period`/`date` or `from`/`to`.
+         */
         get: operations["ReportsController_office"];
         put?: never;
         post?: never;
@@ -990,8 +993,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Office report as PDF ("কর্মসূচি", ADMIN)
-         * @description Schedule of the office meetings in the period (wing / designation filters) without cancelled ones; the header names the downloading admin.
+         * Office report as PDF (v1.15, always Bangla, A4 landscape)
+         * @description The same query as GET /reports/office (filters AND page): the PDF holds exactly the meeting rows shown on screen. Same scope rules; audited as OFFICE_REPORT_EXPORTED.
          */
         get: operations["ReportsController_officePdf"];
         put?: never;
@@ -1071,7 +1074,7 @@ export interface components {
              * @example MEETING_CREATE
              * @enum {string}
              */
-            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
             /** @example meeting */
             entityType: string;
             entityId: string | null;
@@ -1171,6 +1174,11 @@ export interface components {
             /** @example Computer Wing */
             nameEn: string;
         };
+        /**
+         * @description v1.15: office report access — NONE (no menu item, 403), WING (own wing), OFFICE (whole office; always for admins)
+         * @enum {string}
+         */
+        OfficeReportScope: "NONE" | "WING" | "OFFICE";
         MeResponseDto: {
             /** Format: uuid */
             id: string;
@@ -1204,6 +1212,11 @@ export interface components {
              * @example 6
              */
             priority: number | null;
+            /**
+             * @description v1.15: office report access — NONE (no menu item, 403), WING (own wing), OFFICE (whole office; always for admins)
+             * @example NONE
+             */
+            officeReportScope: components["schemas"]["OfficeReportScope"];
             /** Format: date-time */
             lastLoginAt: string | null;
         };
@@ -1582,6 +1595,8 @@ export interface components {
             priority: number;
             /** @example true */
             isActive: boolean;
+            /** @example NONE */
+            officeReportScope: components["schemas"]["OfficeReportScope"];
             /**
              * @description Users that currently have this designation
              * @example 41
@@ -1610,6 +1625,11 @@ export interface components {
              * @example true
              */
             isActive: boolean;
+            /**
+             * @description v1.15 office report access: NONE = নেই, WING = নিজ উইং, OFFICE = পুরো অফিস
+             * @default NONE
+             */
+            officeReportScope: components["schemas"]["OfficeReportScope"];
         };
         UpdateDesignationDto: {
             /** @example উপপরিচালক */
@@ -1629,6 +1649,11 @@ export interface components {
              * @example true
              */
             isActive: boolean;
+            /**
+             * @description v1.15 office report access: NONE = নেই, WING = নিজ উইং, OFFICE = পুরো অফিস
+             * @default NONE
+             */
+            officeReportScope: components["schemas"]["OfficeReportScope"];
         };
         WingResponseDto: {
             /** Format: uuid */
@@ -2587,91 +2612,161 @@ export interface components {
             summary: components["schemas"]["PersonalSummaryDto"];
             meetings: components["schemas"]["ReportMeetingPageDto"];
         };
-        OfficeFiltersDto: {
+        OfficeWingRefDto: {
+            /** Format: uuid */
+            id: string;
             /** @example কম্পিউটার উইং */
-            wingBn: string | null;
+            nameBn: string;
             /** @example Computer Wing */
-            wingEn: string | null;
-            /** @example উপপরিচালক */
+            nameEn: string | null;
+        };
+        OfficeOfficerRefDto: {
+            /** Format: uuid */
+            id: string;
+            nameBn: string;
+            nameEn: string;
             designationBn: string | null;
-            /** @example Deputy Director */
             designationEn: string | null;
+            wingBn: string | null;
+            wingEn: string | null;
         };
-        GroupCountDto: {
+        OfficeCardsDto: {
+            /**
+             * @description মোট সভা (all statuses)
+             * @example 42
+             */
+            total: number;
+            /**
+             * @description চলমান (SCHEDULED)
+             * @example 12
+             */
+            scheduled: number;
+            /** @example 26 */
+            completed: number;
+            /** @example 4 */
+            cancelled: number;
+            /**
+             * @description মোট ঘণ্টা (cancelled meetings excluded)
+             * @example 63
+             */
+            hours: number;
+        };
+        OfficeWingRowDto: {
             /** Format: uuid */
             id: string | null;
             /** @example কম্পিউটার উইং */
             nameBn: string;
-            /**
-             * @description null = no wing / no designation (v1.7)
-             * @example Computer Wing
-             */
             nameEn: string | null;
-            /** @example 7 */
+            /** @example 12 */
             meetings: number;
-            /** @example 9.5 */
+            /** @example 8 */
+            completed: number;
+            /** @example 1 */
+            cancelled: number;
+            /** @example 18 */
             hours: number;
         };
-        DesignationCountDto: {
-            /** Format: uuid */
-            id: string | null;
-            /** @example কম্পিউটার উইং */
-            nameBn: string;
-            /**
-             * @description null = no wing / no designation (v1.7)
-             * @example Computer Wing
-             */
-            nameEn: string | null;
-            /** @example 7 */
-            meetings: number;
-            /** @example 9.5 */
-            hours: number;
-            /** @example 6 */
-            priority: number | null;
-        };
-        OrganizerCountDto: {
+        OfficeParticipantRowDto: {
             /** Format: uuid */
             userId: string;
-            /** @example আকলিমা খাতুন */
             nameBn: string;
-            /** @example Aklima Khatun */
             nameEn: string;
-            /** @example উপপরিচালক */
             designationBn: string | null;
-            /** @example Deputy Director */
             designationEn: string | null;
-            /** @example 4 */
+            wingBn: string | null;
+            wingEn: string | null;
+            /** @example 18 */
             meetings: number;
-            /** @example 6 */
+            /** @example 27 */
             hours: number;
         };
-        ConflictCountsDto: {
-            /** @example 2 */
-            pending: number;
-            /** @example 9 */
-            resolved: number;
+        OfficeChairOptionDto: {
+            /** @example user:7b0c2f0e-1f7a-4c55-9a51-0d1f3c1b9e11 */
+            key: string;
+            nameBn: string;
+            nameEn: string;
+            designationBn: string | null;
+            designationEn: string | null;
         };
-        OfficeSummaryDto: {
-            /** @example 120 */
-            totalMeetings: number;
-            byStatus: components["schemas"]["StatusCountsDto"];
-            /** @example 180.5 */
-            totalHours: number;
-            /** @description By the organizer's wing */
-            byWing: components["schemas"]["GroupCountDto"][];
-            /** @description By the organizer's designation, priority order */
-            byDesignation: components["schemas"]["DesignationCountDto"][];
-            /** @description Top 10 organizers */
-            topOrganizers: components["schemas"]["OrganizerCountDto"][];
-            conflicts: components["schemas"]["ConflictCountsDto"];
-            /** @description Top 5 days by number of meetings */
-            busiestDays: components["schemas"]["DayCountDto"][];
+        OfficeFilterOptionsDto: {
+            /** @description আয়োজক উইং options (empty for WING viewers) */
+            organizerWings: components["schemas"]["OfficeWingRefDto"][];
+            chairs: components["schemas"]["OfficeChairOptionDto"][];
+        };
+        OfficeMeetingRowDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** Format: date-time */
+            startAt: string;
+            /** Format: date-time */
+            endAt: string;
+            room: string | null;
+            /** @enum {string} */
+            status: "SCHEDULED" | "CANCELLED" | "COMPLETED";
+            /** @example কম্পিউটার উইং */
+            organizerWingBn: string | null;
+            organizerWingEn: string | null;
+            /** @description Organizer's designation (shown when the organizer has no wing) */
+            organizerDesignationBn: string | null;
+            organizerDesignationEn: string | null;
+            chairNameBn: string | null;
+            chairNameEn: string | null;
+            /**
+             * @description সভাপতি column: the chair’s designation
+             * @example মহাপরিচালক
+             */
+            chairDesignationBn: string | null;
+            chairDesignationEn: string | null;
+            /**
+             * @description The VIEWER's role (row menu: Edit / বাতিল করুন only for the organizer or the chair)
+             * @enum {string|null}
+             */
+            myRole: "ORGANIZER" | "CHAIR" | "MEMBER" | null;
+            /**
+             * @description ভূমিকা column: the selected officer's role (null without officerId)
+             * @enum {string|null}
+             */
+            officerRole: "ORGANIZER" | "CHAIR" | "MEMBER" | null;
+            /**
+             * @description Minutes files ("কার্যবিবরণী দেখুন")
+             * @example 0
+             */
+            decisionFileCount: number;
+            /**
+             * @description Uploaded notice ("সভার নোটিশ")
+             * @example false
+             */
+            hasNotice: boolean;
+        };
+        OfficeMeetingPageDto: {
+            items: components["schemas"]["OfficeMeetingRowDto"][];
+            /** @example 16 */
+            total: number;
+            /** @example 1 */
+            page: number;
+            /** @example 20 */
+            limit: number;
+            /** @example 1 */
+            totalPages: number;
         };
         OfficeReportDto: {
             period: components["schemas"]["PeriodDto"];
-            filters: components["schemas"]["OfficeFiltersDto"];
-            summary: components["schemas"]["OfficeSummaryDto"];
-            meetings: components["schemas"]["ReportMeetingPageDto"];
+            /**
+             * @description The viewer's scope
+             * @enum {string}
+             */
+            scope: "WING" | "OFFICE";
+            /** @description The wing filter: the chosen wing (OFFICE) or the own, locked wing (WING); null = সকল উইং */
+            wing: components["schemas"]["OfficeWingRefDto"] | null;
+            officer: components["schemas"]["OfficeOfficerRefDto"] | null;
+            cards: components["schemas"]["OfficeCardsDto"];
+            /** @description উইংভিত্তিক তালিকা (by the organizer’s wing); null when hidden (WING viewer, a wing or an officer selected) */
+            wings: components["schemas"]["OfficeWingRowDto"][] | null;
+            topParticipants: components["schemas"]["OfficeParticipantRowDto"][];
+            busiestDays: components["schemas"]["DayCountDto"][];
+            filterOptions: components["schemas"]["OfficeFilterOptionsDto"];
+            meetings: components["schemas"]["OfficeMeetingPageDto"];
         };
         UserStatsDto: {
             /** @example 137 */
@@ -2753,7 +2848,7 @@ export interface operations {
                 limit?: number;
                 /** @description Who did it */
                 actorId?: string;
-                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
                 /** @description user, meeting, designation, change_request, … */
                 entityType?: string;
                 /** @description Id of the changed record */
@@ -5234,8 +5329,18 @@ export interface operations {
                 from?: string;
                 /** @description v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`. */
                 to?: string;
+                /** @description উইং: OFFICE viewers choose any wing (empty = সকল উইং); WING viewers always see their own wing (another one → 403) */
                 wingId?: string;
-                designationId?: string;
+                /** @description কর্মকর্তা: that officer's meetings in every role and every wing (WING viewers: only officers of their own wing) */
+                officerId?: string;
+                /** @description Meeting list filter অবস্থা */
+                status?: "SCHEDULED" | "CANCELLED" | "COMPLETED";
+                /** @description Meeting list filter আয়োজক উইং (OFFICE viewers only) */
+                organizerWingId?: string;
+                /** @description Meeting list filter সভাপতি: a `key` from `filterOptions.chairs` ("user:<id>" or "guest:<name>") */
+                chair?: string;
+                /** @description Meeting list filter ভূমিকা: the selected officer's role (only with officerId) */
+                role?: "ORGANIZER" | "CHAIR" | "MEMBER";
             };
             header?: {
                 /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
@@ -5254,7 +5359,7 @@ export interface operations {
                     "application/json": components["schemas"]["OfficeReportDto"];
                 };
             };
-            /** @description Not an admin */
+            /** @description No office report access, no wing (WING), or outside the scope */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5266,18 +5371,26 @@ export interface operations {
     ReportsController_officePdf: {
         parameters: {
             query?: {
-                /** @description Week = Sunday–Saturday, year = January–December (Asia/Dhaka) */
+                page?: number;
+                limit?: number;
                 period?: "day" | "week" | "month" | "year";
-                /** @description Any day inside the period (default: today in Dhaka) */
                 date?: string;
                 /** @description v1.15 custom range: first day (YYYY-MM-DD, Asia/Dhaka, inclusive). Together with `to` it replaces period/date; at most 2 years. */
                 from?: string;
                 /** @description v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`. */
                 to?: string;
-                /** @description Organizer's wing */
+                /** @description উইং: OFFICE viewers choose any wing (empty = সকল উইং); WING viewers always see their own wing (another one → 403) */
                 wingId?: string;
-                /** @description Organizer's designation */
-                designationId?: string;
+                /** @description কর্মকর্তা: that officer's meetings in every role and every wing (WING viewers: only officers of their own wing) */
+                officerId?: string;
+                /** @description Meeting list filter অবস্থা */
+                status?: "SCHEDULED" | "CANCELLED" | "COMPLETED";
+                /** @description Meeting list filter আয়োজক উইং (OFFICE viewers only) */
+                organizerWingId?: string;
+                /** @description Meeting list filter সভাপতি: a `key` from `filterOptions.chairs` ("user:<id>" or "guest:<name>") */
+                chair?: string;
+                /** @description Meeting list filter ভূমিকা: the selected officer's role (only with officerId) */
+                role?: "ORGANIZER" | "CHAIR" | "MEMBER";
             };
             header?: {
                 /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
@@ -5297,7 +5410,7 @@ export interface operations {
                     "application/pdf": string;
                 };
             };
-            /** @description Not an admin */
+            /** @description No office report access, no wing (WING), or outside the scope */
             403: {
                 headers: {
                     [name: string]: unknown;

@@ -1,3 +1,4 @@
+import { OfficeScopeModule } from '../office-scope/office-scope.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DecisionStorageModule } from '../decisions/decision-storage.service';
@@ -24,6 +25,7 @@ import { MeetingsService } from './meetings.service';
       User,
     ]),
     DecisionStorageModule,
+    OfficeScopeModule,
   ],
   controllers: [MeetingsController, ConflictsController],
   providers: [

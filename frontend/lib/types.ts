@@ -106,7 +106,6 @@ export type BlockedRole = S["BlockedRole"];
 export type DecisionSummary = S["DecisionSummaryDto"];
 export type DayCount = S["DayCountDto"];
 export type StatusCounts = S["StatusCountsDto"];
-export type OfficeSummary = S["OfficeSummaryDto"];
-export type GroupCount = S["GroupCountDto"];
-export type DesignationCount = S["DesignationCountDto"];
-export type OrganizerCount = S["OrganizerCountDto"];
+/** v1.15 office report (SPEC.md §6.10). */
+export type OfficeMeetingRow = S["OfficeMeetingRowDto"];
+export type OfficeReportScope = S["OfficeReportScope"];

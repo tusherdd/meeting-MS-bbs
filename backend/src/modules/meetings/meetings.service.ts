@@ -1,3 +1,4 @@
+import { OfficeScopeService } from '../office-scope/office-scope.service';
 import {
   BadRequestException,
   ConflictException,
@@ -138,6 +139,8 @@ export class MeetingsService {
     private readonly dataSource: DataSource,
     /** v1.11: a hard delete also removes the meeting's decision files from disk. */
     @Optional() private readonly decisionFiles?: DecisionStorageService,
+    /** v1.15: office report viewers may open meetings in their scope read-only. */
+    @Optional() private readonly officeScope?: OfficeScopeService,
   ) {}
 
   // ================================================================= create
@@ -709,8 +712,16 @@ export class MeetingsService {
       },
     });
     const people = meeting?.participants.map((p) => p.userId) ?? [];
-    // Not one of its people and not an admin → "not found" (existence is not revealed).
-    if (!meeting || !(isAdmin(actor) || people.includes(actor.id))) {
+    // Not one of its people, not an admin and (v1.15) not an office report viewer whose scope
+    // covers it → "not found" (existence is not revealed). Report viewers only read.
+    if (
+      !meeting ||
+      !(
+        isAdmin(actor) ||
+        people.includes(actor.id) ||
+        (await this.officeScope?.canViewMeeting(actor, id))
+      )
+    ) {
       throw new NotFoundException(MSG.notFound);
     }
     meeting.decisionFileCount = await this.dataSource

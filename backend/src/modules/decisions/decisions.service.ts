@@ -1,9 +1,11 @@
+import { OfficeScopeService } from '../office-scope/office-scope.service';
 import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
   PayloadTooLargeException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -89,6 +91,8 @@ export class DecisionsService {
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
     private readonly dataSource: DataSource,
+    /** v1.15: office report viewers may view / download minutes of meetings in their scope. */
+    @Optional() private readonly officeScope?: OfficeScopeService,
   ) {}
 
   // ---------------------------------------------------------------- access
@@ -114,11 +118,19 @@ export class DecisionsService {
     };
   }
 
-  /** The meeting's people and admins; everyone else 403 (unknown meeting 404). */
+  /**
+   * The meeting's people, admins and (v1.15) office report viewers whose scope covers it —
+   * those only view and download (no role: no upload, no delete); everyone else 403
+   * (unknown meeting 404).
+   */
   private async loadVisible(actor: AuthUser, id: string) {
     const meeting = await this.load(id);
     const viewer = this.viewer(actor, meeting);
-    if (!canViewDecisions(viewer)) throw new ForbiddenException(MSG.forbidden);
+    if (
+      !canViewDecisions(viewer) &&
+      !(await this.officeScope?.canViewMeeting(actor, id))
+    )
+      throw new ForbiddenException(MSG.forbidden);
     return { meeting, viewer };
   }
 

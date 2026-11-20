@@ -11,6 +11,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/table";
@@ -22,12 +23,17 @@ import { useSchemas } from "@/lib/hooks/use-schemas";
 import { toEnglishDigits } from "@/lib/phone";
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
+type OfficeReportScope = "NONE" | "WING" | "OFFICE";
+const OFFICE_REPORT_SCOPES: OfficeReportScope[] = ["NONE", "WING", "OFFICE"];
+
 /** One row of either list (a wing has no priority). */
 interface Item {
   id: string;
   nameBn: string;
   nameEn: string;
   priority?: number;
+  /** v1.15: designations only. */
+  officeReportScope?: OfficeReportScope;
   isActive: boolean;
   userCount: number;
 }
@@ -47,6 +53,7 @@ function api(kind: Kind) {
           nameBn: v.nameBn.trim(),
           nameEn: v.nameEn.trim(),
           priority: Number(v.priority),
+          officeReportScope: v.officeReportScope,
         }),
       update: (id: string, input: Partial<Item>) => designationsApi.update(id, input),
       remove: (id: string) => designationsApi.remove(id),
@@ -96,7 +103,7 @@ function ItemForm({
       className="space-y-4"
       onSubmit={form.handleSubmit((v) => onSubmit(normalizeValues(v)))}
     >
-      <div className={withPriority ? "grid gap-4 sm:grid-cols-3" : "grid gap-4 sm:grid-cols-2"}>
+      <div className={withPriority ? "grid gap-4 sm:grid-cols-2" : "grid gap-4 sm:grid-cols-2"}>
         <Input
           id={`${idPrefix}-nameBn`}
           label={t.admin.nameBn}
@@ -121,6 +128,17 @@ function ItemForm({
             hint={t.admin.priorityHint}
             error={errors.priority?.message}
             {...form.register("priority", { setValueAs: (v: string) => toEnglishDigits(v) })}
+          />
+        )}
+        {withPriority && (
+          <Select
+            id={`${idPrefix}-officeReportScope`}
+            label={t.admin.officeReportScope}
+            options={OFFICE_REPORT_SCOPES.map((s) => ({
+              value: s,
+              label: t.admin.officeReportScopes[s],
+            }))}
+            {...form.register("officeReportScope")}
           />
         )}
       </div>
@@ -186,7 +204,7 @@ export function CatalogAdmin({ kind }: { kind: Kind }) {
 
   const title = withPriority ? t.admin.designationsTitle : t.admin.wingsTitle;
   const newTitle = withPriority ? t.admin.newDesignation : t.admin.newWing;
-  const emptyValues: Values = { nameBn: "", nameEn: "", priority: "" };
+  const emptyValues: Values = { nameBn: "", nameEn: "", priority: "", officeReportScope: "NONE" };
 
   return (
     <div className="space-y-6">
@@ -229,6 +247,7 @@ export function CatalogAdmin({ kind }: { kind: Kind }) {
                 {withPriority && <Th className="w-28">{t.admin.priority}</Th>}
                 <Th>{t.admin.nameBn}</Th>
                 <Th>{t.admin.nameEn}</Th>
+                {withPriority && <Th>{t.admin.officeReportScopeColumn}</Th>}
                 <Th>{t.admin.userCount}</Th>
                 <Th>{t.admin.status}</Th>
                 <Th>{t.admin.actions}</Th>
@@ -247,6 +266,11 @@ export function CatalogAdmin({ kind }: { kind: Kind }) {
                     )}
                     <Td className="font-medium text-slate-900">{item.nameBn}</Td>
                     <Td>{item.nameEn}</Td>
+                    {withPriority && (
+                      <Td data-testid="office-report-scope">
+                        {t.admin.officeReportScopes[item.officeReportScope ?? "NONE"]}
+                      </Td>
+                    )}
                     <Td>{formatNumber(item.userCount)}</Td>
                     <Td>
                       <Badge tone={item.isActive ? "green" : "neutral"}>
@@ -336,6 +360,7 @@ export function CatalogAdmin({ kind }: { kind: Kind }) {
                 nameBn: editing.nameBn,
                 nameEn: editing.nameEn,
                 priority: String(editing.priority ?? ""),
+                officeReportScope: editing.officeReportScope ?? "NONE",
               }}
               submitLabel={t.common.save}
               busy={update.isPending}
@@ -345,7 +370,9 @@ export function CatalogAdmin({ kind }: { kind: Kind }) {
                   input: {
                     nameBn: v.nameBn.trim(),
                     nameEn: v.nameEn.trim(),
-                    ...(withPriority ? { priority: Number(v.priority) } : {}),
+                    ...(withPriority
+                      ? { priority: Number(v.priority), officeReportScope: v.officeReportScope }
+                      : {}),
                   },
                 })
               }

@@ -9,11 +9,13 @@ import { OFFICERS } from "./support/officers";
  * linking to the dashboard) and above the form on login / forgot-password / reset-password.
  * v1.10: the three-dot "More actions" button of meeting rows is the one allowed exception (its
  * "⋮" glyph only, aria-hidden, inside the labelled menu button).
+ * v1.15 (owner decision 2026-11-20): a small lock inside the locked wing select of the office
+ * report (WING viewers), aria-hidden.
  * Checks the layout, header, sidebar, dropdowns, drawer and every built page.
  */
 const ICON_SELECTOR = [
   // The two allowed header icons carry data-header-icon; where they sit is checked separately.
-  "svg:not([data-header-icon])",
+  "svg:not([data-header-icon]):not([data-lock-icon])",
   "i",
   "[class*='icon' i]",
   "[data-icon]",
@@ -65,6 +67,16 @@ async function expectNoIcons(page: Page, where: string) {
   expect(allowed.every((a) => a.kind === "bell" || a.kind === "profile")).toBe(true);
   // v1.10 (owner decision 2026-11-17): the three dots of the meeting row menu are the one
   // allowed symbol outside the header, only as the aria-hidden glyph inside its labelled button.
+  const locks = await page.locator("svg[data-lock-icon]").evaluateAll((elements) =>
+    elements.map((e) => ({
+      inPlace: !!e.closest("[data-locked-wing]")?.querySelector("select:disabled"),
+      hidden: e.getAttribute("aria-hidden") === "true",
+    })),
+  );
+  expect(
+    locks.filter((l) => !l.inPlace || !l.hidden),
+    `lock icon out of place on ${where}`,
+  ).toEqual([]);
   const glyphs = await page.locator("[data-row-menu-glyph]").evaluateAll((elements) =>
     elements.map((e) => ({
       inButton: !!e.closest("button[data-row-menu-button][aria-label][aria-haspopup='menu']"),
@@ -76,17 +88,15 @@ async function expectNoIcons(page: Page, where: string) {
     glyphs.filter((g) => !g.inButton || !g.hidden || g.text !== "\u22ee"),
     `row menu glyph out of place on ${where}`,
   ).toEqual([]);
-  const text = await page
-    .locator("body")
-    .evaluate((body) => {
-      // innerText without the allowed glyphs (they are the only "⋮" that may appear).
-      const glyphEls = Array.from(body.querySelectorAll<HTMLElement>("[data-row-menu-glyph]"));
-      const saved = glyphEls.map((g) => g.textContent);
-      glyphEls.forEach((g) => (g.textContent = ""));
-      const result = (body as HTMLElement).innerText;
-      glyphEls.forEach((g, i) => (g.textContent = saved[i]));
-      return result;
-    });
+  const text = await page.locator("body").evaluate((body) => {
+    // innerText without the allowed glyphs (they are the only "⋮" that may appear).
+    const glyphEls = Array.from(body.querySelectorAll<HTMLElement>("[data-row-menu-glyph]"));
+    const saved = glyphEls.map((g) => g.textContent);
+    glyphEls.forEach((g) => (g.textContent = ""));
+    const result = (body as HTMLElement).innerText;
+    glyphEls.forEach((g, i) => (g.textContent = saved[i]));
+    return result;
+  });
   expect(text, `icon character on ${where}`).not.toMatch(ICON_CHARACTERS);
 
   // The BBS logo: only in its two places.
@@ -199,14 +209,16 @@ test("no icons on any admin page", async ({ browser }) => {
     "/admin/change-requests",
     "/admin/meetings",
     "/admin/conflicts",
-    "/admin/reports",
+    "/office-report",
     "/admin/email-outbox",
     "/admin/audit-logs",
   ];
   try {
     for (const path of pages) {
       await page.goto(path);
-      await expect(page.getByRole("navigation", { name: "অ্যাডমিন মেনু" })).toBeVisible();
+      // v1.15: /office-report is one page for every viewer, outside the admin layout (no admin tabs).
+      const menu = path.startsWith("/admin") ? "অ্যাডমিন মেনু" : "প্রধান মেনু";
+      await expect(page.getByRole("navigation", { name: menu })).toBeVisible();
       await expect(page.getByText("লোড হচ্ছে…")).toHaveCount(0);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expectNoIcons(page, path);
@@ -231,6 +243,23 @@ test("no icons on any admin page", async ({ browser }) => {
     await expectNoIcons(page, "confirmation dialog");
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toBeHidden();
+  } finally {
+    await page.context().close();
+  }
+});
+
+test("v1.15: the office report has only the lock inside the locked wing select (WING viewer)", async ({
+  browser,
+}) => {
+  const page = await pageAs(browser, "director");
+  try {
+    await page.goto("/office-report");
+    await expect(page.getByRole("heading", { name: "অফিস রিপোর্ট", level: 1 })).toBeVisible();
+    await expect(
+      page.getByTestId("office-meetings").or(page.getByText("এই সময়ে কোনো সভা নেই।").first()),
+    ).toBeVisible();
+    await expectNoIcons(page, "/office-report (WING)");
+    await expect(page.locator("[data-locked-wing] svg[data-lock-icon]")).toHaveCount(1);
   } finally {
     await page.context().close();
   }

@@ -2,8 +2,6 @@ import { MeetingStatus } from '../meetings/enums/meeting-status.enum';
 import { ParticipantRole } from '../meetings/enums/participant-role.enum';
 import {
   byDay,
-  NO_WING_BN,
-  officeBreakdown,
   personalSummary,
   statusCounts,
   totalHours,
@@ -103,7 +101,6 @@ describe('report math', () => {
     expect(personalSummary(withGuests, 'me', conflicts)).toEqual(
       personalSummary(plain, 'me', conflicts),
     );
-    expect(officeBreakdown(withGuests)).toEqual(officeBreakdown(plain));
   });
 
   it('empty period gives zeros, not errors', () => {
@@ -119,62 +116,5 @@ describe('report math', () => {
       conflictsIRaised: 0,
       byDay: [],
     });
-  });
-
-  it('office breakdown: by wing (incl. no wing), by designation in priority order, top organizers, busiest days', () => {
-    const list = [
-      meeting({ organizerId: 'a', organizerNameBn: 'ক' }),
-      meeting({ organizerId: 'a', organizerNameBn: 'ক' }),
-      meeting({
-        organizerId: 'b',
-        organizerNameBn: 'খ',
-        organizerWingId: null,
-        organizerWingBn: null,
-        organizerDesignationId: 'sec',
-        organizerDesignationBn: 'সচিব',
-        organizerDesignationPriority: 1,
-      }),
-      meeting({
-        organizerId: 'b',
-        organizerNameBn: 'খ',
-        organizerWingId: null,
-        organizerWingBn: null,
-        organizerDesignationId: 'sec',
-        organizerDesignationBn: 'সচিব',
-        organizerDesignationPriority: 1,
-        startAt: new Date('2026-12-05T04:00:00Z'),
-        endAt: new Date('2026-12-05T05:00:00Z'),
-      }),
-      meeting({ organizerId: 'c', organizerNameBn: 'গ' }),
-    ];
-    const office = officeBreakdown(list);
-    expect(office.totalMeetings).toBe(5);
-    expect(office.byWing.map((w) => [w.nameBn, w.meetings])).toEqual([
-      ['কম্পিউটার উইং', 3],
-      [NO_WING_BN, 2],
-    ]);
-    expect(
-      office.byDesignation.map((d) => [d.nameBn, d.priority, d.meetings]),
-    ).toEqual([
-      ['সচিব', 1, 2],
-      ['উপপরিচালক', 6, 3],
-    ]);
-    expect(office.topOrganizers.map((o) => [o.userId, o.meetings])).toEqual([
-      ['a', 2],
-      ['b', 2],
-      ['c', 1],
-    ]);
-    expect(office.busiestDays[0]).toEqual({
-      date: '2026-12-01',
-      meetings: 4,
-      hours: 6,
-    });
-  });
-
-  it('top organizers are capped at 10', () => {
-    const list = Array.from({ length: 15 }, (_, i) =>
-      meeting({ organizerId: `o${i}`, organizerNameBn: `নাম ${i}` }),
-    );
-    expect(officeBreakdown(list).topOrganizers).toHaveLength(10);
   });
 });

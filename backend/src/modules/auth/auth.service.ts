@@ -2,8 +2,12 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
+import { OfficeReportScope } from '../designations/enums/office-report-scope.enum';
+import { OfficeScopeService } from '../office-scope/office-scope.service';
+import { isAdminRole } from '../office-scope/office-scope.rules';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, IsNull, Repository } from 'typeorm';
@@ -52,6 +56,8 @@ export class AuthService {
     private readonly notifications: NotificationsService,
     private readonly dataSource: DataSource,
     config: ConfigService<EnvVars, true>,
+    /** v1.15: the office report scope shown in /auth/me (menu item "অফিস রিপোর্ট"). */
+    @Optional() private readonly officeScope?: OfficeScopeService,
   ) {
     this.frontendUrl = config
       .get('FRONTEND_URL', { infer: true })
@@ -145,6 +151,11 @@ export class AuthService {
       relations: { designation: true, wing: true },
     });
     if (!user) throw new UnauthorizedException(AUTH_MESSAGES.sessionExpired);
+    const officeReportScope = this.officeScope
+      ? (await this.officeScope.access(user)).scope
+      : isAdminRole(user.role)
+        ? OfficeReportScope.OFFICE
+        : OfficeReportScope.NONE;
 
     // Explicit mapping: only these fields ever leave the API (never passwordHash / token hashes).
     return {
@@ -172,6 +183,7 @@ export class AuthService {
           }
         : null,
       priority: user.designation?.priority ?? null,
+      officeReportScope,
       lastLoginAt: user.lastLoginAt,
     };
   }

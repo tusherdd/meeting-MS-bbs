@@ -1,3 +1,4 @@
+import { OfficeReportScope } from '../../designations/enums/office-report-scope.enum';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '../../users/enums/user-role.enum';
 
@@ -102,6 +103,15 @@ export class MeResponseDto {
       'Meeting priority from the designation (null for the super admin)',
   })
   priority!: number | null;
+
+  @ApiProperty({
+    enum: OfficeReportScope,
+    enumName: 'OfficeReportScope',
+    example: OfficeReportScope.NONE,
+    description:
+      'v1.15: office report access — NONE (no menu item, 403), WING (own wing), OFFICE (whole office; always for admins)',
+  })
+  officeReportScope!: OfficeReportScope;
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   lastLoginAt!: Date | null;

@@ -1,5 +1,6 @@
 import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
+import { OfficeReportScope } from '../enums/office-report-scope.enum';
 
 /**
  * Official post of an officer. `priority` decides meeting priority (lower number = higher);
@@ -21,4 +22,13 @@ export class Designation extends BaseEntity {
 
   @Column({ type: 'boolean', default: true })
   isActive!: boolean;
+
+  /** v1.15: office report access of officers with this designation (SPEC.md §6.10). */
+  @Column({
+    type: 'enum',
+    enum: OfficeReportScope,
+    enumName: 'office_report_scope_enum',
+    default: OfficeReportScope.NONE,
+  })
+  officeReportScope!: OfficeReportScope;
 }

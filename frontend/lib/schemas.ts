@@ -220,6 +220,8 @@ export function createSchemas(t: Messages) {
       .trim()
       .regex(/^\d+$/, t.validation.priorityInvalid)
       .refine((v) => Number(v) >= 1 && Number(v) <= 999, t.validation.priorityInvalid),
+    /** v1.15: "অফিস রিপোর্ট: নেই / নিজ উইং / পুরো অফিস" (SPEC.md §6.10). */
+    officeReportScope: z.enum(["NONE", "WING", "OFFICE"]),
   });
 
   /** Wings have no priority: same form shape, the (hidden) priority field is not checked. */

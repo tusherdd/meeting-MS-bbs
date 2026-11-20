@@ -6,7 +6,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Modal } from "@/components/ui/modal";
 import { openMeetingNotice } from "@/lib/notice-file";
-import { rowActions, type RowMeeting } from "@/lib/row-actions";
+import { rowActions, type RowMeeting, type RowMenuMode } from "@/lib/row-actions";
 import { useT } from "@/providers/locale-provider";
 import { CancelMeetingModal } from "./cancel-meeting-modal";
 
@@ -28,12 +28,15 @@ export function MeetingRowMenu({
   meeting,
   mine,
   participant = mine,
+  mode = "default",
 }: {
   meeting: RowMeeting & { id: string; title: string };
   /** The viewer organizes the meeting or is its internal chair. */
   mine: boolean;
   /** v1.11: the viewer is one of the meeting's people (may upload a decision). */
   participant?: boolean;
+  /** v1.15: the office report menu (view minutes instead of upload). */
+  mode?: RowMenuMode;
 }) {
   const t = useT();
   const menuId = useId();
@@ -45,7 +48,7 @@ export function MeetingRowMenu({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [opening, setOpening] = useState(false);
   const [noticeError, setNoticeError] = useState<unknown>(null);
-  const can = rowActions(meeting, mine, new Date(), participant);
+  const can = rowActions(meeting, mine, new Date(), participant, mode);
 
   const close = useCallback((returnFocus: boolean) => {
     setOpen(false);
@@ -122,8 +125,7 @@ export function MeetingRowMenu({
   function onMenuKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
     const list = items();
     const index = list.indexOf(document.activeElement as HTMLElement);
-    const go = (i: number) =>
-      list[(i + list.length) % list.length]?.focus({ preventScroll: true });
+    const go = (i: number) => list[(i + list.length) % list.length]?.focus({ preventScroll: true });
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
@@ -218,9 +220,26 @@ export function MeetingRowMenu({
             </Link>
           )}
           {can.notice && (
-            <button role="menuitem" tabIndex={-1} type="button" className={itemClass} onClick={onNotice}>
+            <button
+              role="menuitem"
+              tabIndex={-1}
+              type="button"
+              className={itemClass}
+              onClick={onNotice}
+            >
               {t.rowMenu.notice}
             </button>
+          )}
+          {can.viewDecision && (
+            <Link
+              role="menuitem"
+              tabIndex={-1}
+              href={`/meetings/${meeting.id}/decision`}
+              className={itemClass}
+              onClick={() => close(false)}
+            >
+              {t.rowMenu.viewMinutes}
+            </Link>
           )}
           {can.uploadDecision && (
             <Link

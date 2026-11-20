@@ -69,8 +69,8 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | Method | Path | Access | Purpose | Main request fields | Responses |
 |---|---|---|---|---|---|
 | GET | `/designations` | 👤 | List designations ordered by priority (any logged-in user) | `activeOnly` (query) | 200 |
-| POST | `/designations` | 🛡 | Create a designation (ADMIN) | `nameBn`*, `nameEn`*, `priority`*, `isActive` | 201, 400, 403, 409 |
-| PATCH | `/designations/:id` | 🛡 | Rename / change priority / (de)activate (ADMIN) | `nameBn`, `nameEn`, `priority`, `isActive` | 200, 403, 404, 409 |
+| POST | `/designations` | 🛡 | Create a designation (ADMIN) | `nameBn`*, `nameEn`*, `priority`*, `isActive`, `officeReportScope` | 201, 400, 403, 409 |
+| PATCH | `/designations/:id` | 🛡 | Rename / change priority / (de)activate (ADMIN) | `nameBn`, `nameEn`, `priority`, `isActive`, `officeReportScope` | 200, 403, 404, 409 |
 | DELETE | `/designations/:id` | 🛡 | Delete a designation that no user has (ADMIN) | — | 204, 403, 404, 409 |
 
 ## Wings
@@ -126,8 +126,8 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 |---|---|---|---|---|---|
 | GET | `/reports/me` | 👤 | My report: summary + meeting list for a period | `page` (query), `limit` (query), `period` (query), `date` (query), `from` (query), `to` (query) | 200 |
 | GET | `/reports/me/pdf` | 👤 | My report as PDF ("কর্মসূচি", A4 landscape, Bangla) | `period` (query), `date` (query), `from` (query), `to` (query) | 200, 503 |
-| GET | `/reports/office` | 🛡 | Office-wide report (ADMIN), filterable by the organizer’s wing and designation | `page` (query), `limit` (query), `period` (query), `date` (query), `from` (query), `to` (query), `wingId` (query), `designationId` (query) | 200, 403 |
-| GET | `/reports/office/pdf` | 🛡 | Office report as PDF ("কর্মসূচি", ADMIN) | `period` (query), `date` (query), `from` (query), `to` (query), `wingId` (query), `designationId` (query) | 200, 403, 503 |
+| GET | `/reports/office` | 👤 | Office report "অফিস রিপোর্ট" (v1.15): admins, OFFICE and WING viewers | `page` (query), `limit` (query), `period` (query), `date` (query), `from` (query), `to` (query), `wingId` (query), `officerId` (query), `status` (query), `organizerWingId` (query), `chair` (query), `role` (query) | 200, 403 |
+| GET | `/reports/office/pdf` | 👤 | Office report as PDF (v1.15, always Bangla, A4 landscape) | `page` (query), `limit` (query), `period` (query), `date` (query), `from` (query), `to` (query), `wingId` (query), `officerId` (query), `status` (query), `organizerWingId` (query), `chair` (query), `role` (query) | 200, 403, 503 |
 
 ## Admin
 
@@ -169,7 +169,7 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 
 ## Message codes
 
-217 codes from `backend/src/common/i18n/message-catalog.ts`. `{name}` = a value filled in at run time.
+225 codes from `backend/src/common/i18n/message-catalog.ts`. `{name}` = a value filled in at run time.
 
 | Code | English | Bangla |
 |---|---|---|
@@ -386,6 +386,14 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | `DATE_FORMAT_EXAMPLE` | Enter the date as YYYY-MM-DD (e.g. 2026-12-01). | তারিখ YYYY-MM-DD আকারে দিন (যেমন 2026-12-01)। |
 | `PDF_TIMEOUT` | Creating the PDF is taking too long. Please try again after a while. | পিডিএফ তৈরি করতে বেশি সময় লাগছে। কিছুক্ষণ পর আবার চেষ্টা করুন। |
 | `DATE_INVALID` | Enter a valid date (YYYY-MM-DD). | সঠিক তারিখ দিন (YYYY-MM-DD)। |
+| `OFFICE_REPORT_FORBIDDEN` | You do not have access to the office report. | অফিস রিপোর্ট দেখার অনুমতি আপনার নেই। |
+| `OFFICE_REPORT_NO_WING` | Your profile has no wing, so the office report cannot be shown. | আপনার প্রোফাইলে কোনো উইং নেই, তাই অফিস রিপোর্ট দেখানো যাবে না। |
+| `OFFICE_REPORT_OUT_OF_SCOPE` | This is outside your office report scope. | এই তথ্য আপনার অফিস রিপোর্টের আওতার বাইরে। |
+| `OFFICE_REPORT_OFFICER_ID_INVALID` | Invalid officer id. | অবৈধ কর্মকর্তা আইডি। |
+| `OFFICE_REPORT_STATUS_INVALID` | status must be SCHEDULED, COMPLETED or CANCELLED. | status SCHEDULED, COMPLETED অথবা CANCELLED হতে হবে। |
+| `OFFICE_REPORT_CHAIR_INVALID` | The president filter is not valid. | সভাপতি ফিল্টার সঠিক নয়। |
+| `OFFICE_REPORT_ROLE_INVALID` | role must be ORGANIZER, CHAIR or MEMBER. | role ORGANIZER, CHAIR অথবা MEMBER হতে হবে। |
+| `OFFICE_REPORT_SCOPE_INVALID` | Office report access must be NONE, WING or OFFICE. | অফিস রিপোর্টের অনুমতি NONE, WING অথবা OFFICE হতে হবে। |
 | `RANGE_INCOMPLETE` | Enter both the start date and the end date. | শুরুর তারিখ ও শেষ তারিখ দুটোই দিন। |
 | `RANGE_END_BEFORE_START` | End date cannot be before start date. | শেষ তারিখ শুরুর তারিখের আগে হতে পারে না। |
 | `RANGE_TOO_LONG` | The range can be at most 2 years. | সময়কাল সর্বোচ্চ ২ বছর হতে পারে। |

@@ -279,7 +279,7 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
       expect(pdf.includes('NotoSansBengali')).toBe(false);
     }, 60_000);
 
-    it('office reports are ADMIN only (403 for an officer, JSON and PDF)', async () => {
+    it('office report: an officer whose designation has no office report access gets 403 (JSON and PDF)', async () => {
       await http().get(`${API}/reports/office`).set(as('officer')).expect(403);
       await http()
         .get(`${API}/reports/office/pdf`)
@@ -287,29 +287,38 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
         .expect(403);
     });
 
-    it('GET /reports/office: totals, groups, top organizers; PDF works', async () => {
+    it('GET /reports/office (v1.15): cards, wing list, top participants; PDF works and is audited', async () => {
       const res = await http()
         .get(`${API}/reports/office`)
         .query({ period: 'day', date: dateParam })
         .set(as('admin'))
         .expect(200);
       expect(res.body).toMatchObject({
-        summary: {
-          totalMeetings: 3,
-          totalHours: 2.5,
-          conflicts: { pending: 0, resolved: 0 },
-          byWing: [{ nameBn: 'রিপোর্ট উইং', meetings: 3 }],
-          byDesignation: [{ nameBn: 'রিপোর্ট পদবি', priority: 5, meetings: 3 }],
+        scope: 'OFFICE',
+        wing: null,
+        officer: null,
+        cards: {
+          total: 3,
+          scheduled: 2,
+          completed: 0,
+          cancelled: 1,
+          hours: 2.5,
         },
+        wings: [
+          { nameBn: 'রিপোর্ট উইং', meetings: 3, cancelled: 1, hours: 2.5 },
+        ],
+        meetings: { total: 3 },
       });
       const top = (
         res.body as {
-          summary: {
-            topOrganizers: Array<{ userId: string; meetings: number }>;
-          };
+          topParticipants: Array<{ userId: string; meetings: number }>;
         }
-      ).summary.topOrganizers;
+      ).topParticipants;
+      // Every role counts, cancelled meetings do not: officer organizes 1 + attends 1.
       expect(top[0]).toMatchObject({ userId: ids.officer, meetings: 2 });
+      expect(top.find((t) => t.userId === ids.colleague)).toMatchObject({
+        meetings: 1,
+      });
 
       const spy = jest.spyOn(app.get(PdfService), 'render');
       const pdf = await http()
@@ -321,16 +330,22 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
         .expect(200);
       expect(pdf.headers['content-type']).toBe('application/pdf');
       expect((pdf.body as Buffer).subarray(0, 5).toString()).toBe('%PDF-');
-      // v1.14: the header names the downloading admin, not the office filters.
       const html = spy.mock.calls[0][0];
       spy.mockRestore();
-      expect(html).toContain('বাংলাদেশ পরিসংখ্যান ব্যুরো — মাসিক কর্মসূচি');
+      expect(html).toContain('বাংলাদেশ পরিসংখ্যান ব্যুরো — অফিস রিপোর্ট');
       expect(html).toContain('<td>জনাব রিপোর্ট admin</td>');
       expect(html).toContain('সহকর্মীর সভা');
-      expect(html).not.toContain('বাতিল হবে');
       expect(pdf.headers['content-disposition']).toMatch(
-        /^attachment; filename="office-meeting-report-\d{4}-\d{2}\.pdf"$/,
+        /^attachment; filename="office-report-\d{4}-\d{2}\.pdf"$/,
       );
+      const audit = await ds.getRepository(AuditLog).findOne({
+        where: {
+          actorId: ids.admin,
+          action: AuditAction.OFFICE_REPORT_EXPORTED,
+        },
+        order: { createdAt: 'DESC' },
+      });
+      expect(audit?.after).toMatchObject({ period: 'month', page: 1 });
     }, 60_000);
   });
 

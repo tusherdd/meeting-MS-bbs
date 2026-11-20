@@ -110,6 +110,7 @@ async function ensureOfficer(key: OfficerKey) {
       await call(`/users/${existing.id}/reset-password`, { method: "POST", token });
     }
     await ensureRole(existing.id, existing.role, o, token);
+    await ensureWing(existing.id, existing.wing?.nameEn ?? null, o, token);
     return;
   }
   const designations = await call<S["DesignationResponseDto"][]>("/designations?activeOnly=true", {
@@ -125,9 +126,35 @@ async function ensureOfficer(key: OfficerKey) {
       nameBn: o.nameBn,
       nameEn: o.nameEn,
       designationId: designation.id,
+      ...("wingEn" in o ? { wingId: await wingIdOf(o.wingEn, token) } : {}),
     }),
   });
   await ensureRole(created.id, created.role, o, token);
+}
+
+/** v1.15: id of an active wing by its English name. */
+async function wingIdOf(nameEn: string, token: string): Promise<string> {
+  const wings = await call<Array<{ id: string; nameEn: string }>>("/wings?activeOnly=true", {
+    token,
+  });
+  const wing = wings.find((w) => w.nameEn === nameEn);
+  if (!wing) throw new Error(`Wing "${nameEn}" not found.`);
+  return wing.id;
+}
+
+/** v1.15: a test officer with `wingEn` keeps that wing (only changed when it differs). */
+async function ensureWing(
+  userId: string,
+  currentWingEn: string | null,
+  o: (typeof OFFICERS)[OfficerKey],
+  token: string,
+) {
+  if (!("wingEn" in o) || currentWingEn === o.wingEn) return;
+  await call(`/users/${userId}`, {
+    method: "PATCH",
+    token,
+    body: JSON.stringify({ wingId: await wingIdOf(o.wingEn, token) }),
+  });
 }
 
 /** The test admin must be ADMIN; every other test officer stays OFFICER. */

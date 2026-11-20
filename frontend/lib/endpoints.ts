@@ -269,9 +269,14 @@ export const decisionsApi = {
 };
 
 // Reports ----------------------------------------------------------------------------------------
+/** v1.15 office report filters (SPEC.md §6.10); the PDF gets the same ones and the page. */
 export interface OfficeFilter {
   wingId?: string;
-  designationId?: string;
+  officerId?: string;
+  status?: "SCHEDULED" | "COMPLETED" | "CANCELLED";
+  organizerWingId?: string;
+  chair?: string;
+  role?: "ORGANIZER" | "CHAIR" | "MEMBER";
 }
 
 export const REPORT_PAGE_SIZE = 20;
@@ -293,10 +298,11 @@ export const reportsApi = {
     api<OfficeReport>("/reports/office", {
       query: { ...whenQuery(when), ...filter, page, limit: REPORT_PAGE_SIZE },
     }),
-  officePdf: (when: ReportWhen, filter: OfficeFilter) =>
+  /** v1.15: the PDF holds exactly the rows on screen: same filters AND the same page. */
+  officePdf: (when: ReportWhen, filter: OfficeFilter, page: number) =>
     apiDownload("/reports/office/pdf", {
-      query: { ...whenQuery(when), ...filter },
-      fallbackName: `office-meeting-report-${whenFileKey(when)}.pdf`,
+      query: { ...whenQuery(when), ...filter, page, limit: REPORT_PAGE_SIZE },
+      fallbackName: `office-report-${whenFileKey(when)}.pdf`,
     }),
 };
 

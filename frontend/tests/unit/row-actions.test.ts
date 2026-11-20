@@ -21,6 +21,7 @@ describe("row menu items (v1.10, v1.13)", () => {
       edit: true,
       cancel: true,
       uploadDecision: false,
+      viewDecision: false,
     });
   });
 
@@ -31,6 +32,7 @@ describe("row menu items (v1.10, v1.13)", () => {
       edit: false,
       cancel: false,
       uploadDecision: false,
+      viewDecision: false,
     });
   });
 
@@ -41,6 +43,7 @@ describe("row menu items (v1.10, v1.13)", () => {
       edit: false,
       cancel: false,
       uploadDecision: false,
+      viewDecision: false,
     });
   });
 
@@ -91,5 +94,26 @@ describe("Upload decision (v1.11)", () => {
     expect(rowActions({ ...started, decisionFileCount: 9 }, true, now, true).uploadDecision).toBe(
       true,
     );
+  });
+
+  it("v1.15 office report: View minutes only when minutes exist, never Upload; Edit / Cancel only for organizer or chair", () => {
+    const done = { ...future, status: "COMPLETED" as const, decisionFileCount: 2, hasNotice: true };
+    // A report viewer who is not one of its people.
+    expect(rowActions(done, false, now, false, "officeReport")).toEqual({
+      view: true,
+      notice: true,
+      edit: false,
+      cancel: false,
+      uploadDecision: false,
+      viewDecision: true,
+    });
+    // Even the organizer gets no Upload item here.
+    expect(rowActions(done, true, now, true, "officeReport").uploadDecision).toBe(false);
+    expect(rowActions({ ...done, decisionFileCount: 0 }, false, now, false, "officeReport").viewDecision).toBe(false);
+    // Edit and Cancel stay with the organizer or the chair.
+    const mine = rowActions(future, true, now, true, "officeReport");
+    expect([mine.edit, mine.cancel]).toEqual([true, true]);
+    // The default menu never shows View minutes.
+    expect(rowActions(done, true, now).viewDecision).toBe(false);
   });
 });

@@ -12,8 +12,8 @@ describe("report periods (v1.15: fiscal year removed)", () => {
   it("offers day, week, month and year only", () => {
     expect(REPORT_PERIODS).toEqual(["day", "week", "month", "year"]);
     expect(isReportPeriod("fiscal-year")).toBe(false);
-    expect(Object.keys(bn.reports.periods)).toEqual([...REPORT_PERIODS]);
-    expect(Object.keys(en.reports.periods)).toEqual([...REPORT_PERIODS]);
+    expect(Object.keys(bn.reports.quickPeriods)).toEqual([...REPORT_PERIODS]);
+    expect(Object.keys(en.reports.quickPeriods)).toEqual([...REPORT_PERIODS]);
   });
 
   it("year = January to December; one bar per month", () => {

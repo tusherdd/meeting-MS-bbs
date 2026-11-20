@@ -14,6 +14,8 @@ export interface TestOfficer {
   designationEn: string;
   /** ADMIN test account (promoted by global-setup). Default: OFFICER. */
   role?: "ADMIN";
+  /** v1.15: English wing name in the database (the office report's WING scope needs a wing). */
+  wingEn?: string;
 }
 
 export const OFFICERS = {
@@ -43,6 +45,14 @@ export const OFFICERS = {
     nameBn: "ই২ই মহাপরিচালক",
     nameEn: "E2E Director General",
     designationEn: "Director General",
+  },
+  /** v1.15 office report: Director → scope WING ("নিজ উইং"), with a wing. */
+  director: {
+    loginEmail: "e2e-director@example.com",
+    nameBn: "ই২ই পরিচালক",
+    nameEn: "E2E Director",
+    designationEn: "Director",
+    wingEn: "Computer Wing",
   },
   /** Statistical Officer (priority 7): the outsider. */
   so: {

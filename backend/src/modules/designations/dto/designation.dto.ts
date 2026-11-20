@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -12,6 +13,7 @@ import {
 } from 'class-validator';
 import { toBoolean, trimText } from '../../../common/dto/transforms';
 import { IsEnglishName } from '../../../common/validators/english-name';
+import { OfficeReportScope } from '../enums/office-report-scope.enum';
 
 export class CreateDesignationDto {
   @ApiProperty({ example: 'উপপরিচালক' })
@@ -47,6 +49,19 @@ export class CreateDesignationDto {
   @IsOptional()
   @IsBoolean({ message: 'isActive true অথবা false হতে হবে।' })
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    enum: OfficeReportScope,
+    enumName: 'OfficeReportScope',
+    default: OfficeReportScope.NONE,
+    description:
+      'v1.15 office report access: NONE = নেই, WING = নিজ উইং, OFFICE = পুরো অফিস',
+  })
+  @IsOptional()
+  @IsEnum(OfficeReportScope, {
+    message: 'অফিস রিপোর্টের অনুমতি NONE, WING অথবা OFFICE হতে হবে।',
+  })
+  officeReportScope?: OfficeReportScope;
 }
 
 /**
@@ -81,6 +96,13 @@ export class DesignationResponseDto {
 
   @ApiProperty({ example: true })
   isActive!: boolean;
+
+  @ApiProperty({
+    enum: OfficeReportScope,
+    enumName: 'OfficeReportScope',
+    example: OfficeReportScope.NONE,
+  })
+  officeReportScope!: OfficeReportScope;
 
   @ApiProperty({
     example: 41,

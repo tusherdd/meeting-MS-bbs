@@ -869,6 +869,38 @@ export const MESSAGE_CATALOG = {
     bn: 'সঠিক তারিখ দিন (YYYY-MM-DD)।',
     en: 'Enter a valid date (YYYY-MM-DD).',
   },
+  OFFICE_REPORT_FORBIDDEN: {
+    bn: 'অফিস রিপোর্ট দেখার অনুমতি আপনার নেই।',
+    en: 'You do not have access to the office report.',
+  },
+  OFFICE_REPORT_NO_WING: {
+    bn: 'আপনার প্রোফাইলে কোনো উইং নেই, তাই অফিস রিপোর্ট দেখানো যাবে না।',
+    en: 'Your profile has no wing, so the office report cannot be shown.',
+  },
+  OFFICE_REPORT_OUT_OF_SCOPE: {
+    bn: 'এই তথ্য আপনার অফিস রিপোর্টের আওতার বাইরে।',
+    en: 'This is outside your office report scope.',
+  },
+  OFFICE_REPORT_OFFICER_ID_INVALID: {
+    bn: 'অবৈধ কর্মকর্তা আইডি।',
+    en: 'Invalid officer id.',
+  },
+  OFFICE_REPORT_STATUS_INVALID: {
+    bn: 'status SCHEDULED, COMPLETED অথবা CANCELLED হতে হবে।',
+    en: 'status must be SCHEDULED, COMPLETED or CANCELLED.',
+  },
+  OFFICE_REPORT_CHAIR_INVALID: {
+    bn: 'সভাপতি ফিল্টার সঠিক নয়।',
+    en: 'The president filter is not valid.',
+  },
+  OFFICE_REPORT_ROLE_INVALID: {
+    bn: 'role ORGANIZER, CHAIR অথবা MEMBER হতে হবে।',
+    en: 'role must be ORGANIZER, CHAIR or MEMBER.',
+  },
+  OFFICE_REPORT_SCOPE_INVALID: {
+    bn: 'অফিস রিপোর্টের অনুমতি NONE, WING অথবা OFFICE হতে হবে।',
+    en: 'Office report access must be NONE, WING or OFFICE.',
+  },
   RANGE_INCOMPLETE: {
     bn: 'শুরুর তারিখ ও শেষ তারিখ দুটোই দিন।',
     en: 'Enter both the start date and the end date.',

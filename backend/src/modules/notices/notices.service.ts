@@ -1,9 +1,11 @@
+import { OfficeScopeService } from '../office-scope/office-scope.service';
 import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
   PayloadTooLargeException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -59,16 +61,25 @@ export class NoticesService {
     private readonly storage: DecisionStorageService,
     private readonly audit: AuditService,
     private readonly dataSource: DataSource,
+    /** v1.15: office report viewers may download notices of meetings in their scope. */
+    @Optional() private readonly officeScope?: OfficeScopeService,
   ) {}
 
-  /** The meeting, if the actor may view it (its people and admins; others 403, unknown 404). */
+  /**
+   * The meeting, if the actor may view it (its people, admins and — v1.15 — office report
+   * viewers whose scope covers it; others 403, unknown 404).
+   */
   private async loadVisible(actor: AuthUser, id: string): Promise<Meeting> {
     const meeting = await this.meetings.findOneBy({ id });
     if (!meeting) throw new NotFoundException(MEETING_MESSAGES.notFound);
     const isPerson = await this.dataSource
       .getRepository(MeetingParticipant)
       .existsBy({ meetingId: id, userId: actor.id });
-    if (!canViewNotice({ id: actor.id, isAdmin: isAdmin(actor), isPerson }))
+    const viewer = { id: actor.id, isAdmin: isAdmin(actor), isPerson };
+    if (
+      !canViewNotice(viewer) &&
+      !(await this.officeScope?.canViewMeeting(actor, id))
+    )
       throw new ForbiddenException(MSG.forbidden);
     return meeting;
   }

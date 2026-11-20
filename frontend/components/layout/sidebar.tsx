@@ -38,12 +38,12 @@ function DecisionCount() {
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const t = useT();
   const pathname = usePathname();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
 
   return (
     <nav aria-label={t.nav.mainMenu}>
       <ul className="space-y-1">
-        {navFor(isAdmin, t).map((item) => {
+        {navFor(isAdmin, t, user?.officeReportScope).map((item) => {
           const active = isActivePath(pathname, item.href);
           return (
             <li key={item.href}>

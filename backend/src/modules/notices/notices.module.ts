@@ -1,3 +1,4 @@
+import { OfficeScopeModule } from '../office-scope/office-scope.module';
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -15,6 +16,7 @@ import { NoticesService } from './notices.service';
   imports: [
     TypeOrmModule.forFeature([Meeting, MeetingNoticeFile]),
     DecisionStorageModule,
+    OfficeScopeModule,
     // In memory first: nothing unchecked touches the disk (one file, max 10 MB).
     MulterModule.register({
       storage: memoryStorage(),

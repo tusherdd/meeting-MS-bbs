@@ -30,13 +30,23 @@ export interface RowActions {
   edit: boolean;
   cancel: boolean;
   uploadDecision: boolean;
+  /** v1.15 office report: "কার্যবিবরণী দেখুন" (view / download only) when minutes exist. */
+  viewDecision: boolean;
 }
+
+/**
+ * "default": the usual menu. "officeReport" (v1.15, SPEC.md §13.21): View details, Meeting notice,
+ * "View minutes" only when minutes exist (never "Upload minutes"), Edit / Cancel only for the
+ * organizer or the chair.
+ */
+export type RowMenuMode = "default" | "officeReport";
 
 export function rowActions(
   meeting: RowMeeting,
   mine: boolean,
   now = new Date(),
   participant = mine,
+  mode: RowMenuMode = "default",
 ): RowActions {
   const scheduled = meeting.status === "SCHEDULED";
   const started = meeting.status === "COMPLETED" || now >= new Date(meeting.startAt);
@@ -45,7 +55,9 @@ export function rowActions(
     notice: meeting.hasNotice === true,
     edit: mine && scheduled && now < new Date(meeting.endAt),
     cancel: mine && scheduled,
+    viewDecision: mode === "officeReport" && (meeting.decisionFileCount ?? 0) > 0,
     uploadDecision:
+      mode === "default" &&
       participant &&
       meeting.status !== "CANCELLED" &&
       started &&

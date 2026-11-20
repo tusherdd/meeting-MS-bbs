@@ -59,6 +59,8 @@ export enum AuditAction {
   /** v1.11: meeting decision files ("সভা কার্যবিবরণী"). */
   MEETING_DECISION_UPLOADED = 'MEETING_DECISION_UPLOADED',
   MEETING_DECISION_DELETED = 'MEETING_DECISION_DELETED',
+  /** v1.15: the office report "অফিস রিপোর্ট" downloaded as PDF (SPEC.md §6.10). */
+  OFFICE_REPORT_EXPORTED = 'OFFICE_REPORT_EXPORTED',
   CONFLICT_CREATED = 'CONFLICT_CREATED',
   CONFLICT_RESOLVED = 'CONFLICT_RESOLVED',
 }

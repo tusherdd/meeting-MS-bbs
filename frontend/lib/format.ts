@@ -107,6 +107,20 @@ export function createFormatter(locale: Locale) {
     return `${digits(hour12)}:${digits(p.minute)} ${suffix}`;
   }
 
+  /** v1.15 office report: "০৩/১১/২০২৬" / "03/11/2026" (dd/mm/yyyy, Dhaka date). */
+  function formatNumericDate(value: DateInput): string {
+    const p = parts(value);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return digits(`${pad(p.day)}/${pad(p.month)}/${p.year}`);
+  }
+
+  /** v1.15 office report: "১৪:৩০" / "14:30" (24-hour clock, Dhaka time). */
+  function formatClock(value: DateInput): string {
+    const p = parts(value);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return digits(`${pad(p.hour)}:${p.minute}`);
+  }
+
   /** "10:00 AM – 11:30 AM" */
   function formatTimeRange(start: DateInput, end: DateInput): string {
     return `${formatTime(start)} – ${formatTime(end)}`;
@@ -178,6 +192,8 @@ export function createFormatter(locale: Locale) {
     formatTime,
     formatTimeRange,
     formatDateTime,
+    formatNumericDate,
+    formatClock,
     formatHours,
     formatMonthYear,
     formatDayMonth,

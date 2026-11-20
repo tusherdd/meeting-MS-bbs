@@ -64,7 +64,11 @@ export function useReportParams() {
     [update],
   );
 
+  /** Any other filter in the address ("" when missing). */
+  const get = useCallback((key: string) => params.get(key) ?? "", [params]);
+
   return {
+    get,
     period,
     date,
     when,

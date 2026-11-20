@@ -1,3 +1,4 @@
+import { OfficeScopeModule } from '../office-scope/office-scope.module';
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -17,6 +18,7 @@ import { MeetingDecisionFile } from './entities/meeting-decision-file.entity';
     TypeOrmModule.forFeature([Meeting, MeetingDecisionFile]),
     MeetingsModule,
     DecisionStorageModule,
+    OfficeScopeModule,
     // In memory first: nothing unchecked touches the disk (max 10 files × 10 MB per request).
     MulterModule.register({
       storage: memoryStorage(),

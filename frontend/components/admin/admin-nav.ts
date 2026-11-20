@@ -10,7 +10,8 @@ export function adminLinks(t: Messages) {
     { href: "/admin/change-requests", label: t.admin.nav.changeRequests },
     { href: "/admin/meetings", label: t.admin.nav.meetings },
     { href: "/admin/conflicts", label: t.admin.nav.conflicts },
-    { href: "/admin/reports", label: t.admin.nav.reports },
+    // v1.15: the one office report page for every viewer; /admin/reports redirects there.
+    { href: "/office-report", label: t.admin.nav.reports },
     { href: "/admin/email-outbox", label: t.admin.nav.emailOutbox },
     { href: "/admin/audit-logs", label: t.admin.nav.auditLogs },
   ];

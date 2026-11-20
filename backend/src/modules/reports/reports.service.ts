@@ -5,17 +5,12 @@ import { DataSource, In, Repository } from 'typeorm';
 import { paginated } from '../../common/dto/paginated-response.dto';
 import type { AuthUser } from '../../common/types/auth-user';
 import { DHAKA_TZ, type DateRange } from '../../common/utils/time';
-import { Designation } from '../designations/entities/designation.entity';
 import { MeetingConflict } from '../meetings/entities/meeting-conflict.entity';
 import { MeetingParticipant } from '../meetings/entities/meeting-participant.entity';
 import { Meeting } from '../meetings/entities/meeting.entity';
-import { ConflictStatus } from '../meetings/enums/conflict-status.enum';
 import type { ParticipantRole } from '../meetings/enums/participant-role.enum';
 import { User } from '../users/entities/user.entity';
-import { Wing } from '../wings/entities/wing.entity';
 import type {
-  OfficeFiltersDto,
-  OfficeReportDto,
   PeriodDto,
   PersonalReportDto,
   ReportMeetingDto,
@@ -29,11 +24,7 @@ import {
   toScheduleRows,
   withJanab,
 } from './pdf/schedule-format';
-import {
-  officeBreakdown,
-  personalSummary,
-  type ReportMeeting,
-} from './report-math';
+import { personalSummary, type ReportMeeting } from './report-math';
 import {
   resolveReportQuery,
   type ReportRangeQuery,
@@ -99,49 +90,6 @@ export class ReportsService {
     const meetings = await this.load(p.range, { personId: actor.id });
     return {
       filename: `meeting-report-${p.fileKey}.pdf`,
-      content: await this.schedulePdf(actor, p, meetings),
-    };
-  }
-
-  // ---------------------------------------------------------------- office
-
-  async office(
-    actor: AuthUser,
-    when: ReportRangeQuery,
-    filter: OfficeFilter,
-    page: { page: number; limit: number; skip: number },
-  ): Promise<OfficeReportDto> {
-    const p = resolveReportQuery(when);
-    const [meetings, filters] = await Promise.all([
-      this.load(p.range, { office: filter }, actor.id),
-      this.filterNames(filter),
-    ]);
-    const conflicts = await this.officeConflicts(meetings.map((m) => m.id));
-    return {
-      period: this.periodDto(p),
-      filters,
-      summary: { ...officeBreakdown(meetings), conflicts },
-      meetings: paginated(
-        meetings.slice(page.skip, page.skip + page.limit).map(toItem),
-        meetings.length,
-        page,
-      ),
-    };
-  }
-
-  /**
-   * Office report as the PDF "কর্মসূচি" (v1.14): the office meetings of the period (same wing and
-   * designation filters), without cancelled ones; the header names the downloading admin.
-   */
-  async officePdf(
-    actor: AuthUser,
-    when: ReportRangeQuery,
-    filter: OfficeFilter,
-  ): Promise<PdfFile> {
-    const p = resolveReportQuery(when);
-    const meetings = await this.load(p.range, { office: filter });
-    return {
-      filename: `office-meeting-report-${p.fileKey}.pdf`,
       content: await this.schedulePdf(actor, p, meetings),
     };
   }
@@ -290,49 +238,11 @@ export class ReportsService {
     return { againstMine, raisedByMe };
   }
 
-  /** Conflicts of the report's meetings (by the lower meeting), split by status. */
-  private async officeConflicts(meetingIds: string[]) {
-    if (meetingIds.length === 0) return { pending: 0, resolved: 0 };
-    const rows = await this.dataSource
-      .getRepository(MeetingConflict)
-      .createQueryBuilder('c')
-      .select('c.status', 'status')
-      .addSelect('COUNT(*)::int', 'count')
-      .where('c.lowerMeetingId IN (:...ids)', { ids: meetingIds })
-      .groupBy('c.status')
-      .getRawMany<{ status: ConflictStatus; count: number }>();
-    const of = (s: ConflictStatus) =>
-      Number(rows.find((r) => r.status === s)?.count ?? 0);
-    return {
-      pending: of(ConflictStatus.PENDING),
-      resolved: of(ConflictStatus.RESOLVED),
-    };
-  }
-
   private async officer(id: string): Promise<User> {
     return this.dataSource.getRepository(User).findOneOrFail({
       where: { id },
       relations: { designation: true },
     });
-  }
-
-  private async filterNames(filter: OfficeFilter): Promise<OfficeFiltersDto> {
-    const [wing, designation] = await Promise.all([
-      filter.wingId
-        ? this.dataSource.getRepository(Wing).findOneBy({ id: filter.wingId })
-        : null,
-      filter.designationId
-        ? this.dataSource
-            .getRepository(Designation)
-            .findOneBy({ id: filter.designationId })
-        : null,
-    ]);
-    return {
-      wingBn: wing?.nameBn ?? null,
-      wingEn: wing?.nameEn ?? null,
-      designationBn: designation?.nameBn ?? null,
-      designationEn: designation?.nameEn ?? null,
-    };
   }
 
   private periodDto(p: ResolvedPeriod): PeriodDto {

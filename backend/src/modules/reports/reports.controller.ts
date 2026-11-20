@@ -1,4 +1,11 @@
-import { Controller, Get, Query, Res, StreamableFile } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Req,
+  Res,
+  StreamableFile,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -11,17 +18,14 @@ import {
 import { Throttle, minutes } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Roles } from '../../common/decorators/roles.decorator';
-import type { AuthUser } from '../../common/types/auth-user';
-import { UserRole } from '../users/enums/user-role.enum';
+import type { AppRequest, AuthUser } from '../../common/types/auth-user';
+import { OfficeReportDto, OfficeReportQueryDto } from './dto/office-report.dto';
 import {
-  OfficeFilterDto,
-  OfficeReportDto,
-  OfficeReportQueryDto,
   PersonalReportDto,
   ReportPeriodQueryDto,
   ReportQueryDto,
 } from './dto/report.dto';
+import { OfficeReportService } from './office-report.service';
 import { ReportsService, type PdfFile } from './reports.service';
 
 /** PDF rendering is expensive: a tighter per-IP limit. */
@@ -49,7 +53,10 @@ function sendPdf(res: Response, file: PdfFile): StreamableFile {
 @ApiBearerAuth()
 @Controller('reports')
 export class ReportsController {
-  constructor(private readonly reports: ReportsService) {}
+  constructor(
+    private readonly reports: ReportsService,
+    private readonly officeReport: OfficeReportService,
+  ) {}
 
   @Get('me')
   @ApiOperation({
@@ -87,51 +94,54 @@ export class ReportsController {
     return sendPdf(res, await this.reports.personalPdf(user, query));
   }
 
-  @Roles(UserRole.ADMIN)
   @Get('office')
   @ApiOperation({
     summary:
-      'Office-wide report (ADMIN), filterable by the organizer’s wing and designation',
+      'Office report "অফিস রিপোর্ট" (v1.15): admins, OFFICE and WING viewers',
+    description:
+      'Scope (SPEC.md §6.10): ADMIN / SUPER_ADMIN and OFFICE designations see the whole office; WING designations ' +
+      'only their own wing (another wingId, organizerWingId or an officer of another wing → 403); NONE → 403. ' +
+      'Cards, the wing list (by the organizer’s wing), top 5 participants (all roles), the busiest 5 days and the ' +
+      'filtered, paginated meeting list. Period: `period`/`date` or `from`/`to`.',
   })
   @ApiOkResponse({ type: OfficeReportDto })
-  @ApiForbiddenResponse({ description: 'Not an admin' })
+  @ApiForbiddenResponse({
+    description:
+      'No office report access, no wing (WING), or outside the scope',
+  })
   office(
     @CurrentUser() user: AuthUser,
     @Query() query: OfficeReportQueryDto,
   ): Promise<OfficeReportDto> {
-    return this.reports.office(
-      user,
-      query,
-      { wingId: query.wingId, designationId: query.designationId },
-      query,
-    );
+    return this.officeReport.report(user, query);
   }
 
-  @Roles(UserRole.ADMIN)
   @Throttle(PDF_THROTTLE)
   @Get('office/pdf')
   @ApiOperation({
-    summary: 'Office report as PDF ("কর্মসূচি", ADMIN)',
+    summary: 'Office report as PDF (v1.15, always Bangla, A4 landscape)',
     description:
-      'Schedule of the office meetings in the period (wing / designation filters) without cancelled ones; the header names the downloading admin.',
+      'The same query as GET /reports/office (filters AND page): the PDF holds exactly the meeting rows shown ' +
+      'on screen. Same scope rules; audited as OFFICE_REPORT_EXPORTED.',
   })
   @ApiProduces('application/pdf')
   @ApiOkResponse(PDF_RESPONSE)
-  @ApiForbiddenResponse({ description: 'Not an admin' })
+  @ApiForbiddenResponse({
+    description:
+      'No office report access, no wing (WING), or outside the scope',
+  })
   @ApiServiceUnavailableResponse({
     description: 'PDF rendering took longer than 30 s',
   })
   async officePdf(
     @CurrentUser() user: AuthUser,
-    @Query() query: OfficeFilterDto,
+    @Query() query: OfficeReportQueryDto,
+    @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     return sendPdf(
       res,
-      await this.reports.officePdf(user, query, {
-        wingId: query.wingId,
-        designationId: query.designationId,
-      }),
+      await this.officeReport.reportPdf(user, query, req.ip ?? null),
     );
   }
 }

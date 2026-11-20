@@ -1,3 +1,4 @@
+import { OfficeScopeModule } from '../office-scope/office-scope.module';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -15,6 +16,7 @@ import { TokenService } from './token.service';
     // Secrets are passed per call (access and refresh use different secrets).
     JwtModule.register({}),
     TypeOrmModule.forFeature([User, RefreshToken, PasswordResetToken]),
+    OfficeScopeModule,
   ],
   controllers: [AuthController],
   providers: [

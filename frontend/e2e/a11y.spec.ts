@@ -26,7 +26,7 @@ test("every form field has a label (officer and admin pages)", async ({ browser 
           "/admin/users",
           "/admin/users/new",
           "/admin/designations",
-          "/admin/reports",
+          "/office-report",
           "/admin/audit-logs",
           "/admin/email-outbox",
         ],

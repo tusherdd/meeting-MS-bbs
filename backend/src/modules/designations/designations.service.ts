@@ -1,3 +1,4 @@
+import { OfficeReportScope } from './enums/office-report-scope.enum';
 import {
   ConflictException,
   Injectable,
@@ -77,6 +78,7 @@ export class DesignationsService {
             nameEn: dto.nameEn,
             priority: dto.priority,
             isActive: dto.isActive ?? true,
+            officeReportScope: dto.officeReportScope ?? OfficeReportScope.NONE,
           }),
         );
         await this.audit.log(
@@ -214,6 +216,7 @@ export class DesignationsService {
       nameEn: d.nameEn,
       priority: d.priority,
       isActive: d.isActive,
+      officeReportScope: d.officeReportScope,
       userCount,
       createdAt: d.createdAt,
       updatedAt: d.updatedAt,

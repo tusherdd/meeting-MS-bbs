@@ -96,7 +96,7 @@ test("admin pages show no priority number, except পদবি ও অগ্র�
   for (const path of [
     "/admin/users/new",
     "/admin/change-requests",
-    "/admin/reports",
+    "/office-report",
     "/admin/conflicts",
   ]) {
     await expectNoPriorityNumber(admin, path);
