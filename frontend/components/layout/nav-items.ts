@@ -14,7 +14,6 @@ export function navFor(admin: boolean, t: Messages): NavItem[] {
   const officer: NavItem[] = [
     { href: "/dashboard", label: t.nav.dashboard },
     { href: "/meetings", label: t.nav.meetings },
-    { href: "/calendar", label: t.nav.calendar },
     { href: "/conflicts", label: t.nav.conflicts },
     { href: "/decisions", label: t.nav.decisions, badge: "decisions" },
     { href: "/reports", label: t.nav.reports },

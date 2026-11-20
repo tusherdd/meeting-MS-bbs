@@ -66,7 +66,7 @@ test.describe("Login and session", () => {
     );
     expect(me).toMatchObject({ passwordIsDefault: true, mustChangePassword: false });
 
-    for (const path of ["/dashboard", "/meetings", "/calendar"]) {
+    for (const path of ["/dashboard", "/meetings", "/conflicts"]) {
       await page.goto(path);
       await expect(page).toHaveURL(new RegExp(`${path}$`));
       await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();

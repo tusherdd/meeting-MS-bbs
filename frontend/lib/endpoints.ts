@@ -81,7 +81,6 @@ export const queryKeys = {
   meetingsRange: (from: string, to: string, status?: MeetingStatus) =>
     ["meetings", "range", from, to, status ?? "ALL"] as const,
   meetingsList: (query: MeetingListQuery) => ["meetings", "list", query] as const,
-  meetingsCalendar: (from: string, to: string) => ["meetings", "calendar", from, to] as const,
   meeting: (id: string) => ["meetings", "detail", id] as const,
   myConflicts: ["conflicts", "mine", "PENDING"] as const,
   myConflictsByStatus: (status: ConflictStatus) => ["conflicts", "mine", status] as const,
@@ -173,15 +172,6 @@ export const meetingsApi = {
   today: () => api<MeetingSummary[]>("/meetings/today"),
   list: (query: MeetingListQuery) =>
     api<Paginated<MeetingSummary>>("/meetings", { query: { ...query } }),
-  /** Every meeting in a range (all pages; used by the calendar). */
-  async listAll(from: string, to: string): Promise<MeetingSummary[]> {
-    const items: MeetingSummary[] = [];
-    for (let page = 1; ; page++) {
-      const res = await meetingsApi.list({ from, to, page, limit: MAX_PAGE_SIZE });
-      items.push(...res.items);
-      if (page >= res.totalPages) return items;
-    }
-  },
   get: (id: string) => api<MeetingDetail>(meetingPath(id)),
   create: (input: CreateMeetingInput) =>
     api<MeetingDetail>("/meetings", { method: "POST", body: input }),

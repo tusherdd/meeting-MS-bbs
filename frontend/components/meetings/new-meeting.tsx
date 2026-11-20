@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { defaultSlot, fromIso } from "@/lib/meeting-time";
 import { MeetingForm } from "./meeting-form";
 
-/** /meetings/new?start=<ISO>&end=<ISO> (from the calendar) or the next free half hour. */
+/** /meetings/new?start=<ISO>&end=<ISO> (prefilled times) or the next free half hour. */
 export function NewMeeting() {
   const params = useSearchParams();
   const start = params.get("start");

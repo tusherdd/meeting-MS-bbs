@@ -36,7 +36,7 @@ import { clashingOfficerIds, useConflictCheck } from "./use-conflict-check";
 interface Props {
   /** Edit mode when given. */
   meeting?: MeetingDetail;
-  /** New meeting: prefilled Dhaka date and times (from the calendar or defaults). */
+  /** New meeting: prefilled Dhaka date and times (from the address or defaults). */
   initialSlot?: { date: string; start: string; end: string };
 }
 

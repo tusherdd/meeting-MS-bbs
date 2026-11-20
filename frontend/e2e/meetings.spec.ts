@@ -55,7 +55,7 @@ function meetingIdFrom(page: Page): string {
 const panel = (page: Page) => page.getByTestId("conflict-panel");
 const submit = (page: Page) => page.getByRole("button", { name: "সভা তৈরি করুন" });
 
-test("create a meeting with the form; it shows on the dashboard, calendar and list", async () => {
+test("create a meeting with the form; it shows on the dashboard and list", async () => {
   // Today, starting in ~15 minutes (rounded to 5), 30 minutes long.
   const start = new Date(Math.ceil((Date.now() + 15 * 60_000) / 300_000) * 300_000);
   const end = new Date(start.getTime() + 30 * 60_000);
@@ -91,11 +91,6 @@ test("create a meeting with the form; it shows on the dashboard, calendar and li
 
   await dd1.goto("/dashboard");
   await expect(dd1.getByRole("row").filter({ hasText: title })).toBeVisible();
-
-  await dd1.goto("/calendar");
-  await expect(
-    dd1.getByTestId("calendar-meeting").filter({ hasText: title, visible: true }),
-  ).toBeVisible();
 
   await dd1.goto("/meetings");
   // Only scheduled meetings: cancelled test meetings of earlier runs must not push it to page 2.

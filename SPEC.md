@@ -685,7 +685,7 @@ Backend: 1 scaffold & security baseline → 2 entities & migrations → 3 seeds 
 **Status: backend steps 1–10 are complete** (see `docs/API.md`, `docs/SECURITY.md`; tag `backend-v1.0`).
 
 Frontend: F1 scaffold, auth pages, app layout, dashboard → F2 meetings (form with live conflict check, detail,
-cancel/complete), calendar, conflicts, notifications → F3 reports + PDF, profile, admin panel, production
+cancel/complete), calendar (removed in v1.15), conflicts, notifications → F3 reports + PDF, profile, admin panel, production
 readiness (accessibility, error pages, CSP, standalone build, deployment guide).
 **Status: F1, F2 and F3 are complete. The whole system is finished (tag `v1.0`).**
 
@@ -712,6 +712,8 @@ notice "সভার নোটিশ" (§6.8, §13.6, §13.18); (C) "সভা �
 Release **v1.14** (2026-11-20, tag `v1.14`, part C of 3): the report PDFs (my report and the office report) became the
 schedule "কর্মসূচি" (A4 landscape, one table, §6.6); the web report pages are unchanged.
 
+Release **v1.15** (2026-11-20, tag `v1.15`; progress in `docs/progress/v1.15.md`): (1) the calendar removed (§13.12).
+
 ## 13. Frontend (`frontend/`)
 
 ### 13.1 Stack
@@ -734,7 +736,7 @@ frontend/
 │   ├── ui/              Button, Input, Select, Textarea, Modal, ConfirmModal, Badge, Card, Table, Tabs,
 │   │                    Pagination, Spinner, EmptyState, Toast, Alert
 │   ├── layout/          header, sidebar/drawer, notification bell, user menu, guard, offline banner
-│   ├── auth/  dashboard/  meetings/  calendar/  conflicts/  notifications/
+│   ├── auth/  dashboard/  meetings/  conflicts/  notifications/
 │   ├── reports/  profile/  change-requests/  admin/
 ├── lib/                 api.ts (fetch client + file download), endpoints.ts, api-schema.ts (generated),
 │                        types.ts, schemas.ts (zod), format.ts (Bangla digits/dates), time.ts (Dhaka ranges),
@@ -751,7 +753,7 @@ frontend/
 | `/change-password` | app (voluntary; forced only for the SUPER_ADMIN while `mustChangePassword`) | F1 |
 | `/dashboard` (default after login): today's meetings, week/month tabs with the status filter সকল / চলমান / সম্পন্ন (v1.15, §13.20), today's summary (total, organized, attended, hours — the conflict card was removed in v1.5), pending-conflict warning | app | F1 |
 | `/meetings` (filters, admin "সকল সভা"), `/meetings/new?start=&end=`, `/meetings/:id`, `/meetings/:id/edit` | app | F2 |
-| `/calendar` (week 08–18 grid / month / phone day list), `/conflicts` (pending, resolved, admin all), `/notifications` | app | F2 |
+| `/conflicts` (pending, resolved, admin all), `/notifications` | app | F2 |
 | `/reports?period=&date=&page=` | app | F3 |
 | `/decisions`, `/meetings/:id/decision` (meeting minutes "সভা কার্যবিবরণী") | app | v1.11 |
 | `/profile` | app | F3 |
@@ -975,8 +977,9 @@ English (Latin script); everything else stays Bangla.
   (`meetingDetail.notesLabel`) and the detail-page card (`meetingDetail.notes`).
 - **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
   and statuses stay as in v1.2.**
-  - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, ডুপ্লিকেট সভা, সভা কার্যবিবরণী (v1.11, renamed v1.13; en "Meeting minutes"),
-    রিপোর্ট, প্রোফাইল, অ্যাডমিন.
+  - Main menu (same order): ড্যাশবোর্ড, সভা, ডুপ্লিকেট সভা, সভা কার্যবিবরণী (v1.11, renamed v1.13; en "Meeting minutes"),
+    রিপোর্ট, প্রোফাইল, অ্যাডমিন. The calendar "ক্যালেন্ডার" / "Calendar" was removed in v1.15 (page `/calendar`,
+    `components/calendar/`, its texts, the `listAll` helper and the `useNow` hook; `/calendar` shows the 404 page).
   - Admin menu: সারসংক্ষেপ, কর্মকর্তা, পদবি, উইং, পরিবর্তনের অনুরোধ, সকল সভা, সকল ডুপ্লিকেট সভা, অফিস রিপোর্ট, ইমেইল সারি, অডিট লগ.
 - **v1.5 (owner decision 2026-11-16):** the old Bangla word for "conflict" is gone everywhere (UI, mails,
   notifications, PDFs, backend messages, Swagger, tests). The time clash is "সময় কনফ্লিক্ট"; everything else
@@ -1029,7 +1032,7 @@ Final word list:
 | পরিবর্তনের অনুরোধ (login email / designation, needs admin approval) | Change Request |
 | রিপোর্ট / অফিস রিপোর্ট (menu, titles, buttons) | Report / Office Report |
 | ব্যবহারকারী | কর্মকর্তা |
-| ক্যালেন্ডার, মেনু, লিংক, রিসেট, মোবাইল, ফোন, ফ্যাক্স, অনলাইন, সেশন | Calendar, Menu, Link, Reset, Mobile, Phone, Fax, Online, Session |
+| মেনু, লিংক, রিসেট, মোবাইল, ফোন, ফ্যাক্স, অনলাইন, সেশন | Menu, Link, Reset, Mobile, Phone, Fax, Online, Session |
 
 The request to change one's own notification email is not a "Change Request" (no admin approval); it stays
 "Notification Email পরিবর্তনের অনুরোধ".
@@ -1177,8 +1180,7 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   - Frontend (`nameHelpers().organizer` / `organizerFrom` in `lib/display-name.ts`, unit-tested): dashboard
     tables, my meetings list (`/meetings`), meeting detail (organizer row and the duplicate meetings listed there),
     the duplicate meetings page (`/conflicts`), the live conflict panel in the meeting form and my report page.
-    English UI → the wing's English name (Bangla when empty); Bangla UI → the Bangla name. Calendar entries show
-    no organizer (title and time only), so nothing changed there.
+    English UI → the wing's English name (Bangla when empty); Bangla UI → the Bangla name.
   - Always Bangla (`organizerLabelBn()` in `backend/src/modules/meetings/meeting-format.ts`): report PDFs (personal
     and office), every meeting mail and bell notification ("আয়োজক: <উইং>"), guest officers' mails.
   - Unchanged: notices are still **delivered** to the organizer person as before; audit logs and admin pages

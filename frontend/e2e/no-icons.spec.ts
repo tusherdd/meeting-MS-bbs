@@ -134,7 +134,6 @@ test("no icons in the app layout, header, sidebar, menus and pages", async ({ br
     "/dashboard",
     "/meetings",
     "/meetings/new",
-    "/calendar",
     "/conflicts",
     "/decisions",
     "/notifications",
@@ -164,13 +163,6 @@ test("no icons in the app layout, header, sidebar, menus and pages", async ({ br
   await expectNoIcons(page, "user menu");
   await page.keyboard.press("Escape");
 
-  // Calendar navigation uses words.
-  await page.goto("/calendar");
-  await expect(page.getByRole("button", { name: "আগের" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "পরের" })).toBeVisible();
-  await page.getByRole("tab", { name: "মাস" }).click();
-  await expectNoIcons(page, "calendar month view");
-
   // Phone: "মেনু" opens the drawer, "বন্ধ করুন" closes it.
   await page.setViewportSize({ width: 390, height: 800 });
   await page.goto("/dashboard");
@@ -182,7 +174,7 @@ test("no icons in the app layout, header, sidebar, menus and pages", async ({ br
   await expect(drawer).toBeHidden();
 
   // Every button has a visible text label.
-  for (const path of ["/dashboard", "/meetings/new", "/calendar"]) {
+  for (const path of ["/dashboard", "/meetings/new", "/reports"]) {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto(path);
     await expect(page.getByRole("navigation", { name: "প্রধান মেনু" })).toBeVisible();
