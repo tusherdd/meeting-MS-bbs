@@ -310,7 +310,7 @@ export const en: Messages = {
     people: "People in this meeting",
     guests: "Guest officers",
     guestTag: "Guest officer",
-    notes: "Notes / minutes",
+    notes: "Notes",
     cancelReason: "Reason for cancellation",
     conflicts: "Duplicate meetings",
     noConflicts: "This meeting has no duplicate meetings.",

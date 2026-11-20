@@ -971,7 +971,8 @@ English (Latin script); everything else stays Bangla.
 - **Exception, three-dot row menu (owner decision 2026-11-20, §13.18), Bangla mode only:** "বিস্তারিত দেখুন"
   (en "View details"), "কার্যবিবরণী আপলোড" (en "Upload minutes"), "বাতিল করুন" (en "Cancel"); "Edit" and
   "সভার নোটিশ" stay. These live in their own keys `rowMenu.*`; every other Edit / Cancel / View button keeps its word.
-  The complete-meeting form field is "নোট" / "Notes" (`meetingDetail.notesLabel`; was "নোট / কার্যবিবরণী").
+  Meeting notes are "নোট" / "Notes" everywhere (was "নোট / কার্যবিবরণী"): the complete-meeting form field
+  (`meetingDetail.notesLabel`) and the detail-page card (`meetingDetail.notes`).
 - **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
   and statuses stay as in v1.2.**
   - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, ডুপ্লিকেট সভা, সভা কার্যবিবরণী (v1.11, renamed v1.13; en "Meeting minutes"),

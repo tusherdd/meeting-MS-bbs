@@ -306,7 +306,7 @@ const bnMessages = {
     people: "সভার ব্যক্তিবর্গ",
     guests: "অতিথি কর্মকর্তা",
     guestTag: "অতিথি কর্মকর্তা",
-    notes: "নোট / কার্যবিবরণী",
+    notes: "নোট",
     cancelReason: "বাতিলের কারণ",
     conflicts: "ডুপ্লিকেট সভা",
     noConflicts: "এই সভার কোনো ডুপ্লিকেট সভা নেই।",

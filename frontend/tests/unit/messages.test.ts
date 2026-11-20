@@ -100,9 +100,9 @@ describe("v1.13 wording (SPEC.md §6.8, §6.9, §13.19)", () => {
     expect(bn.meetingDetail.edit).toBe("Edit");
   });
 
-  it("v1.15: the complete-meeting field is \"নোট\" / \"Notes\"", () => {
-    expect(bn.meetingDetail.notesLabel).toBe("নোট");
-    expect(en.meetingDetail.notesLabel).toBe("Notes");
+  it("v1.15: notes are \"নোট\" / \"Notes\" (complete form and detail page)", () => {
+    expect([bn.meetingDetail.notesLabel, bn.meetingDetail.notes]).toEqual(["নোট", "নোট"]);
+    expect([en.meetingDetail.notesLabel, en.meetingDetail.notes]).toEqual(["Notes", "Notes"]);
   });
 
   it("the old name never comes back in any produced text", () => {
