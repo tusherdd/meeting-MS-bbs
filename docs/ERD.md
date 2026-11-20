@@ -44,6 +44,7 @@ erDiagram
         varchar nameEn
         int priority "lower = higher priority"
         boolean isActive
+        enum officeReportScope "v1.15: NONE | WING | OFFICE"
     }
     wings {
         varchar nameBn
@@ -239,6 +240,9 @@ erDiagram
 | `1794300000000-UserPasswordIsDefault` | `users.passwordIsDefault` (default officer password, owner decision 2026-11-09) |
 | `1794400000000-NormalizeBanglaNukta` | Bangla nukta letters in the stored form in every text column |
 | `1794802927549-MeetingGuests` | `meeting_guests` (guest officers, v1.5) with its unique indexes, email check and the one-chair triggers |
+| `1794903513329-MeetingDecisionFiles` | `meeting_decision_files` (meeting minutes "সভা কার্যবিবরণী", v1.11) |
+| `1795000000000-MeetingNoticeFiles` | `meeting_notice_files` (uploaded meeting notice, one per meeting, v1.13); minutes `mime` widened to 100 |
+| `1795100000000-DesignationOfficeReportScope` | `designations.officeReportScope` (enum `office_report_scope_enum`, default `NONE`, v1.15 office report); backfill: সচিব and মহাপরিচালক → `OFFICE`, পরিচালক → `WING` |
 
 Schema changes are made only through migrations (`synchronize` is always `false`):
 `npm run migration:generate -- src/database/migrations/<Name>`, then `npm run migration:run`.
