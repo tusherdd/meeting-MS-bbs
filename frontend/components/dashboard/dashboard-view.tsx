@@ -9,6 +9,13 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingBlock } from "@/components/ui/spinner";
 
+import {
+  DASHBOARD_FILTERS,
+  DEFAULT_DASHBOARD_FILTER,
+  filterMeetings,
+  statusOfFilter,
+  type DashboardFilter,
+} from "@/lib/dashboard-filter";
 import { meetingsApi, queryKeys } from "@/lib/endpoints";
 import { monthRange, weekRange, type DateRange } from "@/lib/time";
 import type { MeetingSummary } from "@/lib/types";
@@ -23,16 +30,29 @@ const TABS: Tab[] = ["today", "week", "month"];
 /** Week / month lists: one page of up to 100 meetings (backend maximum). */
 const RANGE_LIMIT = 100;
 
-function useTabMeetings(tab: Tab, range: DateRange | null) {
+/**
+ * Today: GET /meetings/today has no status parameter → filtered here. Week / month: the status
+ * filter goes to the server (GET /meetings?status=…), so the 100-row page holds only matches.
+ */
+function useTabMeetings(tab: Tab, range: DateRange | null, filter: DashboardFilter) {
+  const status = statusOfFilter(filter);
   const today = useQuery({
     queryKey: queryKeys.meetingsToday,
     queryFn: meetingsApi.today,
     enabled: tab === "today",
+    select: (list: MeetingSummary[]) => filterMeetings(list, filter),
   });
   const ranged = useQuery({
-    queryKey: queryKeys.meetingsRange(range?.from ?? "", range?.to ?? ""),
+    queryKey: queryKeys.meetingsRange(range?.from ?? "", range?.to ?? "", status),
     queryFn: async (): Promise<MeetingSummary[]> =>
-      (await meetingsApi.list({ from: range!.from, to: range!.to, limit: RANGE_LIMIT })).items,
+      (
+        await meetingsApi.list({
+          from: range!.from,
+          to: range!.to,
+          limit: RANGE_LIMIT,
+          ...(status ? { status } : {}),
+        })
+      ).items,
     enabled: tab !== "today" && range !== null,
   });
   return tab === "today" ? today : ranged;
@@ -44,12 +64,14 @@ export function DashboardView() {
   const { formatDateWithWeekday } = useFormat();
   const user = useCurrentUser();
   const [tab, setTab] = useState<Tab>("today");
+  // Kept when the period tab changes.
+  const [filter, setFilter] = useState<DashboardFilter>(DEFAULT_DASHBOARD_FILTER);
   const range = useMemo(
     () => (tab === "week" ? weekRange() : tab === "month" ? monthRange() : null),
     [tab],
   );
 
-  const meetings = useTabMeetings(tab, range);
+  const meetings = useTabMeetings(tab, range, filter);
   const conflicts = useQuery({
     queryKey: queryKeys.myConflicts,
     queryFn: () => meetingsApi.myConflicts(),
@@ -128,6 +150,29 @@ export function DashboardView() {
           </div>
         </div>
         <div id="meetings-panel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
+          <div
+            role="group"
+            aria-label={t.dashboard.filterLabel}
+            className="flex flex-wrap gap-2 border-b border-slate-100 px-4 py-3 sm:px-5"
+            data-testid="dashboard-filter"
+          >
+            {DASHBOARD_FILTERS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={filter === key}
+                onClick={() => setFilter(key)}
+                className={clsx(
+                  "rounded-full border px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700",
+                  filter === key
+                    ? "border-brand-700 bg-brand-700 text-white"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+                )}
+              >
+                {t.dashboard.filters[key]}
+              </button>
+            ))}
+          </div>
           {meetings.isPending ? (
             <LoadingBlock />
           ) : meetings.isError ? (

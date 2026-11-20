@@ -78,7 +78,8 @@ export interface DirectoryQuery {
 export const queryKeys = {
   me: ["auth", "me"] as const,
   meetingsToday: ["meetings", "today"] as const,
-  meetingsRange: (from: string, to: string) => ["meetings", "range", from, to] as const,
+  meetingsRange: (from: string, to: string, status?: MeetingStatus) =>
+    ["meetings", "range", from, to, status ?? "ALL"] as const,
   meetingsList: (query: MeetingListQuery) => ["meetings", "list", query] as const,
   meetingsCalendar: (from: string, to: string) => ["meetings", "calendar", from, to] as const,
   meeting: (id: string) => ["meetings", "detail", id] as const,

@@ -185,6 +185,13 @@ const bnMessages = {
       month: "এই মাস",
     },
     meetingsOf: "আমার সভা",
+    /** v1.15: status filter under the period tabs (SPEC.md §13.20; exception in §13.12). */
+    filterLabel: "সভার অবস্থা",
+    filters: {
+      all: "সকল",
+      pending: "চলমান",
+      complete: "সম্পন্ন",
+    },
     emptyToday: "আজ আপনার কোনো সভা নেই।",
     emptyWeek: "এই সপ্তাহে আপনার কোনো সভা নেই।",
     emptyMonth: "এই মাসে আপনার কোনো সভা নেই।",

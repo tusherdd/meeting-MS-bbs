@@ -278,7 +278,7 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
   its chair (`chairNameBn`: the internal chair, else the guest chair's name) and, under the meeting, its
   guests as "অতিথি কর্মকর্তা: নাম — পদবি; …" (the PDF shows only a guest **chair**, v1.14). Guests are never counted in any total or statistic and have
   no dashboard or report of their own.
-- The dashboard opens on **today's meetings** by default.
+- The dashboard opens on **today's meetings** by default, filtered to "চলমান" (scheduled) meetings (v1.15, §13.20).
 - A meeting belongs to a period when its **start** lies in the Asia/Dhaka range `[start, end)` from
   `common/utils/time`; `?period=day|week|month|year|fiscal-year&date=YYYY-MM-DD` (default: month, today).
 - Hours count SCHEDULED and COMPLETED meetings (cancelled meetings take no time).
@@ -749,7 +749,7 @@ frontend/
 |---|---|---|
 | `/login`, `/forgot-password`, `/reset-password?token=`, `/set-password?token=`, `/verify-email?token=` | public | F1 |
 | `/change-password` | app (voluntary; forced only for the SUPER_ADMIN while `mustChangePassword`) | F1 |
-| `/dashboard` (default after login): today's meetings, week/month tabs, today's summary (total, organized, attended, hours — the conflict card was removed in v1.5), pending-conflict warning | app | F1 |
+| `/dashboard` (default after login): today's meetings, week/month tabs with the status filter সকল / চলমান / সম্পন্ন (v1.15, §13.20), today's summary (total, organized, attended, hours — the conflict card was removed in v1.5), pending-conflict warning | app | F1 |
 | `/meetings` (filters, admin "সকল সভা"), `/meetings/new?start=&end=`, `/meetings/:id`, `/meetings/:id/edit` | app | F2 |
 | `/calendar` (week 08–18 grid / month / phone day list), `/conflicts` (pending, resolved, admin all), `/notifications` | app | F2 |
 | `/reports?period=&date=&page=` | app | F3 |
@@ -973,6 +973,8 @@ English (Latin script); everything else stays Bangla.
   "সভার নোটিশ" stay. These live in their own keys `rowMenu.*`; every other Edit / Cancel / View button keeps its word.
   Meeting notes are "নোট" / "Notes" everywhere (was "নোট / কার্যবিবরণী"): the complete-meeting form field
   (`meetingDetail.notesLabel`) and the detail-page card (`meetingDetail.notes`).
+- **Exception, dashboard status filter (owner decision 2026-11-20, §13.20):** the buttons are "সকল" / "চলমান" /
+  "সম্পন্ন" in Bangla (en "All" / "Pending" / "Complete"), although the status badge for SCHEDULED stays "নির্ধারিত".
 - **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
   and statuses stay as in v1.2.**
   - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, ডুপ্লিকেট সভা, সভা কার্যবিবরণী (v1.11, renamed v1.13; en "Meeting minutes"),
@@ -1254,3 +1256,18 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
 - v1.13 wording guard: `backend/src/common/utils/wording.spec.ts` (the old name never in message files) and
   `frontend/tests/unit/messages.test.ts`.
 - Tests: `tests/unit/row-actions.test.ts`, `tests/unit/format.test.ts`, `tests/unit/messages.test.ts`, `e2e/v111.spec.ts`, `e2e/no-icons.spec.ts` (`/decisions`).
+
+### 13.20 Dashboard status filter (v1.15, owner decision 2026-11-20)
+- Directly under the period tabs "আজ / এই সপ্তাহ / এই মাস" (inside the tab panel, above the table) three
+  buttons in this order: "সকল" / "All" (every meeting of the period, cancelled too), "চলমান" / "Pending"
+  (status SCHEDULED), "সম্পন্ন" / "Complete" (status COMPLETED). No counts, no icons.
+- "চলমান" is selected when the dashboard opens. The choice is kept when the period tab changes; the two work
+  together (e.g. "এই সপ্তাহ" + "চলমান").
+- A `role="group"` named "সভার অবস্থা" / "Meeting status"; each button has `aria-pressed`; the selected one is
+  filled green (theme token), the others outlined.
+- Week / month: the filter goes to the server (`GET /meetings?status=SCHEDULED|COMPLETED`, query key
+  `meetingsRange(from, to, status)`); today: `GET /meetings/today` has no status parameter, so the list is
+  filtered in the browser. Logic in `lib/dashboard-filter.ts`.
+- No match: the table's usual empty state of the tab ("আজ আপনার কোনো সভা নেই।" …).
+- Texts: `dashboard.filterLabel`, `dashboard.filters.*` in `messages/en.ts` / `bn.ts` (exception in §13.12).
+- Tests: `tests/unit/dashboard-filter.test.ts`, `e2e/dashboard.spec.ts`.

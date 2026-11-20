@@ -188,6 +188,13 @@ export const en: Messages = {
       month: "This month",
     },
     meetingsOf: "My meetings",
+    /** v1.15: status filter under the period tabs (SPEC.md §13.20; exception in §13.12). */
+    filterLabel: "Meeting status",
+    filters: {
+      all: "All",
+      pending: "Pending",
+      complete: "Complete",
+    },
     emptyToday: "You have no meetings today.",
     emptyWeek: "You have no meetings this week.",
     emptyMonth: "You have no meetings this month.",
