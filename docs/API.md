@@ -42,7 +42,7 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | Method | Path | Access | Purpose | Main request fields | Responses |
 |---|---|---|---|---|---|
 | GET | `/profile` | 👤 | My full profile (designation, wing, additional charges) | — | 200 |
-| PATCH | `/profile` | 👤 | Edit my names, phones, wing, designation remark, additional charges | `nameBn`, `nameEn`, `designationRemark`, `wingId`, `mobile`, `mobileAlt`, `officePhone`, `fax`, `additionalCharges` | 200, 400 |
+| PATCH | `/profile` | 👤 | Edit my names, phones, wing, designation remark, additional charges | `nameBn`, `nameEn`, `designationRemark`, `wingId`, `mobile`, `mobileAlt`, `officePhone`, `fax` | 200, 400 |
 | POST | `/profile/photo` | 👤 | Upload my photo (JPEG/PNG/WebP) | `file`*, (multipart) | 201, 400, 413, 429 |
 | DELETE | `/profile/photo` | 👤 | Remove my photo | — | 200 |
 | POST | `/profile/notification-email` | 👤 | Request a new notification email | `email`* | 200, 400, 429 |
@@ -56,7 +56,7 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | Method | Path | Access | Purpose | Main request fields | Responses |
 |---|---|---|---|---|---|
 | GET | `/users/directory` | 👤 | Active officer directory for the participant picker (any logged-in user) | `page` (query), `limit` (query), `q` (query), `wingId` (query) | 200 |
-| GET | `/users` | 🛡 | Search / filter / sort / paginate users (ADMIN) | `page` (query), `limit` (query), `q` (query), `wingId` (query), `designationId` (query), `role` (query), `isActive` (query), `passwordIsDefault` (query), `sortBy` (query), `sortOrder` (query) | 200, 403 |
+| GET | `/users` | 🛡 | Search / filter / sort / paginate users (ADMIN) | `page` (query), `limit` (query), `q` (query), `wingId` (query), `designationId` (query), `role` (query), `isActive` (query), `passwordIsDefault` (query), `chargesNeedReview` (query), `sortBy` (query), `sortOrder` (query) | 200, 403 |
 | POST | `/users` | 🛡 | Create an officer (ADMIN) | `loginEmail`*, `notificationEmail`, `nameBn`*, `nameEn`*, `designationId`*, `designationRemark`, `wingId`, `mobile`, `mobileAlt`, `officePhone`, `fax`, `organizationBn`, `organizationEn`, `bcsBatch`, `additionalCharges` | 201, 400, 403, 409 |
 | GET | `/users/:id` | 🛡 | Full user (ADMIN) | — | 200, 403, 404 |
 | PATCH | `/users/:id` | 🛡 | Edit any profile field, including loginEmail and designation (ADMIN) | `loginEmail`, `notificationEmail`, `nameBn`, `nameEn`, `designationId`, `designationRemark`, `wingId`, `mobile`, `mobileAlt`, `officePhone`, `fax`, `organizationBn`, `organizationEn`, `bcsBatch`, `additionalCharges` | 200, 400, 403, 404, 409 |
@@ -169,7 +169,7 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 
 ## Message codes
 
-225 codes from `backend/src/common/i18n/message-catalog.ts`. `{name}` = a value filled in at run time.
+229 codes from `backend/src/common/i18n/message-catalog.ts`. `{name}` = a value filled in at run time.
 
 | Code | English | Bangla |
 |---|---|---|
@@ -386,6 +386,10 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | `DATE_FORMAT_EXAMPLE` | Enter the date as YYYY-MM-DD (e.g. 2026-12-01). | তারিখ YYYY-MM-DD আকারে দিন (যেমন 2026-12-01)। |
 | `PDF_TIMEOUT` | Creating the PDF is taking too long. Please try again after a while. | পিডিএফ তৈরি করতে বেশি সময় লাগছে। কিছুক্ষণ পর আবার চেষ্টা করুন। |
 | `DATE_INVALID` | Enter a valid date (YYYY-MM-DD). | সঠিক তারিখ দিন (YYYY-MM-DD)। |
+| `CHARGE_DUPLICATE` | The same additional charge (designation and wing) cannot be given twice. | একই অতিরিক্ত দায়িত্ব (পদবি ও উইং) দুবার দেওয়া যাবে না। |
+| `CHARGE_DESIGNATION_REQUIRED` | Choose the designation of the additional charge. | অতিরিক্ত দায়িত্বের পদবি বেছে নিন। |
+| `CHARGE_NOTE_TOO_LONG` | The note can be at most 300 characters. | নোট সর্বোচ্চ ৩০০ অক্ষরের হতে পারে। |
+| `CHARGES_NEED_REVIEW_INVALID` | chargesNeedReview must be true or false. | chargesNeedReview true অথবা false হতে হবে। |
 | `OFFICE_REPORT_FORBIDDEN` | You do not have access to the office report. | অফিস রিপোর্ট দেখার অনুমতি আপনার নেই। |
 | `OFFICE_REPORT_NO_WING` | Your profile has no wing, so the office report cannot be shown. | আপনার প্রোফাইলে কোনো উইং নেই, তাই অফিস রিপোর্ট দেখানো যাবে না। |
 | `OFFICE_REPORT_OUT_OF_SCOPE` | This is outside your office report scope. | এই তথ্য আপনার অফিস রিপোর্টের আওতার বাইরে। |
