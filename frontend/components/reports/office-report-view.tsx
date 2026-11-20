@@ -135,7 +135,6 @@ function OfficeReport() {
           </p>
         </div>
         <PdfDownloadButton
-          label={t.officeReport.downloadPdf}
           download={() => reportsApi.officePdf(when, filter, page)}
         />
       </div>

@@ -18,6 +18,8 @@ export const en: Messages = {
     switchAria: "Switch to Bangla",
   },
   common: {
+    /** v1.16: the one label of every PDF download button. */
+    downloadPdf: "Download PDF",
     loading: "Loading…",
     retry: "Try again",
     close: "Close",
@@ -462,7 +464,6 @@ export const en: Messages = {
   /** v1.15: the office report (SPEC.md §6.10, §13.21). */
   officeReport: {
     title: "Office report",
-    downloadPdf: "Download PDF",
     wing: "Wing",
     allWings: "All wings",
     wingLocked: "Own wing, cannot be changed",
@@ -582,7 +583,6 @@ export const en: Messages = {
     organizer: "Organizer",
     chair: "President",
     guests: "Guest officers",
-    pdf: "Download PDF",
     pdfLoading: "Preparing…",
     pdfDone: "The PDF download has started.",
   },

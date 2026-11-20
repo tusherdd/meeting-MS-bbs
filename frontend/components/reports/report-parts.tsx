@@ -266,14 +266,7 @@ export function ReportMeetingsTable({
  * "Download PDF": fetches the PDF as a Blob (same filters as the page), shows "তৈরি হচ্ছে…"
  * meanwhile, and saves it under the name from Content-Disposition. Errors show the backend text.
  */
-export function PdfDownloadButton({
-  download,
-  label,
-}: {
-  download: () => Promise<DownloadedFile>;
-  /** v1.15: the office report says "PDF ডাউনলোড". */
-  label?: string;
-}) {
+export function PdfDownloadButton({ download }: { download: () => Promise<DownloadedFile> }) {
   const t = useT();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -295,7 +288,7 @@ export function PdfDownloadButton({
   return (
     <div className="space-y-2">
       <Button onClick={onClick} loading={busy} loadingText={t.reports.pdfLoading}>
-        {label ?? t.reports.pdf}
+        {t.common.downloadPdf}
       </Button>
       {error !== null && <ErrorAlert error={error} />}
     </div>

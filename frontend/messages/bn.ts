@@ -15,6 +15,8 @@ const bnMessages = {
     switchAria: "ভাষা ইংরেজিতে বদলান",
   },
   common: {
+    /** v1.16: the one label of every PDF download button. */
+    downloadPdf: "PDF ডাউনলোড",
     loading: "লোড হচ্ছে…",
     retry: "আবার চেষ্টা করুন",
     close: "বন্ধ করুন",
@@ -461,7 +463,6 @@ const bnMessages = {
   /** v1.15: the office report "অফিস রিপোর্ট" (SPEC.md §6.10, §13.21). */
   officeReport: {
     title: "অফিস রিপোর্ট",
-    downloadPdf: "PDF ডাউনলোড",
     wing: "উইং",
     allWings: "সকল উইং",
     wingLocked: "নিজ উইং, পরিবর্তন করা যাবে না",
@@ -581,7 +582,6 @@ const bnMessages = {
     organizer: "আয়োজক",
     chair: "সভাপতি",
     guests: "অতিথি কর্মকর্তা",
-    pdf: "Download PDF",
     pdfLoading: "তৈরি হচ্ছে…",
     pdfDone: "PDF Download শুরু হয়েছে।",
   },

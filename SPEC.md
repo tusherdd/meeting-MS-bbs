@@ -773,6 +773,9 @@ Release **v1.15** (2026-11-20, tag `v1.15`; progress in `docs/progress/v1.15.md`
 (2) the fiscal year removed from the reports (§6.6); (3) the date range picker on "আমার রিপোর্ট" (§6.6, §13.7);
 (4) the office report "অফিস রিপোর্ট" rebuilt for admins, OFFICE and WING viewers (§6.10, §13.21).
 
+Release **v1.16** (2026-11-20, tag `v1.16`; progress in `docs/progress/v1.16.md`): (1) one label for every PDF button
+(§13.12).
+
 ## 13. Frontend (`frontend/`)
 
 ### 13.1 Stack
@@ -904,7 +907,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   fields and "দেখুন" is disabled. The old tabs, date field and "আগের" / "বর্তমান" / "পরের" are gone; the fiscal year
   was removed in v1.15. The range is shown in Bangla (backend label + first and last day). Summary cards, counts by status, a bar
   chart of meetings per day (per month for a year or a range longer than 62 days; plain HTML bars with a hidden data table,
-  no SVG), paginated meeting list. The filters live in the address. "Download PDF" fetches the PDF as a Blob with
+  no SVG), paginated meeting list. The filters live in the address. "PDF ডাউনলোড" / "Download PDF" (v1.16, §13.12) fetches the PDF as a Blob with
   the same filters, shows "তৈরি হচ্ছে…", saves it under the `Content-Disposition` file name and shows the
   backend's message on failure.
 - **Profile** (`/profile`): only the fields `PATCH /profile` accepts; mobiles accept Bangla digits and `+880`
@@ -1041,6 +1044,10 @@ English (Latin script); everything else stays Bangla.
 - **Stay Bangla:** the meeting statuses চলমান / সম্পন্ন / বাতিল (SCHEDULED is "চলমান" / en "Pending" since v1.15, owner decision 2026-11-20; same word as the dashboard filter, §13.20) (and the meeting action "সভা বাতিল করুন"), লোড হচ্ছে…,
   আবার চেষ্টা করুন, বন্ধ করুন, দেখুন / লুকান, হ্যাঁ / না, সব. The PDF title is "বাংলাদেশ পরিসংখ্যান ব্যুরো — … কর্মসূচি" (v1.14; before: "সভা প্রতিবেদন").
 - Names stored in the database (for example the seeded account name "সুপার অ্যাডমিন") are data, not labels.
+- **PDF buttons (v1.16, owner decision 2026-11-20):** every PDF download button on the site (my report, office
+  report, any future one) uses ONE shared key, `common.downloadPdf`: bn "PDF ডাউনলোড", en "Download PDF" (before v1.16
+  the Bangla UI said "Download PDF"). `components/reports/report-parts.tsx` `PdfDownloadButton` has no own label;
+  test `tests/unit/pdf-label.test.ts`.
 - **Exception, three-dot row menu (owner decision 2026-11-20, §13.18), Bangla mode only:** "বিস্তারিত দেখুন"
   (en "View details"), "কার্যবিবরণী আপলোড" (en "Upload minutes"), "বাতিল করুন" (en "Cancel"); "Edit" and
   "সভার নোটিশ" stay. These live in their own keys `rowMenu.*`; every other Edit / Cancel / View button keeps its word.
@@ -1062,7 +1069,7 @@ English (Latin script); everything else stays Bangla.
   - Header profile menu: "প্রোফাইল" and "লগআউট"; the profile page heading "প্রোফাইল".
   - Login page: heading "লগইন", button "লগইন করুন", link "লগইন পাতায় ফিরে যান".
   - Everywhere else the v1.2 words stay: Save, Edit, Delete, Cancel, Approve / Reject, Activate / Deactivate,
-    Send Request, Mark all as read, Download PDF, all statuses, labels, search placeholders, and the English words
+    Send Request, Mark all as read, all statuses, labels, search placeholders, and the English words
     inside sentences ("আবার Login করুন", "Dashboard", "Change Request", "Email Queue" in help texts and messages).
 
 Final word list:
@@ -1095,7 +1102,7 @@ Final word list:
 | মুছুন / মুছে ফেলুন (button) | Delete ("Delete Permanently") |
 | খুঁজুন | Search ("নাম দিয়ে Search করুন", "নাম বা Email দিয়ে Search করুন") |
 | আপলোড | Upload ("Upload Photo", "Uploading…") |
-| ডাউনলোড / PDF ডাউনলোড | Download / Download PDF |
+| ডাউনলোড | Download |
 | ফিল্টার / ফিল্টার মুছুন | Filter / Clear Filter |
 | সারসংক্ষেপ | Summary |
 | ইমেইল সারি | Email Queue |
@@ -1353,8 +1360,7 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   as the LAST main menu item, below "প্রোফাইল" (`navFor(admin, t, officeReportScope)`); NONE officers see no item and the
   page shows "৪০৩" with "অফিস রিপোর্ট দেখার অনুমতি আপনার নেই।" (the API answers 403). `/admin/reports` redirects.
 - **Top to bottom:** title "অফিস রিপোর্ট" with the range under it (no "পুরো অফিস" text; with an officer selected:
-  "জনাব [name], [designation] · [wing] · [range]") and the button "PDF ডাউনলোড" / "Download PDF" (owner wording for this
-  page); the filter bar (§13.7 period buttons, divider, date range picker, then "উইং" — OFFICE: "সকল উইং" + every wing;
+  "জনাব [name], [designation] · [wing] · [range]") and the button "PDF ডাউনলোড" / "Download PDF" (the shared label, §13.12); the filter bar (§13.7 period buttons, divider, date range picker, then "উইং" — OFFICE: "সকল উইং" + every wing;
   WING: their own wing, disabled, with the small lock — and "কর্মকর্তা", a searchable picker over `GET /users/directory`
   of the chosen wing or everyone, WING: own wing only); five cards; "উইংভিত্তিক তালিকা" (OFFICE, no wing / officer chosen;
   exactly 5 rows visible, the rest scroll inside the box under a sticky header; a wing name sets the wing filter; no
