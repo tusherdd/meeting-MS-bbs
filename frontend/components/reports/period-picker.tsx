@@ -10,7 +10,7 @@ import type { PeriodDto } from "@/lib/types";
 import { useFormat, useT } from "@/providers/locale-provider";
 
 /**
- * দিন / সপ্তাহ / মাস / বছর / অর্থবছর + a date + "আগের" / "পরের". The range is shown in Bangla:
+ * দিন / সপ্তাহ / মাস / বছর + a date + "আগের" / "পরের". The range is shown in Bangla:
  * the backend's label when the report has loaded, else the same range computed here.
  */
 export function PeriodPicker({

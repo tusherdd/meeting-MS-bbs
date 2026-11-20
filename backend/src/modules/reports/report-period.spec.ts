@@ -35,14 +35,6 @@ describe('resolvePeriod (Asia/Dhaka)', () => {
       '২০২৬ সাল',
       '2026',
     ],
-    [
-      'fiscal-year',
-      '2026-12-15',
-      '2026-06-30T18:00:00.000Z',
-      '2027-06-30T18:00:00.000Z',
-      '২০২৬-২৭ অর্থবছর',
-      'fy-2026-27',
-    ],
   ] as const)('%s', (period, date, start, end, label, key) => {
     const p = resolvePeriod(period, date);
     expect(p.range.start.toISOString()).toBe(start);

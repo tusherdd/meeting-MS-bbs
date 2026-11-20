@@ -48,7 +48,7 @@ function reportMeeting(over: Partial<ReportMeeting> = {}): ReportMeeting {
 }
 
 describe('report PDF "কর্মসূচি" rules (v1.14)', () => {
-  it('title per period (the fiscal year uses the yearly title)', () => {
+  it('title per period', () => {
     expect(scheduleTitleBn('day')).toBe(
       'বাংলাদেশ পরিসংখ্যান ব্যুরো — দৈনিক কর্মসূচি',
     );
@@ -61,7 +61,6 @@ describe('report PDF "কর্মসূচি" rules (v1.14)', () => {
     expect(scheduleTitleBn('year')).toBe(
       'বাংলাদেশ পরিসংখ্যান ব্যুরো — বার্ষিক কর্মসূচি',
     );
-    expect(scheduleTitleBn('fiscal-year')).toBe(scheduleTitleBn('year'));
   });
 
   it.each([

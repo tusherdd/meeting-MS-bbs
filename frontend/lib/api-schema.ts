@@ -1924,7 +1924,7 @@ export interface components {
             title: string;
             /**
              * @example ১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি
-             *     ২. ২০২৬-২৭ অর্থবছরের এডিপি
+             *     ২. এডিপি অগ্রগতি পর্যালোচনা
              *     ৩. বিবিধ
              */
             agenda?: string | null;
@@ -2248,7 +2248,7 @@ export interface components {
             title: string;
             /**
              * @example ১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি
-             *     ২. ২০২৬-২৭ অর্থবছরের এডিপি
+             *     ২. এডিপি অগ্রগতি পর্যালোচনা
              *     ৩. বিবিধ
              */
             agenda?: string | null;
@@ -2302,7 +2302,7 @@ export interface components {
             title?: string;
             /**
              * @example ১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি
-             *     ২. ২০২৬-২৭ অর্থবছরের এডিপি
+             *     ২. এডিপি অগ্রগতি পর্যালোচনা
              *     ৩. বিবিধ
              */
             agenda?: string | null;
@@ -2435,7 +2435,7 @@ export interface components {
              * @example month
              * @enum {string}
              */
-            period: "day" | "week" | "month" | "year" | "fiscal-year";
+            period: "day" | "week" | "month" | "year";
             /** @example 2026-12-01 */
             date: string;
             /** @example ডিসেম্বর ২০২৬ */
@@ -5154,7 +5154,7 @@ export interface operations {
             query?: {
                 page?: number;
                 limit?: number;
-                period?: "day" | "week" | "month" | "year" | "fiscal-year";
+                period?: "day" | "week" | "month" | "year";
                 date?: string;
             };
             header?: {
@@ -5179,8 +5179,8 @@ export interface operations {
     ReportsController_mePdf: {
         parameters: {
             query?: {
-                /** @description Week = Sunday–Saturday; fiscal-year = July–June (Asia/Dhaka) */
-                period?: "day" | "week" | "month" | "year" | "fiscal-year";
+                /** @description Week = Sunday–Saturday, year = January–December (Asia/Dhaka) */
+                period?: "day" | "week" | "month" | "year";
                 /** @description Any day inside the period (default: today in Dhaka) */
                 date?: string;
             };
@@ -5216,7 +5216,7 @@ export interface operations {
             query?: {
                 page?: number;
                 limit?: number;
-                period?: "day" | "week" | "month" | "year" | "fiscal-year";
+                period?: "day" | "week" | "month" | "year";
                 date?: string;
                 wingId?: string;
                 designationId?: string;
@@ -5250,8 +5250,8 @@ export interface operations {
     ReportsController_officePdf: {
         parameters: {
             query?: {
-                /** @description Week = Sunday–Saturday; fiscal-year = July–June (Asia/Dhaka) */
-                period?: "day" | "week" | "month" | "year" | "fiscal-year";
+                /** @description Week = Sunday–Saturday, year = January–December (Asia/Dhaka) */
+                period?: "day" | "week" | "month" | "year";
                 /** @description Any day inside the period (default: today in Dhaka) */
                 date?: string;
                 /** @description Organizer's wing */

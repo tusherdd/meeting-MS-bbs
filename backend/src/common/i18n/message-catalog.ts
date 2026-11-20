@@ -834,8 +834,8 @@ export const MESSAGE_CATALOG = {
     en: 'from must be a valid ISO 8601 time.',
   },
   PERIOD_INVALID: {
-    bn: 'period day, week, month, year অথবা fiscal-year হতে হবে।',
-    en: 'period must be day, week, month, year or fiscal-year.',
+    bn: 'period day, week, month অথবা year হতে হবে। fiscal-year আর সমর্থিত নয়।',
+    en: 'period must be day, week, month or year. fiscal-year is no longer supported.',
   },
   MAIL_STATUS_INVALID: {
     bn: 'status PENDING, SENT অথবা FAILED হতে হবে।',

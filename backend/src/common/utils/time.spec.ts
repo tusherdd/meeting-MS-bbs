@@ -1,6 +1,5 @@
 import {
   getDayRange,
-  getFiscalYearRange,
   getMonthRange,
   getPeriodRange,
   getWeekRange,
@@ -104,35 +103,6 @@ describe('time utils (Asia/Dhaka)', () => {
     });
   });
 
-  describe('getFiscalYearRange (July–June)', () => {
-    const fy2026_27 = {
-      start: '2026-06-30T18:00:00.000Z',
-      end: '2027-06-30T18:00:00.000Z',
-    };
-
-    it('uses the current year when the month is July or later', () => {
-      expect(iso(getFiscalYearRange('2026-11-08'))).toEqual(fy2026_27);
-      expect(iso(getFiscalYearRange('2026-07-01'))).toEqual(fy2026_27);
-    });
-
-    it('uses the previous year when the month is before July', () => {
-      expect(iso(getFiscalYearRange('2026-06-30'))).toEqual({
-        start: '2025-06-30T18:00:00.000Z',
-        end: '2026-06-30T18:00:00.000Z',
-      });
-      expect(iso(getFiscalYearRange('2027-01-15'))).toEqual(fy2026_27);
-    });
-
-    it('switches exactly at Dhaka midnight on 1 July', () => {
-      expect(
-        iso(getFiscalYearRange(new Date('2026-06-30T17:59:59.999Z'))).start,
-      ).toBe('2025-06-30T18:00:00.000Z');
-      expect(
-        iso(getFiscalYearRange(new Date('2026-06-30T18:00:00.000Z'))),
-      ).toEqual(fy2026_27);
-    });
-  });
-
   describe('getPeriodRange', () => {
     it('dispatches to the right helper', () => {
       const d = '2026-11-08';
@@ -140,13 +110,15 @@ describe('time utils (Asia/Dhaka)', () => {
       expect(getPeriodRange('week', d)).toEqual(getWeekRange(d));
       expect(getPeriodRange('month', d)).toEqual(getMonthRange(d));
       expect(getPeriodRange('year', d)).toEqual(getYearRange(d));
-      expect(getPeriodRange('fiscal-year', d)).toEqual(getFiscalYearRange(d));
     });
 
-    it('rejects an unknown period', () => {
+    it('rejects an unknown period (also the removed fiscal year, v1.15)', () => {
       expect(() => getPeriodRange('decade' as never, '2026-11-08')).toThrow(
         RangeError,
       );
+      expect(() =>
+        getPeriodRange('fiscal-year' as never, '2026-11-08'),
+      ).toThrow(RangeError);
     });
 
     it('defaults to now', () => {

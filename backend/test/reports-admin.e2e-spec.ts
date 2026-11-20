@@ -167,6 +167,21 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
         .query({ period: 'decade' })
         .set(as('officer'))
         .expect(400);
+      // v1.15: the fiscal year was removed; old calls get a clear 400 (JSON and PDF, me and office).
+      for (const [path, who] of [
+        ['/reports/me', 'officer'],
+        ['/reports/me/pdf', 'officer'],
+        ['/reports/office', 'admin'],
+        ['/reports/office/pdf', 'admin'],
+      ] as const) {
+        const res = await http()
+          .get(`${API}${path}`)
+          .query({ period: 'fiscal-year' })
+          .set(as(who))
+          .expect(400);
+        expect(res.body).toMatchObject({ code: 'PERIOD_INVALID' });
+        expect(JSON.stringify(res.body)).toContain('fiscal-year আর সমর্থিত নয়।');
+      }
       await http()
         .get(`${API}/reports/me`)
         .query({ date: '2026-02-30' })

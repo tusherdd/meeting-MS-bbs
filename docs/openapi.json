@@ -4281,8 +4281,7 @@
                 "day",
                 "week",
                 "month",
-                "year",
-                "fiscal-year"
+                "year"
               ]
             }
           },
@@ -4342,7 +4341,7 @@
             "name": "period",
             "required": false,
             "in": "query",
-            "description": "Week = Sunday–Saturday; fiscal-year = July–June (Asia/Dhaka)",
+            "description": "Week = Sunday–Saturday, year = January–December (Asia/Dhaka)",
             "schema": {
               "default": "month",
               "type": "string",
@@ -4350,8 +4349,7 @@
                 "day",
                 "week",
                 "month",
-                "year",
-                "fiscal-year"
+                "year"
               ]
             }
           },
@@ -4445,8 +4443,7 @@
                 "day",
                 "week",
                 "month",
-                "year",
-                "fiscal-year"
+                "year"
               ]
             }
           },
@@ -4528,7 +4525,7 @@
             "name": "period",
             "required": false,
             "in": "query",
-            "description": "Week = Sunday–Saturday; fiscal-year = July–June (Asia/Dhaka)",
+            "description": "Week = Sunday–Saturday, year = January–December (Asia/Dhaka)",
             "schema": {
               "default": "month",
               "type": "string",
@@ -4536,8 +4533,7 @@
                 "day",
                 "week",
                 "month",
-                "year",
-                "fiscal-year"
+                "year"
               ]
             }
           },
@@ -6790,7 +6786,7 @@
           "agenda": {
             "type": "string",
             "nullable": true,
-            "example": "১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি\n২. ২০২৬-২৭ অর্থবছরের এডিপি\n৩. বিবিধ",
+            "example": "১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি\n২. এডিপি অগ্রগতি পর্যালোচনা\n৩. বিবিধ",
             "maxLength": 5000
           },
           "startAt": {
@@ -7516,7 +7512,7 @@
           "agenda": {
             "type": "string",
             "nullable": true,
-            "example": "১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি\n২. ২০২৬-২৭ অর্থবছরের এডিপি\n৩. বিবিধ",
+            "example": "১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি\n২. এডিপি অগ্রগতি পর্যালোচনা\n৩. বিবিধ",
             "maxLength": 5000
           },
           "startAt": {
@@ -7620,7 +7616,7 @@
           "agenda": {
             "type": "string",
             "nullable": true,
-            "example": "১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি\n২. ২০২৬-২৭ অর্থবছরের এডিপি\n৩. বিবিধ",
+            "example": "১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি\n২. এডিপি অগ্রগতি পর্যালোচনা\n৩. বিবিধ",
             "maxLength": 5000
           },
           "startAt": {
@@ -7933,8 +7929,7 @@
               "day",
               "week",
               "month",
-              "year",
-              "fiscal-year"
+              "year"
             ],
             "example": "month"
           },

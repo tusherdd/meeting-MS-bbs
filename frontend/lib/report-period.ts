@@ -1,18 +1,12 @@
 /**
  * Report periods (SPEC.md §6.6), the same rules as the backend (common/utils/time):
- * day, week (Sunday–Saturday), month, year (Jan–Dec), fiscal-year (July–June), all in Asia/Dhaka.
+ * day, week (Sunday–Saturday), month, year (Jan–Dec), all in Asia/Dhaka (the fiscal year was removed in v1.15).
  * Dates here are plain calendar dates "YYYY-MM-DD" (no time zone involved).
  */
 import { addDays, dhakaToday, monthBounds, sundayOf } from "./time";
 import type { ReportPeriod } from "./types";
 
-export const REPORT_PERIODS: readonly ReportPeriod[] = [
-  "day",
-  "week",
-  "month",
-  "year",
-  "fiscal-year",
-] as const;
+export const REPORT_PERIODS: readonly ReportPeriod[] = ["day", "week", "month", "year"] as const;
 
 export function isReportPeriod(value: string | null | undefined): value is ReportPeriod {
   return !!value && (REPORT_PERIODS as readonly string[]).includes(value);
@@ -31,7 +25,7 @@ function pad(n: number): string {
 
 /** First calendar day of the period that contains `date`. */
 export function periodStart(period: ReportPeriod, date: string): string {
-  const [y, m] = date.split("-").map(Number);
+  const [y] = date.split("-").map(Number);
   switch (period) {
     case "day":
       return date;
@@ -41,8 +35,6 @@ export function periodStart(period: ReportPeriod, date: string): string {
       return monthBounds(date).first;
     case "year":
       return `${y}-01-01`;
-    case "fiscal-year":
-      return `${m >= 7 ? y : y - 1}-07-01`;
   }
 }
 
@@ -67,7 +59,6 @@ export function shiftPeriod(period: ReportPeriod, date: string, step: -1 | 1): s
       return `${Math.floor(total / 12)}-${pad((total % 12) + 1)}-01`;
     }
     case "year":
-    case "fiscal-year":
       return `${y + step}-${pad(m)}-01`;
   }
 }
@@ -89,7 +80,7 @@ export interface ChartBar {
 
 /**
  * Bars for the meetings-per-day chart. Day/week/month: one bar per day (days without meetings
- * show 0). Year/fiscal-year: one bar per month (365 bars would be unreadable).
+ * show 0). Year: one bar per month (365 bars would be unreadable).
  */
 export function chartBars(
   period: ReportPeriod,
@@ -97,7 +88,7 @@ export function chartBars(
   byDay: readonly { date: string; meetings: number; hours: number }[],
 ): { unit: "day" | "month"; bars: ChartBar[] } {
   const { first, last } = periodDays(period, date);
-  if (period === "year" || period === "fiscal-year") {
+  if (period === "year") {
     const months = new Map<string, ChartBar>();
     for (let d = first; d <= last; d = shiftPeriod("month", d, 1)) {
       const key = d.slice(0, 7);

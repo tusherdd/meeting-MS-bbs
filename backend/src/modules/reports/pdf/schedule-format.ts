@@ -22,8 +22,6 @@ const SCHEDULE_TYPE_BN: Record<ReportPeriod, string> = {
   week: 'সাপ্তাহিক কর্মসূচি',
   month: 'মাসিক কর্মসূচি',
   year: 'বার্ষিক কর্মসূচি',
-  // Owner decision 2026-11-19: the fiscal year uses the yearly title.
-  'fiscal-year': 'বার্ষিক কর্মসূচি',
 };
 
 /** "বাংলাদেশ পরিসংখ্যান ব্যুরো — সাপ্তাহিক কর্মসূচি" */

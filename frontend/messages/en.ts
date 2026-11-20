@@ -490,7 +490,6 @@ export const en: Messages = {
       week: "Week",
       month: "Month",
       year: "Year",
-      "fiscal-year": "Fiscal year",
     },
     date: "Date",
     dateHint: "The report covers the period that contains this date.",

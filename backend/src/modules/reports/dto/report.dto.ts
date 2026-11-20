@@ -6,17 +6,20 @@ import { MeetingStatus } from '../../meetings/enums/meeting-status.enum';
 import { ParticipantRole } from '../../meetings/enums/participant-role.enum';
 
 const DATE_MESSAGE = 'তারিখ YYYY-MM-DD আকারে দিন (যেমন 2026-12-01)।';
+/** v1.15: "fiscal-year" was removed; old calls get this 400 (code PERIOD_INVALID). */
+const PERIOD_MESSAGE =
+  'period day, week, month অথবা year হতে হবে। fiscal-year আর সমর্থিত নয়।';
 
 /** ?period=&date= — shared by JSON and PDF reports. */
 export class ReportPeriodQueryDto {
   @ApiPropertyOptional({
     enum: REPORT_PERIODS,
     default: 'month',
-    description: 'Week = Sunday–Saturday; fiscal-year = July–June (Asia/Dhaka)',
+    description: 'Week = Sunday–Saturday, year = January–December (Asia/Dhaka)',
   })
   @IsOptional()
   @IsIn(REPORT_PERIODS, {
-    message: 'period day, week, month, year অথবা fiscal-year হতে হবে।',
+    message: PERIOD_MESSAGE,
   })
   period: ReportPeriod = 'month';
 
@@ -50,7 +53,7 @@ export class ReportQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ enum: REPORT_PERIODS, default: 'month' })
   @IsOptional()
   @IsIn(REPORT_PERIODS, {
-    message: 'period day, week, month, year অথবা fiscal-year হতে হবে।',
+    message: PERIOD_MESSAGE,
   })
   period: ReportPeriod = 'month';
 

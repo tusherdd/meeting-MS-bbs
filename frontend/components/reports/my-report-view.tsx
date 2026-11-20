@@ -18,7 +18,7 @@ import {
 } from "./report-parts";
 import { useReportParams } from "./use-report-params";
 
-/** /reports: my report for a day / week / month / year / fiscal year (GET /reports/me). */
+/** /reports: my report for a day / week / month / year (GET /reports/me). */
 export function MyReportView() {
   const t = useT();
   const { formatHours, formatNumber } = useFormat();

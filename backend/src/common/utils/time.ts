@@ -9,13 +9,8 @@ import { DateTime } from 'luxon';
 
 export const DHAKA_TZ = 'Asia/Dhaka';
 
-export const REPORT_PERIODS = [
-  'day',
-  'week',
-  'month',
-  'year',
-  'fiscal-year',
-] as const;
+/** v1.15: the fiscal year ("fiscal-year") was removed. */
+export const REPORT_PERIODS = ['day', 'week', 'month', 'year'] as const;
 export type ReportPeriod = (typeof REPORT_PERIODS)[number];
 
 /** Half-open range: start is included, end is excluded. */
@@ -23,9 +18,6 @@ export interface DateRange {
   start: Date;
   end: Date;
 }
-
-/** Fiscal year in Bangladesh starts on 1 July. */
-const FISCAL_YEAR_START_MONTH = 7;
 
 /**
  * Converts input to a luxon DateTime in Asia/Dhaka.
@@ -74,17 +66,6 @@ export function getYearRange(input?: Date | string): DateRange {
   return toRange(start, start.plus({ years: 1 }));
 }
 
-/** Fiscal year: 1 July to 30 June. */
-export function getFiscalYearRange(input?: Date | string): DateRange {
-  const dt = toDhakaDateTime(input);
-  const startYear = dt.month >= FISCAL_YEAR_START_MONTH ? dt.year : dt.year - 1;
-  const start = DateTime.fromObject(
-    { year: startYear, month: FISCAL_YEAR_START_MONTH, day: 1 },
-    { zone: DHAKA_TZ },
-  );
-  return toRange(start, start.plus({ years: 1 }));
-}
-
 export function getPeriodRange(
   period: ReportPeriod,
   input?: Date | string,
@@ -98,8 +79,6 @@ export function getPeriodRange(
       return getMonthRange(input);
     case 'year':
       return getYearRange(input);
-    case 'fiscal-year':
-      return getFiscalYearRange(input);
     default: {
       const unknownPeriod: never = period;
       throw new RangeError(`Unknown period: ${String(unknownPeriod)}`);

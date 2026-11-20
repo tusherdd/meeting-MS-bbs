@@ -377,7 +377,7 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | `WING_IN_USE` | This wing is assigned to {count} officers, so it cannot be deleted. Deactivate it if needed. | এই উইংটি {count} জন কর্মকর্তার সাথে যুক্ত, তাই মুছে ফেলা যাবে না। প্রয়োজনে উইংটি Inactive করুন। |
 | `WING_IN_USE_GENERIC` | This wing is assigned to officers, so it cannot be deleted. Deactivate it if needed. | এই উইংটি কর্মকর্তাদের সাথে যুক্ত, তাই মুছে ফেলা যাবে না। প্রয়োজনে উইংটি Inactive করুন। |
 | `FROM_INVALID` | from must be a valid ISO 8601 time. | from সঠিক ISO 8601 সময় হতে হবে। |
-| `PERIOD_INVALID` | period must be day, week, month, year or fiscal-year. | period day, week, month, year অথবা fiscal-year হতে হবে। |
+| `PERIOD_INVALID` | period must be day, week, month or year. fiscal-year is no longer supported. | period day, week, month অথবা year হতে হবে। fiscal-year আর সমর্থিত নয়। |
 | `MAIL_STATUS_INVALID` | status must be PENDING, SENT or FAILED. | status PENDING, SENT অথবা FAILED হতে হবে। |
 | `TO_INVALID` | to must be a valid ISO 8601 time. | to সঠিক ISO 8601 সময় হতে হবে। |
 | `UNREAD_INVALID` | unread must be true or false. | unread true অথবা false হতে হবে। |

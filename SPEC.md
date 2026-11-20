@@ -270,17 +270,21 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
 - Channel code is pluggable (`NotificationChannel` interface) so SMS/WhatsApp can be added later.
 
 ### 6.6 Reports
-- Periods: `day`, `week` (Sunday–Saturday), `month`, `year` (Jan–Dec), `fiscal-year` (July–June). All in Asia/Dhaka.
+- Periods: `day`, `week` (Sunday–Saturday), `month`, `year` (Jan–Dec). All in Asia/Dhaka.
+  **The fiscal year was removed in v1.15** (owner decision 2026-11-20): UI tabs, API option, PDF title and texts.
+  An old call with `period=fiscal-year` gets 400 `PERIOD_INVALID` "period day, week, month অথবা year হতে হবে।
+  fiscal-year আর সমর্থিত নয়।" / "… fiscal-year is no longer supported."; an old `/reports?period=fiscal-year` link
+  opens the month.
 - Officer report: meetings I organized / attended, counts by status, total hours, conflicts raised against my meetings.
 - Admin report: same, across the office, filterable by wing and designation.
 - PDF download for every report: the schedule "কর্মসূচি" (v1.14, below).
-- Guest officers (v1.5): every meeting row of the day/week/month/year/fiscal-year reports (web pages) shows
+- Guest officers (v1.5): every meeting row of the day/week/month/year reports (web pages) shows
   its chair (`chairNameBn`: the internal chair, else the guest chair's name) and, under the meeting, its
   guests as "অতিথি কর্মকর্তা: নাম — পদবি; …" (the PDF shows only a guest **chair**, v1.14). Guests are never counted in any total or statistic and have
   no dashboard or report of their own.
 - The dashboard opens on **today's meetings** by default, filtered to "চলমান" (scheduled) meetings (v1.15, §13.20).
 - A meeting belongs to a period when its **start** lies in the Asia/Dhaka range `[start, end)` from
-  `common/utils/time`; `?period=day|week|month|year|fiscal-year&date=YYYY-MM-DD` (default: month, today).
+  `common/utils/time`; `?period=day|week|month|year&date=YYYY-MM-DD` (default: month, today).
 - Hours count SCHEDULED and COMPLETED meetings (cancelled meetings take no time).
 - Officer report: totalMeetings, organized, attended, byStatus, totalHours, conflictsRaisedAgainstMyMeetings,
   conflictsIRaised, byDay, plus a paginated meeting list with my role.
@@ -294,8 +298,8 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
     Tinos for Latin (embedded, §13.10), Bangla digits for system numbers, user text as typed (§13.11), no logo. Footer:
     page numbers only, centered, "১/২".
   - **Header (centered):** green (`#016B4F`) bold title "বাংলাদেশ পরিসংখ্যান ব্যুরো — [type]": দৈনিক কর্মসূচি (day),
-    সাপ্তাহিক কর্মসূচি (week), মাসিক কর্মসূচি (month), বার্ষিক কর্মসূচি (year **and fiscal year**, owner decision
-    2026-11-19). The old title "সভা প্রতিবেদন" is gone. Then label : value lines aligned on the colon:
+    সাপ্তাহিক কর্মসূচি (week), মাসিক কর্মসূচি (month), বার্ষিক কর্মসূচি (year; the fiscal year
+    was removed in v1.15). The old title "সভা প্রতিবেদন" is gone. Then label : value lines aligned on the colon:
     কর্মকর্তা = "জনাব " + the **downloading user's** Bangla name (for the office report: the admin, not the filters);
     পদবি = their Bangla designation + " মহোদয়" **only** when its priority is 1, 2 or 3 (no designation → "—"; the number
     itself is never shown, §6.1); সময়কাল = the period label; প্রস্তুতের সময় = "d MMMM yyyy, HH:mm" (Asia/Dhaka). Then a green rule.
@@ -712,7 +716,8 @@ notice "সভার নোটিশ" (§6.8, §13.6, §13.18); (C) "সভা �
 Release **v1.14** (2026-11-20, tag `v1.14`, part C of 3): the report PDFs (my report and the office report) became the
 schedule "কর্মসূচি" (A4 landscape, one table, §6.6); the web report pages are unchanged.
 
-Release **v1.15** (2026-11-20, tag `v1.15`; progress in `docs/progress/v1.15.md`): (1) the calendar removed (§13.12).
+Release **v1.15** (2026-11-20, tag `v1.15`; progress in `docs/progress/v1.15.md`): (1) the calendar removed (§13.12);
+(2) the fiscal year removed from the reports (§6.6).
 
 ## 13. Frontend (`frontend/`)
 
@@ -830,9 +835,9 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   query is refreshed (`lib/invalidate.ts`).
 
 ### 13.7 Reports, profile and admin panel (F3)
-- **Reports** (`/reports`): period tabs দিন / সপ্তাহ / মাস / বছর / অর্থবছর, date field, "আগের" / "বর্তমান" / "পরের";
+- **Reports** (`/reports`): period tabs দিন / সপ্তাহ / মাস / বছর (the fiscal year was removed in v1.15), date field, "আগের" / "বর্তমান" / "পরের";
   the range is shown in Bangla (backend label + first and last day). Summary cards, counts by status, a bar
-  chart of meetings per day (per month for a year or fiscal year; plain HTML bars with a hidden data table,
+  chart of meetings per day (per month for a year; plain HTML bars with a hidden data table,
   no SVG), paginated meeting list. The filters live in the address. "Download PDF" fetches the PDF as a Blob with
   the same filters, shows "তৈরি হচ্ছে…", saves it under the `Content-Disposition` file name and shows the
   backend's message on failure.

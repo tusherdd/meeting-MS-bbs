@@ -62,12 +62,6 @@ export function resolvePeriod(
       labelBn = `${toBanglaDigits(start.year)} সাল`;
       fileKey = String(start.year);
       break;
-    case 'fiscal-year': {
-      const fy = `${start.year}-${String((start.year + 1) % 100).padStart(2, '0')}`;
-      labelBn = `${toBanglaDigits(fy)} অর্থবছর`;
-      fileKey = `fy-${fy}`;
-      break;
-    }
   }
   return { period, date: day, range, labelBn, fileKey };
 }

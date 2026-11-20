@@ -489,7 +489,6 @@ const bnMessages = {
       week: "সপ্তাহ",
       month: "মাস",
       year: "বছর",
-      "fiscal-year": "অর্থবছর",
     },
     date: "তারিখ",
     dateHint: "এই তারিখ যে সময়কালে পড়ে সেটির Report দেখানো হবে।",

@@ -6,7 +6,7 @@ Informatics Division (SID). Every officer creates and manages meetings. Each mee
 higher-priority meeting is never blocked by a clash; the organizers and shared officers of the lower-priority
 meetings are informed and may cancel or decide otherwise. Guest officers (অতিথি কর্মকর্তা) without an account
 can be invited by email (v1.5).
-Officers have a dashboard and day / week / month / year / fiscal-year reports (with Bangla PDF);
+Officers have a dashboard and day / week / month / year reports (with Bangla PDF);
 admins manage users, designations, wings, change requests, office reports, the mail queue and the
 audit log. The UI is in Bangla.
 

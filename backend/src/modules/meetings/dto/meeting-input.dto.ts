@@ -123,7 +123,7 @@ export class CreateMeetingDto {
     type: String,
     nullable: true,
     example:
-      '১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি\n২. ২০২৬-২৭ অর্থবছরের এডিপি\n৩. বিবিধ',
+      '১. গত সভার সিদ্ধান্ত বাস্তবায়ন অগ্রগতি\n২. এডিপি অগ্রগতি পর্যালোচনা\n৩. বিবিধ',
     maxLength: 5000,
   })
   @IsOptional()
