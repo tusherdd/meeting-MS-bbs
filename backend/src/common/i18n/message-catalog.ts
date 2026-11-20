@@ -869,6 +869,18 @@ export const MESSAGE_CATALOG = {
     bn: 'সঠিক তারিখ দিন (YYYY-MM-DD)।',
     en: 'Enter a valid date (YYYY-MM-DD).',
   },
+  RANGE_INCOMPLETE: {
+    bn: 'শুরুর তারিখ ও শেষ তারিখ দুটোই দিন।',
+    en: 'Enter both the start date and the end date.',
+  },
+  RANGE_END_BEFORE_START: {
+    bn: 'শেষ তারিখ শুরুর তারিখের আগে হতে পারে না।',
+    en: 'End date cannot be before start date.',
+  },
+  RANGE_TOO_LONG: {
+    bn: 'সময়কাল সর্বোচ্চ ২ বছর হতে পারে।',
+    en: 'The range can be at most 2 years.',
+  },
   NAME_EN_LATIN: {
     bn: 'ইংরেজি নাম ইংরেজি (Latin) অক্ষরে লিখুন; বাংলা অক্ষর দেওয়া যাবে না।',
     en: 'Write the English name in Latin letters; Bangla letters are not allowed.',

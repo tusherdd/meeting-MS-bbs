@@ -6,7 +6,7 @@ import { Tabs } from "@/components/ui/tabs";
 
 import { REPORT_PERIODS, containsToday, periodDays, shiftPeriod } from "@/lib/report-period";
 import { dhakaToday } from "@/lib/time";
-import type { PeriodDto } from "@/lib/types";
+import type { PeriodDto, ReportPeriod } from "@/lib/types";
 import { useFormat, useT } from "@/providers/locale-provider";
 
 /**
@@ -21,11 +21,11 @@ export function PeriodPicker({
   onChange,
 }: {
   idPrefix: string;
-  period: PeriodDto["period"];
+  period: ReportPeriod;
   date: string;
   /** The period the backend answered with (its Bangla label and exact range). */
   loaded?: PeriodDto;
-  onChange: (next: { period?: PeriodDto["period"]; date?: string }) => void;
+  onChange: (next: { period?: ReportPeriod; date?: string }) => void;
 }) {
   const t = useT();
   const { formatDate, formatPlainDate } = useFormat();

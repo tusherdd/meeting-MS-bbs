@@ -934,7 +934,7 @@ export interface paths {
         };
         /**
          * My report: summary + meeting list for a period
-         * @description Meetings where I am organizer, chair or participant and that START in the period (Asia/Dhaka). Example: `?period=month&date=2026-12-01`.
+         * @description Meetings where I am organizer, chair or participant and that START in the period (Asia/Dhaka). Example: `?period=month&date=2026-12-01`, or a custom range (v1.15) `?from=2026-11-01&to=2026-12-15` (both days inclusive, at most 2 years; 400 when the end is before the start).
          */
         get: operations["ReportsController_me"];
         put?: never;
@@ -2432,11 +2432,15 @@ export interface components {
         };
         PeriodDto: {
             /**
+             * @description `custom` = a date range chosen with from / to (v1.15)
              * @example month
              * @enum {string}
              */
-            period: "day" | "week" | "month" | "year";
-            /** @example 2026-12-01 */
+            period: "day" | "week" | "month" | "year" | "custom";
+            /**
+             * @description Reference day; for a custom range its first day
+             * @example 2026-12-01
+             */
             date: string;
             /** @example ডিসেম্বর ২০২৬ */
             labelBn: string;
@@ -5156,6 +5160,10 @@ export interface operations {
                 limit?: number;
                 period?: "day" | "week" | "month" | "year";
                 date?: string;
+                /** @description v1.15 custom range: first day (YYYY-MM-DD, Asia/Dhaka, inclusive). Together with `to` it replaces period/date; at most 2 years. */
+                from?: string;
+                /** @description v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`. */
+                to?: string;
             };
             header?: {
                 /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
@@ -5183,6 +5191,10 @@ export interface operations {
                 period?: "day" | "week" | "month" | "year";
                 /** @description Any day inside the period (default: today in Dhaka) */
                 date?: string;
+                /** @description v1.15 custom range: first day (YYYY-MM-DD, Asia/Dhaka, inclusive). Together with `to` it replaces period/date; at most 2 years. */
+                from?: string;
+                /** @description v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`. */
+                to?: string;
             };
             header?: {
                 /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
@@ -5218,6 +5230,10 @@ export interface operations {
                 limit?: number;
                 period?: "day" | "week" | "month" | "year";
                 date?: string;
+                /** @description v1.15 custom range: first day (YYYY-MM-DD, Asia/Dhaka, inclusive). Together with `to` it replaces period/date; at most 2 years. */
+                from?: string;
+                /** @description v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`. */
+                to?: string;
                 wingId?: string;
                 designationId?: string;
             };
@@ -5254,6 +5270,10 @@ export interface operations {
                 period?: "day" | "week" | "month" | "year";
                 /** @description Any day inside the period (default: today in Dhaka) */
                 date?: string;
+                /** @description v1.15 custom range: first day (YYYY-MM-DD, Asia/Dhaka, inclusive). Together with `to` it replaces period/date; at most 2 years. */
+                from?: string;
+                /** @description v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`. */
+                to?: string;
                 /** @description Organizer's wing */
                 wingId?: string;
                 /** @description Organizer's designation */

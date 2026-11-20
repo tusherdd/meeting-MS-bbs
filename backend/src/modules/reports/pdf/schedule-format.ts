@@ -24,8 +24,12 @@ const SCHEDULE_TYPE_BN: Record<ReportPeriod, string> = {
   year: 'বার্ষিক কর্মসূচি',
 };
 
-/** "বাংলাদেশ পরিসংখ্যান ব্যুরো — সাপ্তাহিক কর্মসূচি" */
-export function scheduleTitleBn(period: ReportPeriod): string {
+/**
+ * "বাংলাদেশ পরিসংখ্যান ব্যুরো — সাপ্তাহিক কর্মসূচি"; a custom date range (v1.15) is just
+ * "বাংলাদেশ পরিসংখ্যান ব্যুরো — কর্মসূচি".
+ */
+export function scheduleTitleBn(period: ReportPeriod | 'custom'): string {
+  if (period === 'custom') return `${ORG_NAME_BN} — কর্মসূচি`;
   return `${ORG_NAME_BN} — ${SCHEDULE_TYPE_BN[period]}`;
 }
 

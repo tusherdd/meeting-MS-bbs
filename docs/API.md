@@ -124,10 +124,10 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 
 | Method | Path | Access | Purpose | Main request fields | Responses |
 |---|---|---|---|---|---|
-| GET | `/reports/me` | 👤 | My report: summary + meeting list for a period | `page` (query), `limit` (query), `period` (query), `date` (query) | 200 |
-| GET | `/reports/me/pdf` | 👤 | My report as PDF ("কর্মসূচি", A4 landscape, Bangla) | `period` (query), `date` (query) | 200, 503 |
-| GET | `/reports/office` | 🛡 | Office-wide report (ADMIN), filterable by the organizer’s wing and designation | `page` (query), `limit` (query), `period` (query), `date` (query), `wingId` (query), `designationId` (query) | 200, 403 |
-| GET | `/reports/office/pdf` | 🛡 | Office report as PDF ("কর্মসূচি", ADMIN) | `period` (query), `date` (query), `wingId` (query), `designationId` (query) | 200, 403, 503 |
+| GET | `/reports/me` | 👤 | My report: summary + meeting list for a period | `page` (query), `limit` (query), `period` (query), `date` (query), `from` (query), `to` (query) | 200 |
+| GET | `/reports/me/pdf` | 👤 | My report as PDF ("কর্মসূচি", A4 landscape, Bangla) | `period` (query), `date` (query), `from` (query), `to` (query) | 200, 503 |
+| GET | `/reports/office` | 🛡 | Office-wide report (ADMIN), filterable by the organizer’s wing and designation | `page` (query), `limit` (query), `period` (query), `date` (query), `from` (query), `to` (query), `wingId` (query), `designationId` (query) | 200, 403 |
+| GET | `/reports/office/pdf` | 🛡 | Office report as PDF ("কর্মসূচি", ADMIN) | `period` (query), `date` (query), `from` (query), `to` (query), `wingId` (query), `designationId` (query) | 200, 403, 503 |
 
 ## Admin
 
@@ -169,7 +169,7 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 
 ## Message codes
 
-214 codes from `backend/src/common/i18n/message-catalog.ts`. `{name}` = a value filled in at run time.
+217 codes from `backend/src/common/i18n/message-catalog.ts`. `{name}` = a value filled in at run time.
 
 | Code | English | Bangla |
 |---|---|---|
@@ -386,5 +386,8 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | `DATE_FORMAT_EXAMPLE` | Enter the date as YYYY-MM-DD (e.g. 2026-12-01). | তারিখ YYYY-MM-DD আকারে দিন (যেমন 2026-12-01)। |
 | `PDF_TIMEOUT` | Creating the PDF is taking too long. Please try again after a while. | পিডিএফ তৈরি করতে বেশি সময় লাগছে। কিছুক্ষণ পর আবার চেষ্টা করুন। |
 | `DATE_INVALID` | Enter a valid date (YYYY-MM-DD). | সঠিক তারিখ দিন (YYYY-MM-DD)। |
+| `RANGE_INCOMPLETE` | Enter both the start date and the end date. | শুরুর তারিখ ও শেষ তারিখ দুটোই দিন। |
+| `RANGE_END_BEFORE_START` | End date cannot be before start date. | শেষ তারিখ শুরুর তারিখের আগে হতে পারে না। |
+| `RANGE_TOO_LONG` | The range can be at most 2 years. | সময়কাল সর্বোচ্চ ২ বছর হতে পারে। |
 | `NAME_EN_LATIN` | Write the English name in Latin letters; Bangla letters are not allowed. | ইংরেজি নাম ইংরেজি (Latin) অক্ষরে লিখুন; বাংলা অক্ষর দেওয়া যাবে না। |
 

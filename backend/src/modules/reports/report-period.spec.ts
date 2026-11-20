@@ -1,5 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
-import { resolvePeriod } from './report-period';
+import {
+  resolvePeriod,
+  resolveRange,
+  resolveReportQuery,
+  validateRange,
+} from './report-period';
 
 describe('resolvePeriod (Asia/Dhaka)', () => {
   it.each([
@@ -54,5 +59,63 @@ describe('resolvePeriod (Asia/Dhaka)', () => {
     expect(() => resolvePeriod('day', '2026-02-30')).toThrow(
       BadRequestException,
     );
+  });
+});
+
+describe('custom date range (v1.15)', () => {
+  it('both days inclusive, Asia/Dhaka; label and file key', () => {
+    const p = resolveRange('2026-11-01', '2026-12-15');
+    expect(p.period).toBe('custom');
+    expect(p.date).toBe('2026-11-01');
+    expect(p.range.start.toISOString()).toBe('2026-10-31T18:00:00.000Z');
+    // The end is the day AFTER the last day, 00:00 Dhaka.
+    expect(p.range.end.toISOString()).toBe('2026-12-15T18:00:00.000Z');
+    expect(p.labelBn).toBe('১ নভেম্বর ২০২৬ – ১৫ ডিসেম্বর ২০২৬');
+    expect(p.fileKey).toBe('2026-11-01_2026-12-15');
+  });
+
+  it('a one-day range is that whole day', () => {
+    const p = resolveRange('2026-11-20', '2026-11-20');
+    expect(p.range.start.toISOString()).toBe('2026-11-19T18:00:00.000Z');
+    expect(p.range.end.toISOString()).toBe('2026-11-20T18:00:00.000Z');
+  });
+
+  it('rules: both dates, end not before start, at most 2 years', () => {
+    expect(validateRange('2026-11-01', '2026-11-30')).toBeNull();
+    expect(validateRange(undefined, '2026-11-30')).toBe('incomplete');
+    expect(validateRange('2026-11-01', undefined)).toBe('incomplete');
+    expect(validateRange('2026-02-30', '2026-03-01')).toBe('incomplete');
+    expect(validateRange('2026-11-02', '2026-11-01')).toBe('endBeforeStart');
+    // Exactly two years (inclusive) is allowed; one more day is not.
+    expect(validateRange('2025-01-01', '2026-12-31')).toBeNull();
+    expect(validateRange('2025-01-01', '2027-01-01')).toBe('tooLong');
+    expect(validateRange('2024-02-29', '2026-02-27')).toBeNull();
+  });
+
+  it('throws 400 with the Bangla message', () => {
+    expect(() => resolveRange('2026-11-02', '2026-11-01')).toThrow(
+      'শেষ তারিখ শুরুর তারিখের আগে হতে পারে না।',
+    );
+    expect(() => resolveRange('2025-01-01', '2027-01-01')).toThrow(
+      'সময়কাল সর্বোচ্চ ২ বছর হতে পারে।',
+    );
+    expect(() => resolveRange('2026-11-01')).toThrow(BadRequestException);
+  });
+
+  it('from / to win over period / date; without them the period is used', () => {
+    expect(
+      resolveReportQuery({
+        period: 'month',
+        date: '2026-01-10',
+        from: '2026-11-01',
+        to: '2026-11-03',
+      }).period,
+    ).toBe('custom');
+    expect(
+      resolveReportQuery({ period: 'week', date: '2026-12-01' }).fileKey,
+    ).toBe('week-2026-11-29');
+    expect(() =>
+      resolveReportQuery({ period: 'month', to: '2026-11-03' }),
+    ).toThrow(BadRequestException);
   });
 });

@@ -4244,7 +4244,7 @@
     },
     "/api/v1/reports/me": {
       "get": {
-        "description": "Meetings where I am organizer, chair or participant and that START in the period (Asia/Dhaka). Example: `?period=month&date=2026-12-01`.",
+        "description": "Meetings where I am organizer, chair or participant and that START in the period (Asia/Dhaka). Example: `?period=month&date=2026-12-01`, or a custom range (v1.15) `?from=2026-11-01&to=2026-12-15` (both days inclusive, at most 2 years; 400 when the end is before the start).",
         "operationId": "ReportsController_me",
         "parameters": [
           {
@@ -4291,6 +4291,26 @@
             "in": "query",
             "schema": {
               "example": "2026-12-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "v1.15 custom range: first day (YYYY-MM-DD, Asia/Dhaka, inclusive). Together with `to` it replaces period/date; at most 2 years.",
+            "schema": {
+              "example": "2026-11-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`.",
+            "schema": {
+              "example": "2026-12-15",
               "type": "string"
             }
           },
@@ -4360,6 +4380,26 @@
             "description": "Any day inside the period (default: today in Dhaka)",
             "schema": {
               "example": "2026-12-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "v1.15 custom range: first day (YYYY-MM-DD, Asia/Dhaka, inclusive). Together with `to` it replaces period/date; at most 2 years.",
+            "schema": {
+              "example": "2026-11-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`.",
+            "schema": {
+              "example": "2026-12-15",
               "type": "string"
             }
           },
@@ -4457,6 +4497,26 @@
             }
           },
           {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "v1.15 custom range: first day (YYYY-MM-DD, Asia/Dhaka, inclusive). Together with `to` it replaces period/date; at most 2 years.",
+            "schema": {
+              "example": "2026-11-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`.",
+            "schema": {
+              "example": "2026-12-15",
+              "type": "string"
+            }
+          },
+          {
             "name": "wingId",
             "required": false,
             "in": "query",
@@ -4544,6 +4604,26 @@
             "description": "Any day inside the period (default: today in Dhaka)",
             "schema": {
               "example": "2026-12-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "v1.15 custom range: first day (YYYY-MM-DD, Asia/Dhaka, inclusive). Together with `to` it replaces period/date; at most 2 years.",
+            "schema": {
+              "example": "2026-11-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`.",
+            "schema": {
+              "example": "2026-12-15",
               "type": "string"
             }
           },
@@ -7929,13 +8009,16 @@
               "day",
               "week",
               "month",
-              "year"
+              "year",
+              "custom"
             ],
-            "example": "month"
+            "example": "month",
+            "description": "`custom` = a date range chosen with from / to (v1.15)"
           },
           "date": {
             "type": "string",
-            "example": "2026-12-01"
+            "example": "2026-12-01",
+            "description": "Reference day; for a custom range its first day"
           },
           "labelBn": {
             "type": "string",

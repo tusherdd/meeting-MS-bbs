@@ -180,7 +180,9 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
           .set(as(who))
           .expect(400);
         expect(res.body).toMatchObject({ code: 'PERIOD_INVALID' });
-        expect(JSON.stringify(res.body)).toContain('fiscal-year আর সমর্থিত নয়।');
+        expect(JSON.stringify(res.body)).toContain(
+          'fiscal-year আর সমর্থিত নয়।',
+        );
       }
       await http()
         .get(`${API}/reports/me`)
@@ -188,6 +190,59 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
         .set(as('officer'))
         .expect(400);
     });
+
+    it('v1.15 custom range ?from=&to= (both days inclusive, max 2 years)', async () => {
+      // A one-day range equals the day report.
+      const res = await http()
+        .get(`${API}/reports/me`)
+        .query({ from: dateParam, to: dateParam })
+        .set(as('officer'))
+        .expect(200);
+      expect(res.body).toMatchObject({
+        period: { period: 'custom', date: dateParam },
+        summary: { totalMeetings: 3, totalHours: 2.5 },
+      });
+
+      const bad = async (query: Record<string, string>, code: string) => {
+        for (const path of ['/reports/me', '/reports/me/pdf']) {
+          const r = await http()
+            .get(`${API}${path}`)
+            .query(query)
+            .set(as('officer'))
+            .expect(400);
+          expect(r.body).toMatchObject({ code });
+        }
+      };
+      await bad(
+        { from: '2026-11-02', to: '2026-11-01' },
+        'RANGE_END_BEFORE_START',
+      );
+      await bad({ from: '2025-01-01', to: '2027-01-01' }, 'RANGE_TOO_LONG');
+      await bad({ from: '2026-11-01' }, 'RANGE_INCOMPLETE');
+      // Exactly two years is allowed (office report too).
+      await http()
+        .get(`${API}/reports/office`)
+        .query({ from: '2025-01-01', to: '2026-12-31' })
+        .set(as('admin'))
+        .expect(200);
+
+      // PDF: the plain title "… — কর্মসূচি" and the chosen dates as সময়কাল.
+      const spy = jest.spyOn(app.get(PdfService), 'render');
+      const pdf = await http()
+        .get(`${API}/reports/me/pdf`)
+        .query({ from: '2026-11-01', to: '2026-12-15' })
+        .set(as('officer'))
+        .buffer(true)
+        .parse(binary)
+        .expect(200);
+      const html = spy.mock.calls[0][0];
+      spy.mockRestore();
+      expect(html).toContain('বাংলাদেশ পরিসংখ্যান ব্যুরো — কর্মসূচি');
+      expect(html).toContain('১ নভেম্বর ২০২৬ – ১৫ ডিসেম্বর ২০২৬');
+      expect(pdf.headers['content-disposition']).toBe(
+        'attachment; filename="meeting-report-2026-11-01_2026-12-15.pdf"',
+      );
+    }, 60_000);
 
     it('GET /reports/me/pdf returns a real PDF attachment with a safe file name', async () => {
       const spy = jest.spyOn(app.get(PdfService), 'render');

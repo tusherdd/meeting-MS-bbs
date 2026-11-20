@@ -490,6 +490,21 @@ const bnMessages = {
       month: "মাস",
       year: "বছর",
     },
+    /** v1.15 period buttons (this period, containing today). */
+    quickPeriods: {
+      day: "আজ",
+      week: "এই সপ্তাহ",
+      month: "এই মাস",
+      year: "এই বছর",
+    },
+    rangeStart: "শুরুর তারিখ",
+    rangeEnd: "শেষ তারিখ",
+    rangeApply: "দেখুন",
+    rangeErrors: {
+      incomplete: "শুরুর তারিখ ও শেষ তারিখ দুটোই দিন।",
+      endBeforeStart: "শেষ তারিখ শুরুর তারিখের আগে হতে পারে না।",
+      tooLong: "সময়কাল সর্বোচ্চ ২ বছর হতে পারে।",
+    },
     date: "তারিখ",
     dateHint: "এই তারিখ যে সময়কালে পড়ে সেটির Report দেখানো হবে।",
     prev: "আগের",

@@ -4,11 +4,7 @@ import { DateTime } from 'luxon';
 import { DataSource, In, Repository } from 'typeorm';
 import { paginated } from '../../common/dto/paginated-response.dto';
 import type { AuthUser } from '../../common/types/auth-user';
-import {
-  DHAKA_TZ,
-  type DateRange,
-  type ReportPeriod,
-} from '../../common/utils/time';
+import { DHAKA_TZ, type DateRange } from '../../common/utils/time';
 import { Designation } from '../designations/entities/designation.entity';
 import { MeetingConflict } from '../meetings/entities/meeting-conflict.entity';
 import { MeetingParticipant } from '../meetings/entities/meeting-participant.entity';
@@ -38,7 +34,11 @@ import {
   personalSummary,
   type ReportMeeting,
 } from './report-math';
-import { resolvePeriod, type ResolvedPeriod } from './report-period';
+import {
+  resolveReportQuery,
+  type ReportRangeQuery,
+  type ResolvedPeriod,
+} from './report-period';
 
 /** PDFs list at most this many meetings (a note says how many there are in total). */
 export const PDF_MAX_ROWS = 1000;
@@ -66,11 +66,10 @@ export class ReportsService {
 
   async personal(
     actor: AuthUser,
-    period: ReportPeriod,
-    date: string | undefined,
+    when: ReportRangeQuery,
     page: { page: number; limit: number; skip: number },
   ): Promise<PersonalReportDto> {
-    const p = resolvePeriod(period, date);
+    const p = resolveReportQuery(when);
     const [officer, meetings, conflicts] = await Promise.all([
       this.officer(actor.id),
       this.load(p.range, { personId: actor.id }),
@@ -95,12 +94,8 @@ export class ReportsService {
   }
 
   /** My report as the PDF "কর্মসূচি" (v1.14): my meetings of the period, without cancelled ones. */
-  async personalPdf(
-    actor: AuthUser,
-    period: ReportPeriod,
-    date?: string,
-  ): Promise<PdfFile> {
-    const p = resolvePeriod(period, date);
+  async personalPdf(actor: AuthUser, when: ReportRangeQuery): Promise<PdfFile> {
+    const p = resolveReportQuery(when);
     const meetings = await this.load(p.range, { personId: actor.id });
     return {
       filename: `meeting-report-${p.fileKey}.pdf`,
@@ -112,12 +107,11 @@ export class ReportsService {
 
   async office(
     actor: AuthUser,
-    period: ReportPeriod,
-    date: string | undefined,
+    when: ReportRangeQuery,
     filter: OfficeFilter,
     page: { page: number; limit: number; skip: number },
   ): Promise<OfficeReportDto> {
-    const p = resolvePeriod(period, date);
+    const p = resolveReportQuery(when);
     const [meetings, filters] = await Promise.all([
       this.load(p.range, { office: filter }, actor.id),
       this.filterNames(filter),
@@ -141,11 +135,10 @@ export class ReportsService {
    */
   async officePdf(
     actor: AuthUser,
-    period: ReportPeriod,
-    date: string | undefined,
+    when: ReportRangeQuery,
     filter: OfficeFilter,
   ): Promise<PdfFile> {
-    const p = resolvePeriod(period, date);
+    const p = resolveReportQuery(when);
     const meetings = await this.load(p.range, { office: filter });
     return {
       filename: `office-meeting-report-${p.fileKey}.pdf`,

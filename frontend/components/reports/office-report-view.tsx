@@ -34,8 +34,8 @@ export function OfficeReportView() {
   };
 
   const report = useQuery({
-    queryKey: queryKeys.officeReport(period, date, filter, page),
-    queryFn: () => reportsApi.office(period, date, filter, page),
+    queryKey: queryKeys.officeReport({ kind: "period", period, date }, filter, page),
+    queryFn: () => reportsApi.office({ kind: "period", period, date }, filter, page),
     placeholderData: keepPreviousData,
   });
   const wings = useQuery({ queryKey: queryKeys.allWings, queryFn: wingsApi.list });
@@ -50,7 +50,9 @@ export function OfficeReportView() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <h1 className="text-2xl font-semibold text-slate-900">{t.reports.officeTitle}</h1>
-        <PdfDownloadButton download={() => reportsApi.officePdf(period, date, filter)} />
+        <PdfDownloadButton
+          download={() => reportsApi.officePdf({ kind: "period", period, date }, filter)}
+        />
       </div>
 
       <Card>

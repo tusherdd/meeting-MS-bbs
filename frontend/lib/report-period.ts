@@ -78,19 +78,21 @@ export interface ChartBar {
   hours: number;
 }
 
+/** Above this many days the chart shows one bar per month (365 bars would be unreadable). */
+export const CHART_MAX_DAY_BARS = 62;
+
 /**
- * Bars for the meetings-per-day chart. Day/week/month: one bar per day (days without meetings
- * show 0). Year: one bar per month (365 bars would be unreadable).
+ * Bars for the meetings-per-day chart over the days [first, last] (both inclusive): one bar per
+ * day (days without meetings show 0), or one bar per month for a year or a long custom range.
  */
 export function chartBars(
-  period: ReportPeriod,
-  date: string,
+  days: { first: string; last: string },
   byDay: readonly { date: string; meetings: number; hours: number }[],
 ): { unit: "day" | "month"; bars: ChartBar[] } {
-  const { first, last } = periodDays(period, date);
-  if (period === "year") {
+  const { first, last } = days;
+  if (daysBetween(first, last) + 1 > CHART_MAX_DAY_BARS) {
     const months = new Map<string, ChartBar>();
-    for (let d = first; d <= last; d = shiftPeriod("month", d, 1)) {
+    for (let d = `${first.slice(0, 7)}-01`; d <= last; d = shiftPeriod("month", d, 1)) {
       const key = d.slice(0, 7);
       months.set(key, { key, label: key, meetings: 0, hours: 0 });
     }
@@ -110,4 +112,13 @@ export function chartBars(
     bars.push({ key: d, label: d, meetings: found?.meetings ?? 0, hours: found?.hours ?? 0 });
   }
   return { unit: "day", bars };
+}
+
+/** Whole days from `a` to `b` ("YYYY-MM-DD"; negative when b is before a). */
+export function daysBetween(a: string, b: string): number {
+  const ms = (d: string) => {
+    const [y, m, day] = d.split("-").map(Number);
+    return Date.UTC(y, m - 1, day);
+  };
+  return Math.round((ms(b) - ms(a)) / 86_400_000);
 }

@@ -7,8 +7,9 @@ import { Pagination } from "@/components/ui/pagination";
 import { LoadingBlock } from "@/components/ui/spinner";
 
 import { queryKeys, reportsApi } from "@/lib/endpoints";
+import { whenDays } from "@/lib/report-range";
 import { useFormat, useT } from "@/providers/locale-provider";
-import { PeriodPicker } from "./period-picker";
+import { ReportPeriodBar, useRangeText } from "./report-period-bar";
 import {
   MeetingsBarChart,
   PdfDownloadButton,
@@ -18,36 +19,54 @@ import {
 } from "./report-parts";
 import { useReportParams } from "./use-report-params";
 
-/** /reports: my report for a day / week / month / year (GET /reports/me). */
+/**
+ * /reports: my report for today / this week / this month / this year or (v1.15) a chosen date
+ * range (GET /reports/me).
+ */
 export function MyReportView() {
   const t = useT();
   const { formatHours, formatNumber } = useFormat();
-  const { period, date, page, update } = useReportParams();
+  const { when, activePeriod, page, update, choosePeriod, chooseRange } = useReportParams();
 
   const report = useQuery({
-    queryKey: queryKeys.myReportPage(period, date, page),
-    queryFn: () => reportsApi.mePage(period, date, page),
+    queryKey: queryKeys.myReportPage(when, page),
+    queryFn: () => reportsApi.mePage(when, page),
     placeholderData: keepPreviousData,
   });
   const data = report.data;
   const s = data?.summary;
+  // The backend's label and exact range, once the loaded report is the one asked for.
+  const loaded =
+    data &&
+    (when.kind === "range"
+      ? data.period.period === "custom" && data.period.date === when.from
+      : data.period.period === when.period)
+      ? data.period
+      : undefined;
+  const rangeText = useRangeText(when, loaded);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <h1 className="text-2xl font-semibold text-slate-900">{t.reports.title}</h1>
-        <PdfDownloadButton download={() => reportsApi.mePdf(period, date)} />
+        <PdfDownloadButton download={() => reportsApi.mePdf(when)} />
       </div>
 
       <Card>
-        <CardBody>
-          <PeriodPicker
+        <CardBody className="space-y-4">
+          <ReportPeriodBar
             idPrefix="my-report"
-            period={period}
-            date={date}
-            loaded={data && data.period.period === period ? data.period : undefined}
-            onChange={(next) => update(next)}
+            when={when}
+            activePeriod={activePeriod}
+            onPeriod={choosePeriod}
+            onRange={chooseRange}
           />
+          <div aria-live="polite" className="rounded-lg bg-brand-50 px-4 py-2.5 text-brand-900">
+            {loaded && <p className="font-semibold">{loaded.labelBn}</p>}
+            <p className="text-sm" data-testid="report-range">
+              {rangeText}
+            </p>
+          </div>
         </CardBody>
       </Card>
 
@@ -84,7 +103,7 @@ export function MyReportView() {
                   <span className="block text-xs">{t.reports.hoursNote}</span>
                 </p>
               </div>
-              <MeetingsBarChart period={period} date={date} byDay={s.byDay} />
+              <MeetingsBarChart days={whenDays(when)} byDay={s.byDay} />
             </CardBody>
           </Card>
 

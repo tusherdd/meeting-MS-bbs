@@ -283,6 +283,15 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
   guests as "অতিথি কর্মকর্তা: নাম — পদবি; …" (the PDF shows only a guest **chair**, v1.14). Guests are never counted in any total or statistic and have
   no dashboard or report of their own.
 - The dashboard opens on **today's meetings** by default, filtered to "চলমান" (scheduled) meetings (v1.15, §13.20).
+- **Custom date range (v1.15, owner decision 2026-11-20):** every report endpoint (JSON and PDF, mine and office)
+  also accepts `?from=YYYY-MM-DD&to=YYYY-MM-DD` (Asia/Dhaka calendar days, **both inclusive**: `[from 00:00, the day
+  after to 00:00)`); when either is given it replaces `period` / `date`. Rules (`reports/report-period.ts`
+  `validateRange` / `resolveRange`, mirrored in the frontend): both dates — else 400 `RANGE_INCOMPLETE`
+  "শুরুর তারিখ ও শেষ তারিখ দুটোই দিন।"; the end not before the start — `RANGE_END_BEFORE_START` "শেষ তারিখ শুরুর
+  তারিখের আগে হতে পারে না।" / "End date cannot be before start date."; at most 2 years (2025-01-01 – 2026-12-31 is
+  allowed, one more day is not) — `RANGE_TOO_LONG` "সময়কাল সর্বোচ্চ ২ বছর হতে পারে।". The answer's `period.period` is
+  `custom`, `labelBn` "১ নভেম্বর ২০২৬ – ১৫ ডিসেম্বর ২০২৬", file names `meeting-report-2026-11-01_2026-12-15.pdf`.
+  The PDF title for a custom range is "বাংলাদেশ পরিসংখ্যান ব্যুরো — কর্মসূচি" and সময়কাল shows the chosen dates.
 - A meeting belongs to a period when its **start** lies in the Asia/Dhaka range `[start, end)` from
   `common/utils/time`; `?period=day|week|month|year&date=YYYY-MM-DD` (default: month, today).
 - Hours count SCHEDULED and COMPLETED meetings (cancelled meetings take no time).
@@ -299,7 +308,7 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
     page numbers only, centered, "১/২".
   - **Header (centered):** green (`#016B4F`) bold title "বাংলাদেশ পরিসংখ্যান ব্যুরো — [type]": দৈনিক কর্মসূচি (day),
     সাপ্তাহিক কর্মসূচি (week), মাসিক কর্মসূচি (month), বার্ষিক কর্মসূচি (year; the fiscal year
-    was removed in v1.15). The old title "সভা প্রতিবেদন" is gone. Then label : value lines aligned on the colon:
+    was removed in v1.15); a custom date range (v1.15) has just "বাংলাদেশ পরিসংখ্যান ব্যুরো — কর্মসূচি". The old title "সভা প্রতিবেদন" is gone. Then label : value lines aligned on the colon:
     কর্মকর্তা = "জনাব " + the **downloading user's** Bangla name (for the office report: the admin, not the filters);
     পদবি = their Bangla designation + " মহোদয়" **only** when its priority is 1, 2 or 3 (no designation → "—"; the number
     itself is never shown, §6.1); সময়কাল = the period label; প্রস্তুতের সময় = "d MMMM yyyy, HH:mm" (Asia/Dhaka). Then a green rule.
@@ -546,8 +555,8 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 ### Reports
 | Method | Path | Access | Purpose |
 |---|---|---|---|
-| GET | `/reports/me?period=&date=` | 👤 | My summary + meeting list |
-| GET | `/reports/me/pdf?period=&date=` | 👤 | My report as PDF |
+| GET | `/reports/me?period=&date=` or `?from=&to=` (v1.15) | 👤 | My summary + meeting list |
+| GET | `/reports/me/pdf?period=&date=` or `?from=&to=` | 👤 | My report as PDF |
 | GET | `/reports/office?period=&date=&wingId=&designationId=` | 🛡 | Office-wide summary |
 | GET | `/reports/office/pdf?...` | 🛡 | Office report as PDF |
 
@@ -717,7 +726,7 @@ Release **v1.14** (2026-11-20, tag `v1.14`, part C of 3): the report PDFs (my re
 schedule "কর্মসূচি" (A4 landscape, one table, §6.6); the web report pages are unchanged.
 
 Release **v1.15** (2026-11-20, tag `v1.15`; progress in `docs/progress/v1.15.md`): (1) the calendar removed (§13.12);
-(2) the fiscal year removed from the reports (§6.6).
+(2) the fiscal year removed from the reports (§6.6); (3) the date range picker on "আমার রিপোর্ট" (§6.6, §13.7).
 
 ## 13. Frontend (`frontend/`)
 
@@ -835,9 +844,18 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   query is refreshed (`lib/invalidate.ts`).
 
 ### 13.7 Reports, profile and admin panel (F3)
-- **Reports** (`/reports`): period tabs দিন / সপ্তাহ / মাস / বছর (the fiscal year was removed in v1.15), date field, "আগের" / "বর্তমান" / "পরের";
-  the range is shown in Bangla (backend label + first and last day). Summary cards, counts by status, a bar
-  chart of meetings per day (per month for a year; plain HTML bars with a hidden data table,
+- **Reports** (`/reports`, "আমার রিপোর্ট"; v1.15, owner decision 2026-11-20): one filter row
+  (`components/reports/report-period-bar.tsx`) with the period buttons "আজ / এই সপ্তাহ / এই মাস / এই বছর"
+  (en "Today / This week / This month / This year"; the period containing today, `aria-pressed`, the selected one filled
+  green), a thin divider, then the reusable date range picker (`components/reports/date-range-filter.tsx`):
+  "শুরুর তারিখ" [date] – "শেষ তারিখ" [date] [দেখুন] (en "Start date", "End date", "Apply"). A period button fills both
+  dates; "দেখুন" applies a custom range and no period button stays selected (also none for an older period link
+  such as `?period=month&date=2026-10-15`). Rules (`lib/report-range.ts`, same as the backend, §6.6): both dates
+  required, the end not before the start ("শেষ তারিখ শুরুর তারিখের আগে হতে পারে না।" / "End date cannot be before
+  start date."), at most 2 years ("সময়কাল সর্বোচ্চ ২ বছর হতে পারে।"); while broken the message shows under the
+  fields and "দেখুন" is disabled. The old tabs, date field and "আগের" / "বর্তমান" / "পরের" are gone; the fiscal year
+  was removed in v1.15. The range is shown in Bangla (backend label + first and last day). Summary cards, counts by status, a bar
+  chart of meetings per day (per month for a year or a range longer than 62 days; plain HTML bars with a hidden data table,
   no SVG), paginated meeting list. The filters live in the address. "Download PDF" fetches the PDF as a Blob with
   the same filters, shows "তৈরি হচ্ছে…", saves it under the `Content-Disposition` file name and shows the
   backend's message on failure.

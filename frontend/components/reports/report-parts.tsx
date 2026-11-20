@@ -13,7 +13,7 @@ import { saveBlob, type DownloadedFile } from "@/lib/api";
 
 import { chartBars } from "@/lib/report-period";
 import { isOrganizerOrChair, isParticipant } from "@/lib/row-actions";
-import type { DayCount, PeriodDto, ReportMeeting, StatusCounts } from "@/lib/types";
+import type { DayCount, ReportMeeting, StatusCounts } from "@/lib/types";
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
 export interface StatItem {
@@ -72,12 +72,11 @@ export function StatusBreakdown({ byStatus }: { byStatus: StatusCounts }) {
  * label for screen readers, and the numbers are also listed in a hidden table.
  */
 export function MeetingsBarChart({
-  period,
-  date,
+  days,
   byDay,
 }: {
-  period: PeriodDto["period"];
-  date: string;
+  /** First and last day shown (both inclusive): the period or the custom range (v1.15). */
+  days: { first: string; last: string };
   byDay: DayCount[];
 }) {
   const t = useT();
@@ -88,7 +87,7 @@ export function MeetingsBarChart({
     formatPlainMonth,
     formatPlainMonthYear,
   } = useFormat();
-  const { unit, bars } = chartBars(period, date, byDay);
+  const { unit, bars } = chartBars(days, byDay);
   const max = Math.max(1, ...bars.map((b) => b.meetings));
   const total = bars.reduce((sum, b) => sum + b.meetings, 0);
   const title = unit === "day" ? t.reports.chartTitleDay : t.reports.chartTitleMonth;

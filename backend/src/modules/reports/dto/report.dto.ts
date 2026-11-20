@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsISO8601, IsOptional, IsUUID, Matches } from 'class-validator';
 import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
 import { REPORT_PERIODS, type ReportPeriod } from '../../../common/utils/time';
+import type { ReportRangeKind } from '../report-period';
 import { MeetingStatus } from '../../meetings/enums/meeting-status.enum';
 import { ParticipantRole } from '../../meetings/enums/participant-role.enum';
 
@@ -31,6 +32,26 @@ export class ReportPeriodQueryDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: DATE_MESSAGE })
   @IsISO8601({ strict: true }, { message: DATE_MESSAGE })
   date?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-11-01',
+    description:
+      'v1.15 custom range: first day (YYYY-MM-DD, Asia/Dhaka, inclusive). Together with `to` it replaces period/date; at most 2 years.',
+  })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: DATE_MESSAGE })
+  @IsISO8601({ strict: true }, { message: DATE_MESSAGE })
+  from?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-12-15',
+    description:
+      'v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`.',
+  })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: DATE_MESSAGE })
+  @IsISO8601({ strict: true }, { message: DATE_MESSAGE })
+  to?: string;
 }
 
 export class OfficeFilterDto extends ReportPeriodQueryDto {
@@ -62,6 +83,26 @@ export class ReportQueryDto extends PaginationQueryDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: DATE_MESSAGE })
   @IsISO8601({ strict: true }, { message: DATE_MESSAGE })
   date?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-11-01',
+    description:
+      'v1.15 custom range: first day (YYYY-MM-DD, Asia/Dhaka, inclusive). Together with `to` it replaces period/date; at most 2 years.',
+  })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: DATE_MESSAGE })
+  @IsISO8601({ strict: true }, { message: DATE_MESSAGE })
+  from?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-12-15',
+    description:
+      'v1.15 custom range: last day (YYYY-MM-DD, Asia/Dhaka, inclusive); not before `from`.',
+  })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: DATE_MESSAGE })
+  @IsISO8601({ strict: true }, { message: DATE_MESSAGE })
+  to?: string;
 }
 
 export class OfficeReportQueryDto extends ReportQueryDto {
@@ -79,10 +120,17 @@ export class OfficeReportQueryDto extends ReportQueryDto {
 // ------------------------------------------------------------------ responses
 
 export class PeriodDto {
-  @ApiProperty({ enum: REPORT_PERIODS, example: 'month' })
-  period!: ReportPeriod;
+  @ApiProperty({
+    enum: [...REPORT_PERIODS, 'custom'],
+    example: 'month',
+    description: '`custom` = a date range chosen with from / to (v1.15)',
+  })
+  period!: ReportRangeKind;
 
-  @ApiProperty({ example: '2026-12-01' })
+  @ApiProperty({
+    example: '2026-12-01',
+    description: 'Reference day; for a custom range its first day',
+  })
   date!: string;
 
   @ApiProperty({ example: 'ডিসেম্বর ২০২৬' })

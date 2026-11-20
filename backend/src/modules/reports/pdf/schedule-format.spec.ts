@@ -61,6 +61,10 @@ describe('report PDF "কর্মসূচি" rules (v1.14)', () => {
     expect(scheduleTitleBn('year')).toBe(
       'বাংলাদেশ পরিসংখ্যান ব্যুরো — বার্ষিক কর্মসূচি',
     );
+    // v1.15: a custom date range has the plain title.
+    expect(scheduleTitleBn('custom')).toBe(
+      'বাংলাদেশ পরিসংখ্যান ব্যুরো — কর্মসূচি',
+    );
   });
 
   it.each([

@@ -491,6 +491,21 @@ export const en: Messages = {
       month: "Month",
       year: "Year",
     },
+    /** v1.15 period buttons (this period, containing today). */
+    quickPeriods: {
+      day: "Today",
+      week: "This week",
+      month: "This month",
+      year: "This year",
+    },
+    rangeStart: "Start date",
+    rangeEnd: "End date",
+    rangeApply: "Apply",
+    rangeErrors: {
+      incomplete: "Enter both the start date and the end date.",
+      endBeforeStart: "End date cannot be before start date.",
+      tooLong: "The range can be at most 2 years.",
+    },
     date: "Date",
     dateHint: "The report covers the period that contains this date.",
     prev: "Previous",

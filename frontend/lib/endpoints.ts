@@ -4,6 +4,7 @@
  *
  * Key prefixes matter: lib/invalidate.ts refreshes whole groups ("meetings", "conflicts", …).
  */
+import { type ReportWhen, whenFileKey, whenKey, whenQuery } from "./report-range";
 import { api, apiDownload, apiUpload } from "./api";
 import type {
   AdminStats,
@@ -91,10 +92,10 @@ export const queryKeys = {
   notificationsList: (unread: boolean, page: number) =>
     ["notifications", "list", unread, page] as const,
   myReport: (period: ReportPeriod, date: string) => ["reports", "me", period, date] as const,
-  myReportPage: (period: ReportPeriod, date: string, page: number) =>
-    ["reports", "me", period, date, "page", page] as const,
-  officeReport: (period: ReportPeriod, date: string, filter: OfficeFilter, page: number) =>
-    ["reports", "office", period, date, filter, page] as const,
+  myReportPage: (when: ReportWhen, page: number) =>
+    ["reports", "me", ...whenKey(when), "page", page] as const,
+  officeReport: (when: ReportWhen, filter: OfficeFilter, page: number) =>
+    ["reports", "office", ...whenKey(when), filter, page] as const,
   verifyEmail: (token: string) => ["profile", "verify-email", token] as const,
   decisionSummary: ["decisions", "summary"] as const,
   decisionList: (as: "lead" | "member", status: DecisionStatus, page: number) =>
@@ -278,23 +279,24 @@ export const REPORT_PAGE_SIZE = 20;
 export const reportsApi = {
   me: (period: ReportPeriod, date: string) =>
     api<PersonalReport>("/reports/me", { query: { period, date, limit: 1 } }),
-  mePage: (period: ReportPeriod, date: string, page: number) =>
+  /** A period or (v1.15) a custom range, see lib/report-range.ts. */
+  mePage: (when: ReportWhen, page: number) =>
     api<PersonalReport>("/reports/me", {
-      query: { period, date, page, limit: REPORT_PAGE_SIZE },
+      query: { ...whenQuery(when), page, limit: REPORT_PAGE_SIZE },
     }),
-  mePdf: (period: ReportPeriod, date: string) =>
+  mePdf: (when: ReportWhen) =>
     apiDownload("/reports/me/pdf", {
-      query: { period, date },
-      fallbackName: `meeting-report-${date}.pdf`,
+      query: whenQuery(when),
+      fallbackName: `meeting-report-${whenFileKey(when)}.pdf`,
     }),
-  office: (period: ReportPeriod, date: string, filter: OfficeFilter, page: number) =>
+  office: (when: ReportWhen, filter: OfficeFilter, page: number) =>
     api<OfficeReport>("/reports/office", {
-      query: { period, date, ...filter, page, limit: REPORT_PAGE_SIZE },
+      query: { ...whenQuery(when), ...filter, page, limit: REPORT_PAGE_SIZE },
     }),
-  officePdf: (period: ReportPeriod, date: string, filter: OfficeFilter) =>
+  officePdf: (when: ReportWhen, filter: OfficeFilter) =>
     apiDownload("/reports/office/pdf", {
-      query: { period, date, ...filter },
-      fallbackName: `office-meeting-report-${date}.pdf`,
+      query: { ...whenQuery(when), ...filter },
+      fallbackName: `office-meeting-report-${whenFileKey(when)}.pdf`,
     }),
 };
 

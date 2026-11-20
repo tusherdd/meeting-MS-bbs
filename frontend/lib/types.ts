@@ -79,7 +79,8 @@ export type AppNotification = S["NotificationResponseDto"];
 export type UnreadCount = S["UnreadCountDto"];
 
 // Reports and admin ------------------------------------------------------------------------------
-export type ReportPeriod = S["PeriodDto"]["period"];
+/** day / week / month / year; "custom" (v1.15) is a chosen date range, see lib/report-range.ts. */
+export type ReportPeriod = Exclude<S["PeriodDto"]["period"], "custom">;
 export type PersonalReport = S["PersonalReportDto"];
 export type PersonalSummary = S["PersonalSummaryDto"];
 export type OfficeReport = S["OfficeReportDto"];

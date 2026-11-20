@@ -56,14 +56,15 @@ export class ReportsController {
     summary: 'My report: summary + meeting list for a period',
     description:
       'Meetings where I am organizer, chair or participant and that START in the period (Asia/Dhaka). ' +
-      'Example: `?period=month&date=2026-12-01`.',
+      'Example: `?period=month&date=2026-12-01`, or a custom range (v1.15) `?from=2026-11-01&to=2026-12-15` ' +
+      '(both days inclusive, at most 2 years; 400 when the end is before the start).',
   })
   @ApiOkResponse({ type: PersonalReportDto })
   me(
     @CurrentUser() user: AuthUser,
     @Query() query: ReportQueryDto,
   ): Promise<PersonalReportDto> {
-    return this.reports.personal(user, query.period, query.date, query);
+    return this.reports.personal(user, query, query);
   }
 
   @Throttle(PDF_THROTTLE)
@@ -83,10 +84,7 @@ export class ReportsController {
     @Query() query: ReportPeriodQueryDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    return sendPdf(
-      res,
-      await this.reports.personalPdf(user, query.period, query.date),
-    );
+    return sendPdf(res, await this.reports.personalPdf(user, query));
   }
 
   @Roles(UserRole.ADMIN)
@@ -103,8 +101,7 @@ export class ReportsController {
   ): Promise<OfficeReportDto> {
     return this.reports.office(
       user,
-      query.period,
-      query.date,
+      query,
       { wingId: query.wingId, designationId: query.designationId },
       query,
     );
@@ -131,7 +128,7 @@ export class ReportsController {
   ): Promise<StreamableFile> {
     return sendPdf(
       res,
-      await this.reports.officePdf(user, query.period, query.date, {
+      await this.reports.officePdf(user, query, {
         wingId: query.wingId,
         designationId: query.designationId,
       }),
