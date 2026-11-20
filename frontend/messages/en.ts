@@ -336,7 +336,7 @@ export const en: Messages = {
     keep: "Go back",
     cancelled: "The meeting has been cancelled.",
     completeTitle: "Complete meeting",
-    notesLabel: "Notes / minutes",
+    notesLabel: "Notes",
     notesHint: "Optional. At most 20000 characters.",
     notesTooLong: "The notes can have at most 20000 characters.",
     confirmComplete: "Mark as completed",

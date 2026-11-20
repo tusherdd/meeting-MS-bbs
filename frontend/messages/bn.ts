@@ -332,7 +332,7 @@ const bnMessages = {
     keep: "ফিরে যান",
     cancelled: "সভা বাতিল করা হয়েছে।",
     completeTitle: "সভা সম্পন্ন",
-    notesLabel: "নোট / কার্যবিবরণী",
+    notesLabel: "নোট",
     notesHint: "ঐচ্ছিক। সর্বোচ্চ ২০০০০ অক্ষর।",
     notesTooLong: "নোট সর্বোচ্চ ২০০০০ অক্ষরের হতে পারে।",
     confirmComplete: "সম্পন্ন হিসেবে চিহ্নিত করুন",
@@ -344,15 +344,18 @@ const bnMessages = {
     confirmDelete: "Delete Permanently",
     deleted: "সভা মুছে ফেলা হয়েছে।",
   },
-  /** v1.10: the three-dot menu at the end of every meeting row (action words stay in English). */
+  /**
+   * v1.10: the three-dot menu at the end of every meeting row. v1.15 (owner decision 2026-11-20):
+   * View / Upload / Cancel are Bangla here only (own keys, SPEC.md §13.12); "Edit" stays English.
+   */
   rowMenu: {
     button: "আরও অপশন",
     column: "অপশন",
-    view: "View details",
+    view: "বিস্তারিত দেখুন",
     notice: "সভার নোটিশ",
     edit: "Edit",
-    cancel: "Cancel",
-    upload: "Upload minutes",
+    cancel: "বাতিল করুন",
+    upload: "কার্যবিবরণী আপলোড",
   },
   /** v1.11 (renamed v1.13): meeting minutes "সভা কার্যবিবরণী" (SPEC.md §6.9, §13.19). */
   decisions: {

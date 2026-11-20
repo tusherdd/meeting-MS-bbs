@@ -77,8 +77,32 @@ describe("v1.13 wording (SPEC.md §6.8, §6.9, §13.19)", () => {
     expect(bn.decisions.title).toBe("সভা কার্যবিবরণী");
     expect(en.nav.decisions).toBe("Meeting minutes");
     expect(en.decisions.title).toBe("Meeting minutes");
-    expect(bn.rowMenu.upload).toBe("Upload minutes");
+    expect(bn.rowMenu.upload).toBe("কার্যবিবরণী আপলোড");
     expect(en.rowMenu.upload).toBe("Upload minutes");
+  });
+
+  it("v1.15: the row menu words (Bangla only in bn, own keys; other buttons unchanged)", () => {
+    expect([bn.rowMenu.view, bn.rowMenu.notice, bn.rowMenu.upload, bn.rowMenu.edit, bn.rowMenu.cancel]).toEqual([
+      "বিস্তারিত দেখুন",
+      "সভার নোটিশ",
+      "কার্যবিবরণী আপলোড",
+      "Edit",
+      "বাতিল করুন",
+    ]);
+    expect([en.rowMenu.view, en.rowMenu.upload, en.rowMenu.edit, en.rowMenu.cancel]).toEqual([
+      "View details",
+      "Upload minutes",
+      "Edit",
+      "Cancel",
+    ]);
+    // Buttons elsewhere keep their words.
+    expect(bn.common.cancel).toBe("Cancel");
+    expect(bn.meetingDetail.edit).toBe("Edit");
+  });
+
+  it("v1.15: the complete-meeting field is \"নোট\" / \"Notes\"", () => {
+    expect(bn.meetingDetail.notesLabel).toBe("নোট");
+    expect(en.meetingDetail.notesLabel).toBe("Notes");
   });
 
   it("the old name never comes back in any produced text", () => {

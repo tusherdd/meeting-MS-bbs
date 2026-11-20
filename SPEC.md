@@ -968,6 +968,10 @@ English (Latin script); everything else stays Bangla.
 - **Stay Bangla:** the meeting statuses নির্ধারিত / সম্পন্ন / বাতিল (and the meeting action "সভা বাতিল করুন"), লোড হচ্ছে…,
   আবার চেষ্টা করুন, বন্ধ করুন, দেখুন / লুকান, হ্যাঁ / না, সব. The PDF title is "বাংলাদেশ পরিসংখ্যান ব্যুরো — … কর্মসূচি" (v1.14; before: "সভা প্রতিবেদন").
 - Names stored in the database (for example the seeded account name "সুপার অ্যাডমিন") are data, not labels.
+- **Exception, three-dot row menu (owner decision 2026-11-20, §13.18), Bangla mode only:** "বিস্তারিত দেখুন"
+  (en "View details"), "কার্যবিবরণী আপলোড" (en "Upload minutes"), "বাতিল করুন" (en "Cancel"); "Edit" and
+  "সভার নোটিশ" stay. These live in their own keys `rowMenu.*`; every other Edit / Cancel / View button keeps its word.
+  The complete-meeting form field is "নোট" / "Notes" (`meetingDetail.notesLabel`; was "নোট / কার্যবিবরণী").
 - **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
   and statuses stay as in v1.2.**
   - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, ডুপ্লিকেট সভা, সভা কার্যবিবরণী (v1.11, renamed v1.13; en "Meeting minutes"),
@@ -1213,7 +1217,7 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   (Enter / Space / Arrow keys open it, arrows / Home / End move, Escape closes and returns focus, Tab closes);
   a click or tap outside closes it. The menu is `position: fixed` (never clipped by a table's scroll box), opens
   upwards near the bottom edge, follows the button on scroll. Buttons are 44 px on phones.
-- Items (action words in English in both languages, §13.12; rules in `lib/row-actions.ts`, unit-tested):
+- Items (action words in English, except the Bangla-mode menu words of 2026-11-20 in §13.12; rules in `lib/row-actions.ts`, unit-tested):
   "View details" (everyone who sees the row); "সভার নোটিশ" / "Meeting notice" (v1.13, replaces "Export PDF":
   everyone who sees the row, **only when an uploaded notice exists** (`hasNotice`), also for cancelled meetings; PDF and
   images open in a new tab, a DOCX is downloaded, `lib/notice-file.ts`); "Edit" and "Cancel" **only for the organizer and the internal chair** (`myRole`
