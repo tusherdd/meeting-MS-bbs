@@ -965,7 +965,7 @@ English (Latin script); everything else stays Bangla.
 - **Capitals:** labels of one or two words in Title Case ("Save", "Email Queue", "Change Request"); longer action
   phrases start with one capital ("Mark all as read").
 - **One term per concept** everywhere: web pages, PDF reports, mails, bell notifications and backend messages.
-- **Stay Bangla:** the meeting statuses নির্ধারিত / সম্পন্ন / বাতিল (and the meeting action "সভা বাতিল করুন"), লোড হচ্ছে…,
+- **Stay Bangla:** the meeting statuses চলমান / সম্পন্ন / বাতিল (SCHEDULED is "চলমান" / en "Pending" since v1.15, owner decision 2026-11-20; same word as the dashboard filter, §13.20) (and the meeting action "সভা বাতিল করুন"), লোড হচ্ছে…,
   আবার চেষ্টা করুন, বন্ধ করুন, দেখুন / লুকান, হ্যাঁ / না, সব. The PDF title is "বাংলাদেশ পরিসংখ্যান ব্যুরো — … কর্মসূচি" (v1.14; before: "সভা প্রতিবেদন").
 - Names stored in the database (for example the seeded account name "সুপার অ্যাডমিন") are data, not labels.
 - **Exception, three-dot row menu (owner decision 2026-11-20, §13.18), Bangla mode only:** "বিস্তারিত দেখুন"
@@ -973,8 +973,6 @@ English (Latin script); everything else stays Bangla.
   "সভার নোটিশ" stay. These live in their own keys `rowMenu.*`; every other Edit / Cancel / View button keeps its word.
   Meeting notes are "নোট" / "Notes" everywhere (was "নোট / কার্যবিবরণী"): the complete-meeting form field
   (`meetingDetail.notesLabel`) and the detail-page card (`meetingDetail.notes`).
-- **Exception, dashboard status filter (owner decision 2026-11-20, §13.20):** the buttons are "সকল" / "চলমান" /
-  "সম্পন্ন" in Bangla (en "All" / "Pending" / "Complete"), although the status badge for SCHEDULED stays "নির্ধারিত".
 - **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
   and statuses stay as in v1.2.**
   - Main menu (same order): ড্যাশবোর্ড, সভা, ক্যালেন্ডার, ডুপ্লিকেট সভা, সভা কার্যবিবরণী (v1.11, renamed v1.13; en "Meeting minutes"),
@@ -1269,5 +1267,6 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   `meetingsRange(from, to, status)`); today: `GET /meetings/today` has no status parameter, so the list is
   filtered in the browser. Logic in `lib/dashboard-filter.ts`.
 - No match: the table's usual empty state of the tab ("আজ আপনার কোনো সভা নেই।" …).
-- Texts: `dashboard.filterLabel`, `dashboard.filters.*` in `messages/en.ts` / `bn.ts` (exception in §13.12).
+- Texts: `dashboard.filterLabel`, `dashboard.filters.*` in `messages/en.ts` / `bn.ts`. "চলমান" / "Pending" is also the
+  SCHEDULED status label everywhere (`meeting.status.SCHEDULED`, §13.12).
 - Tests: `tests/unit/dashboard-filter.test.ts`, `e2e/dashboard.spec.ts`.

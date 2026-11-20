@@ -154,7 +154,7 @@ const bnMessages = {
     /** Title of a meeting you may not see (API: titleHidden). */
     hiddenTitle: "অন্য একটি সভা",
     status: {
-      SCHEDULED: "নির্ধারিত",
+      SCHEDULED: "চলমান",
       CANCELLED: "বাতিল",
       COMPLETED: "সম্পন্ন",
     },

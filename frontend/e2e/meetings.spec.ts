@@ -99,7 +99,7 @@ test("create a meeting with the form; it shows on the dashboard, calendar and li
 
   await dd1.goto("/meetings");
   // Only scheduled meetings: cancelled test meetings of earlier runs must not push it to page 2.
-  await dd1.getByLabel("অবস্থা", { exact: true }).selectOption({ label: "নির্ধারিত" });
+  await dd1.getByLabel("অবস্থা", { exact: true }).selectOption({ label: "চলমান" });
   await expect(dd1.getByRole("row").filter({ hasText: title })).toBeVisible();
 });
 

@@ -46,7 +46,7 @@ export function StatCards({ items, label }: { items: StatItem[]; label: string }
   );
 }
 
-/** "নির্ধারিত ৩ · সম্পন্ন ১০ · বাতিল ২" as badges with numbers. */
+/** "চলমান ৩ · সম্পন্ন ১০ · বাতিল ২" as badges with numbers. */
 export function StatusBreakdown({ byStatus }: { byStatus: StatusCounts }) {
   const t = useT();
   const { formatNumber } = useFormat();

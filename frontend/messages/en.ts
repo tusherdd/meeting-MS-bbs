@@ -157,7 +157,7 @@ export const en: Messages = {
     /** Title of a meeting you may not see (API: titleHidden). */
     hiddenTitle: "Another meeting",
     status: {
-      SCHEDULED: "Scheduled",
+      SCHEDULED: "Pending",
       CANCELLED: "Cancelled",
       COMPLETED: "Completed",
     },

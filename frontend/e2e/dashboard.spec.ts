@@ -29,7 +29,7 @@ test("dashboard lists today's meeting created through the API", async ({ browser
     await expect(row).toBeVisible();
     await expect(row).toContainText("কক্ষ ৫০১");
     await expect(row).toContainText("আয়োজক"); // my role
-    await expect(row).toContainText("নির্ধারিত"); // status SCHEDULED
+    await expect(row).toContainText("চলমান"); // status SCHEDULED (v1.15)
     // Times are shown with Bangla digits (the browser runs in UTC; the UI shows Dhaka time).
     await expect(row.getByRole("cell").first()).toHaveText(/[০-৯]+:[০-৯]{2}/);
 

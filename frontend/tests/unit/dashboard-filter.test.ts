@@ -37,4 +37,11 @@ describe("dashboard status filter (v1.15)", () => {
     expect(bn.dashboard.filters).toEqual({ all: "সকল", pending: "চলমান", complete: "সম্পন্ন" });
     expect(en.dashboard.filters).toEqual({ all: "All", pending: "Pending", complete: "Complete" });
   });
+
+  it("the SCHEDULED status label is the filter's word (no old label left)", () => {
+    expect(bn.meeting.status.SCHEDULED).toBe(bn.dashboard.filters.pending);
+    expect(en.meeting.status.SCHEDULED).toBe(en.dashboard.filters.pending);
+    expect(JSON.stringify(bn.meeting.status)).not.toContain("নির্ধারিত");
+    expect(en.meeting.status.SCHEDULED).not.toBe("Scheduled");
+  });
 });
