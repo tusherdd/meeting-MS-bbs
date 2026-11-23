@@ -81,6 +81,23 @@ export function rowActions(
   };
 }
 
+/**
+ * Concurrent meetings card (`/conflicts`): "সভা বাতিল করুন" / "সময় পরিবর্তন করুন" for the lower
+ * meeting while the conflict is PENDING and the meeting is SCHEDULED — for its organizer AND its
+ * internal chair (v1.10, SPEC.md §6.3: the chair edits and cancels like the organizer).
+ */
+export function conflictCardActions(conflict: {
+  status: string;
+  lowerMeeting: { status: string; organizedByMe: boolean; chairedByMe: boolean };
+}): boolean {
+  const lower = conflict.lowerMeeting;
+  return (
+    conflict.status === "PENDING" &&
+    lower.status === "SCHEDULED" &&
+    (lower.organizedByMe || lower.chairedByMe)
+  );
+}
+
 /** The viewer is one of the meeting's people (organizer, internal chair or member). */
 export function isParticipant(myRole: string | null | undefined): boolean {
   return myRole === "ORGANIZER" || myRole === "CHAIR" || myRole === "MEMBER";

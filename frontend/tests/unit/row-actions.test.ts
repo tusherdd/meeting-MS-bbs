@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { isOrganizerOrChair, isParticipant, rowActions } from "@/lib/row-actions";
+import {
+  conflictCardActions,
+  isOrganizerOrChair,
+  isParticipant,
+  rowActions,
+} from "@/lib/row-actions";
 
 const now = new Date("2026-11-17T06:00:00Z");
 const future = {
@@ -148,5 +153,36 @@ describe("v1.19: minutes not required (SPEC.md §6.9)", () => {
 
   it("not started: no minutes item, either way", () => {
     expect(rowActions({ ...future, minutesRequired: false }, true, now).minutes).toBeNull();
+  });
+});
+
+// Regression (2026-11-23): the internal chair edits and cancels exactly like the organizer (v1.10).
+describe("regression: the internal chair can edit and cancel", () => {
+  it("row menu: myRole CHAIR gets Edit and Cancel on a scheduled meeting", () => {
+    const can = rowActions(future, isOrganizerOrChair("CHAIR"), now, isParticipant("CHAIR"));
+    expect(can.edit).toBe(true);
+    expect(can.cancel).toBe(true);
+  });
+
+  it("row menu: a running meeting can still be edited and cancelled by the chair", () => {
+    const can = rowActions(started, isOrganizerOrChair("CHAIR"), now);
+    expect(can.edit).toBe(true);
+    expect(can.cancel).toBe(true);
+  });
+
+  const card = (over: Partial<{ organizedByMe: boolean; chairedByMe: boolean; status: string }>) => ({
+    status: "PENDING",
+    lowerMeeting: { status: "SCHEDULED", organizedByMe: false, chairedByMe: false, ...over },
+  });
+
+  it("concurrent meetings card: organizer and chair get Cancel / Change time", () => {
+    expect(conflictCardActions(card({ organizedByMe: true }))).toBe(true);
+    expect(conflictCardActions(card({ chairedByMe: true }))).toBe(true);
+  });
+
+  it("concurrent meetings card: a member, a resolved conflict or a cancelled meeting get nothing", () => {
+    expect(conflictCardActions(card({}))).toBe(false);
+    expect(conflictCardActions({ ...card({ chairedByMe: true }), status: "RESOLVED" })).toBe(false);
+    expect(conflictCardActions(card({ chairedByMe: true, status: "CANCELLED" }))).toBe(false);
   });
 });

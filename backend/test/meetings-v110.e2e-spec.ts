@@ -206,6 +206,73 @@ describe('v1.10: chair may edit/cancel (e2e)', () => {
     });
   });
 
+  // Regression (2026-11-23): the chair edits through the full edit form like the frontend sends
+  // it (every field, v1.19 minutesRequired, chair + members + guests), after the form's dry run.
+  describe('regression: the chair edits and cancels like the form does', () => {
+    let id: string;
+
+    beforeAll(async () => {
+      id = await meetingFor(82, 'সভাপতির ফর্ম সম্পাদনা সভা');
+    });
+
+    it('lists the meeting with myRole CHAIR (row menu shows Edit / Cancel)', async () => {
+      const res = await http()
+        .get(`${API}/meetings`)
+        .query({ from: day(82).toISODate(), to: day(83).toISODate() })
+        .set(as('chair'))
+        .expect(200);
+      const row = (
+        res.body as { items: Array<{ id: string; myRole: string | null }> }
+      ).items.find((m) => m.id === id);
+      expect(row?.myRole).toBe('CHAIR');
+    });
+
+    it('the form dry run (check-conflicts with meetingId) is allowed for the chair', async () => {
+      const res = await http()
+        .post(`${API}/meetings/check-conflicts`)
+        .set(as('chair'))
+        .send({
+          title: 'সংঘাত যাচাই',
+          meetingId: id,
+          startAt: slot(82, '14:00'),
+          endAt: slot(82, '15:00'),
+          chairId: ids.chair,
+          participantIds: [ids.chair, ids.member],
+        })
+        .expect(200);
+      expect((res.body as { blocking: unknown[] }).blocking).toHaveLength(0);
+    });
+
+    it('the chair saves the whole form (incl. minutesRequired), then cancels', async () => {
+      const res = await patch('chair', id, {
+        title: 'সভাপতির ফর্মে সম্পাদিত',
+        agenda: 'ক) নতুন বিষয়',
+        room: 'নতুন কক্ষ',
+        onlineLink: null,
+        minutesRequired: false,
+        chairId: ids.chair,
+        participantIds: [ids.chair, ids.member],
+        guests: [
+          {
+            name: 'Guest Officer',
+            designation: 'Consultant',
+            email: `guest@${DOMAIN}`,
+            isChair: false,
+          },
+        ],
+        startAt: slot(82, '14:00'),
+        endAt: slot(82, '15:00'),
+      }).expect(200);
+      expect((res.body as Detail).title).toBe('সভাপতির ফর্মে সম্পাদিত');
+      const stored = await ds.getRepository(Meeting).findOneByOrFail({ id });
+      expect(stored.minutesRequired).toBe(false);
+      expect(stored.chairId).toBe(ids.chair);
+
+      const done = await cancel('chair', id).expect(200);
+      expect((done.body as Detail).status).toBe('CANCELLED');
+    });
+  });
+
   describe('v1.9 follow-up', () => {
     it('completing a meeting stored without a venue works', async () => {
       const created = await create('org', {

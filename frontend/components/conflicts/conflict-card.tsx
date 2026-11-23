@@ -9,6 +9,7 @@ import { MeetingRowMenu } from "@/components/meetings/meeting-row-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 
+import { conflictCardActions } from "@/lib/row-actions";
 import type { ConflictListItem, ConflictMeetingRef } from "@/lib/types";
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
@@ -97,8 +98,8 @@ export function ConflictCard({
   const { formatDateTime } = useFormat();
   const [cancelOpen, setCancelOpen] = useState(false);
   const lower = conflict.lowerMeeting;
-  const canAct =
-    conflict.status === "PENDING" && lower.organizedByMe && lower.status === "SCHEDULED";
+  // v1.10: the internal chair cancels / reschedules like the organizer.
+  const canAct = conflictCardActions(conflict);
 
   return (
     <li
