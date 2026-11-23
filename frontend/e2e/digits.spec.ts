@@ -48,7 +48,11 @@ test("user text keeps its digits; system dates and counts use Bangla digits", as
     await expect(page.getByRole("link", { name: title })).toBeVisible();
     await expect(page.getByText(room, { exact: true }).first()).toBeVisible();
     const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: "PDF ডাউনলোড" }).click();
+    await page.getByRole("button", { name: "PDF দেখুন" }).click();
+    // v1.17: the file viewer panel opens; its Download button saves the PDF.
+    const viewer = page.getByRole("dialog");
+    await expect(viewer.getByRole("heading", { name: `meeting-report-${date}.pdf` })).toBeVisible();
+    await viewer.getByRole("button", { name: "ডাউনলোড" }).click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toBe(`meeting-report-${date}.pdf`);
     expect(

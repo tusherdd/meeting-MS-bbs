@@ -79,12 +79,18 @@ test("reports: period buttons, date range picker, summary, chart and PDF downloa
 
     // PDF of the custom range: "তৈরি হচ্ছে…" while waiting, then a file named by Content-Disposition.
     const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: "PDF ডাউনলোড" }).click();
+    await page.getByRole("button", { name: "PDF দেখুন" }).click();
+    // v1.17: the file viewer panel opens; its Download button saves the PDF.
+    const viewer = page.getByRole("dialog");
+    await expect(viewer.getByRole("heading", { name: "meeting-report-2026-11-01_2026-12-15.pdf" })).toBeVisible();
+    await viewer.getByRole("button", { name: "ডাউনলোড" }).click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toBe("meeting-report-2026-11-01_2026-12-15.pdf");
     const file = await download.path();
     expect(readFileSync(file).subarray(0, 5).toString()).toBe("%PDF-");
-    await expect(page.getByRole("button", { name: "PDF ডাউনলোড" })).toBeEnabled();
+    await viewer.getByRole("button", { name: "Close" }).click();
+    await expect(viewer).toBeHidden();
+    await expect(page.getByRole("button", { name: "PDF দেখুন" })).toBeFocused();
 
     // An older period link still works (shown in the date fields, no button selected).
     await page.goto("/reports?period=month&date=2026-10-15");

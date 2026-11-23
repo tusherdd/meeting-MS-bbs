@@ -3,6 +3,7 @@ import {
   DOCX_MIME,
   mayOpenInline,
   contentDisposition,
+  fileDisposition,
   decodeUploadName,
   detectDecisionType,
   DecisionFileError,
@@ -144,6 +145,29 @@ describe('file names', () => {
     expect(contentDisposition('minutes.pdf', true)).toBe(
       `inline; filename="minutes.pdf"; filename*=UTF-8''minutes.pdf`,
     );
+  });
+
+  it('v1.17: a fully Bangla name gets a meaningful ASCII fallback', () => {
+    const header = contentDisposition('সভার নোটিশ.pdf', true, 'meeting-notice');
+    expect(header.startsWith('inline; filename="meeting-notice.pdf"; ')).toBe(
+      true,
+    );
+    expect(header).toContain(
+      `filename*=UTF-8''${encodeURIComponent('সভার নোটিশ.pdf')}`,
+    );
+    // A name with some Latin text keeps it.
+    expect(contentDisposition('Notice সভা.pdf', false, 'x')).toMatch(
+      /^attachment; filename="Notice _.pdf"/,
+    );
+  });
+
+  it('v1.17: the type alone decides — PDF / images inline, DOCX attachment', () => {
+    expect(fileDisposition('a.pdf', 'application/pdf', 'f')).toMatch(
+      /^inline;/,
+    );
+    expect(fileDisposition('a.png', 'image/png', 'f')).toMatch(/^inline;/);
+    expect(fileDisposition('a.jpg', 'image/jpeg', 'f')).toMatch(/^inline;/);
+    expect(fileDisposition('a.docx', DOCX_MIME, 'f')).toMatch(/^attachment;/);
   });
 });
 

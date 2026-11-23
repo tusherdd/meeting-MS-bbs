@@ -184,17 +184,42 @@ export function sanitizeFileName(
 
 /**
  * Content-Disposition with an ASCII fallback and the UTF-8 name (RFC 6266 / 5987), so Bangla
- * names survive and no header injection is possible.
+ * names survive and no header injection is possible. v1.17: when the ASCII fallback would have
+ * no letter or digit left (a fully Bangla name), `fallbackStem` + the extension is used instead,
+ * so old browsers still save a meaningful name ("meeting-notice.pdf").
  */
-export function contentDisposition(name: string, inline: boolean): string {
-  const ascii =
-    name
-      .replace(/[^A-Za-z0-9._ -]/g, '_')
-      .replace(/_+/g, '_')
-      .trim() || 'decision';
+export function contentDisposition(
+  name: string,
+  inline: boolean,
+  fallbackStem = 'decision',
+): string {
+  const dot = name.lastIndexOf('.');
+  const ext =
+    dot > 0 && /^\.[A-Za-z0-9]{1,5}$/.test(name.slice(dot))
+      ? name.slice(dot).toLowerCase()
+      : '';
+  let ascii = name
+    .replace(/[^A-Za-z0-9._ -]/g, '_')
+    .replace(/_+/g, '_')
+    .trim();
+  const asciiStem = ext ? ascii.slice(0, ascii.length - ext.length) : ascii;
+  if (!/[A-Za-z0-9]/.test(asciiStem)) ascii = `${fallbackStem}${ext}`;
   const encoded = encodeURIComponent(name).replace(
     /['()*]/g,
     (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
   );
   return `${inline ? 'inline' : 'attachment'}; filename="${ascii}"; filename*=UTF-8''${encoded}`;
+}
+
+/**
+ * v1.17 (SPEC.md §6.8, §6.9): the disposition follows the file type only — PDF and images are
+ * always `inline` (the in-app viewer and a direct link can show them), a DOCX is always an
+ * `attachment`. The old `?inline=true` parameter is still accepted but no longer needed.
+ */
+export function fileDisposition(
+  name: string,
+  mime: string,
+  fallbackStem: string,
+): string {
+  return contentDisposition(name, mayOpenInline(mime), fallbackStem);
 }

@@ -13,6 +13,7 @@ import { AuditAction } from '../audit/enums/audit-action.enum';
 import { OfficeReportScope } from '../designations/enums/office-report-scope.enum';
 import { MeetingParticipant } from '../meetings/entities/meeting-participant.entity';
 import { Meeting } from '../meetings/entities/meeting.entity';
+import { noticeMimes } from '../notices/notice-mime';
 import { OfficeScopeService } from '../office-scope/office-scope.service';
 import { User } from '../users/entities/user.entity';
 import { Wing } from '../wings/entities/wing.entity';
@@ -290,6 +291,11 @@ export class OfficeReportService {
     }
     const rows = await qb.getMany();
     const people = await this.people(rows.map((m) => m.id));
+    // v1.17: notice type for the row menu label.
+    const mimes = await noticeMimes(
+      this.dataSource.manager,
+      rows.filter((m) => (m.noticeFileCount ?? 0) > 0).map((m) => m.id),
+    );
 
     return rows.map((m) => {
       const guestChair = m.guests.find((g) => g.isChair);
@@ -331,6 +337,7 @@ export class OfficeReportService {
         })),
         decisionFileCount: m.decisionFileCount ?? 0,
         hasNotice: (m.noticeFileCount ?? 0) > 0,
+        noticeMime: mimes.get(m.id) ?? null,
         people: people.get(m.id) ?? [],
       };
     });
@@ -387,6 +394,7 @@ function toRow(
     officerRole: officerId ? roleOf(m, officerId) : null,
     decisionFileCount: m.decisionFileCount ?? 0,
     hasNotice: m.hasNotice ?? false,
+    noticeMime: m.noticeMime ?? null,
   };
 }
 

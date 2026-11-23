@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { RoleBadge, StatusBadge } from "@/components/dashboard/meeting-badges";
+import { FileViewerPanel } from "@/components/files/file-viewer-panel";
 import { MeetingRowMenu } from "@/components/meetings/meeting-row-menu";
-import { ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/table";
-import { useToast } from "@/components/ui/toast";
-import { saveBlob, type DownloadedFile } from "@/lib/api";
+import type { DownloadedFile } from "@/lib/api";
 
 import { chartBars } from "@/lib/report-period";
 import { isOrganizerOrChair, isParticipant } from "@/lib/row-actions";
@@ -263,34 +262,29 @@ export function ReportMeetingsTable({
 }
 
 /**
- * "Download PDF": fetches the PDF as a Blob (same filters as the page), shows "তৈরি হচ্ছে…"
- * meanwhile, and saves it under the name from Content-Disposition. Errors show the backend text.
+ * v1.17 (SPEC.md §13.12, §13.22): "PDF দেখুন" / "View PDF" — opens the shared file viewer panel,
+ * which fetches the PDF as a Blob (same filters as the page) and shows it; its "Download" button
+ * saves it under the name from Content-Disposition. Errors show the backend text in the panel.
  */
-export function PdfDownloadButton({ download }: { download: () => Promise<DownloadedFile> }) {
+export function PdfViewButton({
+  load,
+  name,
+}: {
+  load: () => Promise<DownloadedFile>;
+  /** Shown in the panel header until the server's file name is known. */
+  name: string;
+}) {
   const t = useT();
-  const toast = useToast();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-
-  async function onClick() {
-    setBusy(true);
-    setError(null);
-    try {
-      saveBlob(await download());
-      toast.show(t.reports.pdfDone);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setBusy(false);
-    }
-  }
-
+  const [open, setOpen] = useState(false);
   return (
-    <div className="space-y-2">
-      <Button onClick={onClick} loading={busy} loadingText={t.reports.pdfLoading}>
-        {t.common.downloadPdf}
-      </Button>
-      {error !== null && <ErrorAlert error={error} />}
-    </div>
+    <>
+      <Button onClick={() => setOpen(true)}>{t.common.viewPdf}</Button>
+      <FileViewerPanel
+        open={open}
+        onClose={() => setOpen(false)}
+        files={[{ id: "pdf", name, mime: "application/pdf", load }]}
+        loadingText={t.reports.pdfLoading}
+      />
+    </>
   );
 }

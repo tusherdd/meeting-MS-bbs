@@ -82,9 +82,9 @@ describe("v1.13 wording (SPEC.md §6.8, §6.9, §13.19)", () => {
   });
 
   it("v1.15: the row menu words (Bangla only in bn, own keys; other buttons unchanged)", () => {
-    expect([bn.rowMenu.view, bn.rowMenu.notice, bn.rowMenu.upload, bn.rowMenu.edit, bn.rowMenu.cancel]).toEqual([
+    expect([bn.rowMenu.view, bn.rowMenu.viewNotice, bn.rowMenu.upload, bn.rowMenu.edit, bn.rowMenu.cancel]).toEqual([
       "বিস্তারিত দেখুন",
-      "সভার নোটিশ",
+      "নোটিশ দেখুন",
       "কার্যবিবরণী আপলোড",
       "Edit",
       "বাতিল করুন",
@@ -124,7 +124,28 @@ describe("v1.13 wording (SPEC.md §6.8, §6.9, §13.19)", () => {
     for (const text of strings({ bn: bn.notice, en: en.notice })) {
       expect(text).not.toMatch(/ঐচ্ছিক|optional/i);
     }
-    expect(bn.rowMenu.notice).toBe("সভার নোটিশ");
-    expect(en.rowMenu.notice).toBe("Meeting notice");
+    // v1.17: the row menu item depends on the notice type.
+    expect([bn.rowMenu.viewNotice, bn.rowMenu.downloadNotice]).toEqual(["নোটিশ দেখুন", "নোটিশ ডাউনলোড"]);
+    expect([en.rowMenu.viewNotice, en.rowMenu.downloadNotice]).toEqual(["View notice", "Download notice"]);
+  });
+
+  it("v1.17: the file viewer panel texts", () => {
+    expect([bn.fileViewer.view, bn.fileViewer.download, bn.fileViewer.close]).toEqual([
+      "দেখুন",
+      "ডাউনলোড",
+      "Close",
+    ]);
+    expect([en.fileViewer.view, en.fileViewer.download, en.fileViewer.close]).toEqual([
+      "View",
+      "Download",
+      "Close",
+    ]);
+    expect(bn.fileViewer.cantShow).toBe("এই ফোনে এখানে দেখা যাচ্ছে না।");
+    expect(en.fileViewer.cantShow).toBe("This file can't be shown here on this device.");
+    expect([bn.fileViewer.openNewTab, en.fileViewer.openNewTab]).toEqual([
+      "নতুন ট্যাবে খুলুন",
+      "Open in new tab",
+    ]);
+    expect([bn.rowMenu.viewMinutes, en.rowMenu.viewMinutes]).toEqual(["কার্যবিবরণী দেখুন", "View minutes"]);
   });
 });

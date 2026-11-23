@@ -202,6 +202,15 @@ export class ReportMeetingDto {
     description: 'v1.13: the meeting has an uploaded notice ("সভার নোটিশ")',
   })
   hasNotice!: boolean;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'application/pdf',
+    description:
+      'v1.17: mime type of the uploaded notice (null = none). PDF / image → "নোটিশ দেখুন" (file viewer); DOCX → "নোটিশ ডাউনলোড"',
+  })
+  noticeMime!: string | null;
 }
 
 export class ReportMeetingPageDto {

@@ -234,12 +234,9 @@ export const noticesApi = {
     form.append("file", file, file.name);
     return apiUpload<NoticeFile>(`${meetingPath(id)}/notice`, form, { onProgress });
   },
-  /** `inline`: PDF and images may open in the browser; a DOCX always comes as an attachment. */
-  download: (id: string, inline = false) =>
-    apiDownload(`${meetingPath(id)}/notice`, {
-      query: inline ? { inline: true } : undefined,
-      fallbackName: "meeting-notice",
-    }),
+  /** v1.17: the backend sends PDF / images inline and a DOCX as an attachment (type decides). */
+  download: (id: string) =>
+    apiDownload(`${meetingPath(id)}/notice`, { fallbackName: "meeting-notice" }),
   remove: (id: string) => api<void>(`${meetingPath(id)}/notice`, { method: "DELETE" }),
 };
 
@@ -259,10 +256,9 @@ export const decisionsApi = {
     form.append("files", file, file.name);
     return apiUpload<DecisionDetail>(`${meetingPath(id)}/decision/files`, form, { onProgress });
   },
-  download: (id: string, fileId: string, inline = false) =>
+  download: (id: string, fileId: string) =>
     apiDownload(`${meetingPath(id)}/decision/files/${encodeURIComponent(fileId)}`, {
-      query: inline ? { inline: true } : undefined,
-      fallbackName: "decision",
+      fallbackName: "meeting-minutes",
     }),
   remove: (id: string, fileId: string) =>
     api<void>(`${meetingPath(id)}/decision/files/${encodeURIComponent(fileId)}`, {

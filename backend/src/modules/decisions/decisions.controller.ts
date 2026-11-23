@@ -40,7 +40,7 @@ import {
 import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import type { AppRequest, AuthUser } from '../../common/types/auth-user';
 import { MeetingSummaryDto } from '../meetings/dto/meeting-response.dto';
-import { contentDisposition, DOCX_MIME, mayOpenInline } from './decision-file';
+import { DOCX_MIME, fileDisposition } from './decision-file';
 import { MAX_DECISION_FILES } from './decision-rules';
 import { DecisionUploadErrorsInterceptor } from './decision-upload-errors.interceptor';
 import { DecisionsService, type IncomingFile } from './decisions.service';
@@ -140,9 +140,10 @@ export class DecisionsController {
 
   @Get('meetings/:id/decision/files/:fileId')
   @ApiOperation({
-    summary: 'Download (or with ?inline=true open) one minutes file',
+    summary:
+      'Download or show one minutes file (PDF / image inline, DOCX attachment)',
     description:
-      "The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition. A DOCX is always an attachment.",
+      "The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition. v1.17: PDF and images always inline, a DOCX always an attachment; ?inline is accepted but no longer needed.",
   })
   @ApiProduces('application/pdf', DOCX_MIME, 'image/jpeg', 'image/png')
   @ApiOkResponse({
@@ -162,7 +163,8 @@ export class DecisionsController {
     @CurrentUser() user: AuthUser,
     @Param('id', ParseIdPipe) id: string,
     @Param('fileId', ParseIdPipe) fileId: string,
-    @Query() query: DecisionDownloadQueryDto,
+    // Kept so old ?inline=true links stay valid; the type alone decides (v1.17).
+    @Query() _query: DecisionDownloadQueryDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const { file, stream } = await this.decisions.download(user, id, fileId);
@@ -170,11 +172,8 @@ export class DecisionsController {
     res.setHeader('Content-Length', String(file.size));
     res.setHeader(
       'Content-Disposition',
-      // v1.13: a DOCX is always an attachment, even with ?inline=true.
-      contentDisposition(
-        file.originalName,
-        query.inline === true && mayOpenInline(file.mime),
-      ),
+      // v1.17: PDF / images inline, a DOCX always an attachment (whatever ?inline says).
+      fileDisposition(file.originalName, file.mime, 'meeting-minutes'),
     );
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'private, no-store');

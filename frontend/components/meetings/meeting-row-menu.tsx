@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { FileViewerPanel, type ViewerFile } from "@/components/files/file-viewer-panel";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Modal } from "@/components/ui/modal";
-import { openMeetingNotice } from "@/lib/notice-file";
+import { saveBlob } from "@/lib/api";
+import { decisionsApi, noticesApi } from "@/lib/endpoints";
 import { rowActions, type RowMeeting, type RowMenuMode } from "@/lib/row-actions";
 import { useT } from "@/providers/locale-provider";
 import { CancelMeetingModal } from "./cancel-meeting-modal";
@@ -48,6 +50,8 @@ export function MeetingRowMenu({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [opening, setOpening] = useState(false);
   const [noticeError, setNoticeError] = useState<unknown>(null);
+  // v1.17: the file viewer panel (notice, or the minutes files listed for switching).
+  const [viewerFiles, setViewerFiles] = useState<ViewerFile[] | null>(null);
   const can = rowActions(meeting, mine, new Date(), participant, mode);
 
   const close = useCallback((returnFocus: boolean) => {
@@ -154,13 +158,46 @@ export function MeetingRowMenu({
     }
   }
 
-  // v1.13: the uploaded notice — PDF / image in a new tab, DOCX as a download.
+  // v1.17: the uploaded notice — PDF / image in the file viewer panel, DOCX as a download.
   async function onNotice() {
     close(true);
-    setOpening(true);
     setNoticeError(null);
+    if (can.noticeAction === "view") {
+      setViewerFiles([
+        {
+          id: "notice",
+          name: t.notice.label,
+          mime: meeting.noticeMime ?? null,
+          load: () => noticesApi.download(meeting.id),
+        },
+      ]);
+      return;
+    }
+    setOpening(true);
     try {
-      await openMeetingNotice(meeting.id);
+      saveBlob(await noticesApi.download(meeting.id));
+    } catch (err) {
+      setNoticeError(err);
+    } finally {
+      setOpening(false);
+    }
+  }
+
+  // v1.17: "View minutes" — the minutes files in the panel (DOCX entries: Download only).
+  async function onMinutes() {
+    close(true);
+    setNoticeError(null);
+    setOpening(true);
+    try {
+      const detail = await decisionsApi.detail(meeting.id);
+      setViewerFiles(
+        detail.files.map((f) => ({
+          id: f.id,
+          name: f.originalName,
+          mime: f.mime,
+          load: () => decisionsApi.download(meeting.id, f.id),
+        })),
+      );
     } catch (err) {
       setNoticeError(err);
     } finally {
@@ -219,27 +256,27 @@ export function MeetingRowMenu({
               {t.rowMenu.view}
             </Link>
           )}
-          {can.notice && (
+          {can.noticeAction && (
             <button
               role="menuitem"
               tabIndex={-1}
               type="button"
               className={itemClass}
-              onClick={onNotice}
+              onClick={() => void onNotice()}
             >
-              {t.rowMenu.notice}
+              {can.noticeAction === "view" ? t.rowMenu.viewNotice : t.rowMenu.downloadNotice}
             </button>
           )}
           {can.viewDecision && (
-            <Link
+            <button
               role="menuitem"
               tabIndex={-1}
-              href={`/meetings/${meeting.id}/decision`}
+              type="button"
               className={itemClass}
-              onClick={() => close(false)}
+              onClick={() => void onMinutes()}
             >
               {t.rowMenu.viewMinutes}
-            </Link>
+            </button>
           )}
           {can.uploadDecision && (
             <Link
@@ -293,10 +330,16 @@ export function MeetingRowMenu({
           onClose={() => setCancelOpen(false)}
         />
       )}
+      <FileViewerPanel
+        open={viewerFiles !== null && viewerFiles.length > 0}
+        onClose={() => setViewerFiles(null)}
+        files={viewerFiles ?? []}
+        returnFocus={buttonRef}
+      />
       <Modal
         open={noticeError !== null}
         onClose={() => setNoticeError(null)}
-        title={t.rowMenu.notice}
+        title={meeting.title}
       >
         {noticeError !== null && <ErrorAlert error={noticeError} />}
       </Modal>

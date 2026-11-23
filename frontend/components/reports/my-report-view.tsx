@@ -7,12 +7,12 @@ import { Pagination } from "@/components/ui/pagination";
 import { LoadingBlock } from "@/components/ui/spinner";
 
 import { queryKeys, reportsApi } from "@/lib/endpoints";
-import { whenDays } from "@/lib/report-range";
+import { whenDays, whenFileKey } from "@/lib/report-range";
 import { useFormat, useT } from "@/providers/locale-provider";
 import { ReportPeriodBar, useRangeText } from "./report-period-bar";
 import {
   MeetingsBarChart,
-  PdfDownloadButton,
+  PdfViewButton,
   ReportMeetingsTable,
   StatCards,
   StatusBreakdown,
@@ -49,7 +49,7 @@ export function MyReportView() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <h1 className="text-2xl font-semibold text-slate-900">{t.reports.title}</h1>
-        <PdfDownloadButton download={() => reportsApi.mePdf(when)} />
+        <PdfViewButton load={() => reportsApi.mePdf(when)} name={`meeting-report-${whenFileKey(when)}.pdf`} />
       </div>
 
       <Card>

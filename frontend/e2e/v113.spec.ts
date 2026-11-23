@@ -65,12 +65,12 @@ test("the organizer creates a meeting with a notice; a member downloads it from 
     await expect(org.getByRole("button", { name: bn.notice.replace })).toBeVisible();
     await expect(org.getByRole("button", { name: bn.notice.remove })).toBeVisible();
 
-    // The member: "সভার নোটিশ" in the row menu → the DOCX is downloaded.
+    // The member: a DOCX notice is "নোটিশ ডাউনলোড" in the row menu (v1.17) → downloaded directly.
     await openRowMenu(member, date, title);
     const items = (await member.getByRole("menuitem").allInnerTexts()).map((s) => s.trim());
-    expect(items).toEqual([bn.rowMenu.view, bn.rowMenu.notice]);
+    expect(items).toEqual([bn.rowMenu.view, bn.rowMenu.downloadNotice]);
     const download = member.waitForEvent("download");
-    await member.getByRole("menuitem", { name: bn.rowMenu.notice }).click();
+    await member.getByRole("menuitem", { name: bn.rowMenu.downloadNotice }).click();
     const file = await download;
     expect(file.suggestedFilename()).toBe(DOCX_NAME);
   } finally {

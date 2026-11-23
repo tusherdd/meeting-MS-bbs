@@ -295,7 +295,8 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
   opens the month.
 - Officer report: meetings I organized / attended, counts by status, total hours, conflicts raised against my meetings.
 - Office report "অফিস রিপোর্ট" (v1.15, §6.10): admins and the designations with office report access.
-- PDF download for every report: the schedule "কর্মসূচি" (v1.14, below).
+- PDF for every report: the schedule "কর্মসূচি" (v1.14, below); since v1.17 it opens in the file viewer panel
+  ("PDF দেখুন", §13.22), whose Download button saves it. The PDF routes send it `inline` with the same file name.
 - Guest officers (v1.5): every meeting row of the day/week/month/year reports (web pages) shows
   its chair (`chairNameBn`: the internal chair, else the guest chair's name) and, under the meeting, its
   guests as "অতিথি কর্মকর্তা: নাম — পদবি; …" (the PDF shows only a guest **chair**, v1.14). Guests are never counted in any total or statistic and have
@@ -344,7 +345,9 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
     header block, the table header and every row are measured in the same browser (print media, page width; page
     JavaScript stays off, DevTools reads the heights), `paginateRows()` splits the rows, and one table per page is printed.
   - One shared browser, max 2 renders/measurements at once, 30 s timeout, JavaScript off and all network requests
-    blocked; file names unchanged (`meeting-report-2026-11.pdf`, `office-meeting-report-2026-11.pdf`).
+    blocked; file names unchanged (`meeting-report-2026-11.pdf`, `office-meeting-report-2026-11.pdf`). v1.17:
+  `Content-Disposition: inline; filename="…"` (was `attachment`), `X-Content-Type-Options: nosniff`,
+  `Cache-Control: private, no-store`.
   - Sample with fictional data: `npm run pdf:sample` → `backend/tmp/report-samples/schedule-sample.pdf` (git-ignored).
   - Tests: `schedule-format.spec.ts`, `report-template.spec.ts`, `test/reports-admin.e2e-spec.ts`, `test/language.e2e-spec.ts`.
 
@@ -385,14 +388,18 @@ pure rules in `notice-rules.ts`, `notices.service.ts`, `notices.controller.ts`.
   organize it): 403 `NOTICE_CHANGE_FORBIDDEN`. **Cancelled** meetings are frozen: 409 `NOTICE_CANCELLED` (upload,
   replace and remove). Download — the meeting's people and admins (others 403 `NOTICE_FORBIDDEN`, unknown meeting
   404), **also for cancelled meetings** when a file exists; no file → 404 `NOTICE_NOT_FOUND`.
-- **Download:** `GET /meetings/:id/notice` (`?inline=true` opens a PDF or image in the browser; a **DOCX is always an
-  attachment**), `Content-Disposition` with an ASCII fallback + UTF-8 name, `X-Content-Type-Options: nosniff`,
+- **Download:** `GET /meetings/:id/notice`. v1.17: the **type alone** decides the disposition — PDF and images are
+  always `inline` (for the file viewer panel, §13.22), a **DOCX is always an attachment**; `?inline=true` is still
+  accepted (old links) but has no effect. `Content-Disposition` with an ASCII fallback + UTF-8 name (a fully Bangla
+  name falls back to `meeting-notice.<ext>`, `fileDisposition()` in `decision-file.ts`), `X-Content-Type-Options: nosniff`,
   `Cache-Control: private, no-store`.
 - **Audit:** `MEETING_NOTICE_UPLOADED`, `MEETING_NOTICE_REPLACED` (before/after: name, type, size, hash),
   `MEETING_NOTICE_REMOVED`.
-- **API fields:** `hasNotice` on meeting summaries, report rows and duplicate-meeting refs; `notice`
+- **API fields:** `hasNotice` and (v1.17) `noticeMime` (the notice's type or null; `notices/notice-mime.ts`, one query
+  per list) on meeting summaries, report rows, office report rows and duplicate-meeting refs; `notice`
   (`{ originalName, mime, size, uploadedAt, uploadedBy, canManage }` or null) on `GET /meetings/:id`.
-- **UI:** the meeting form field and the row menu item (§13.6, §13.18).
+- **UI:** the meeting form field, the row menu item (§13.6, §13.18) and (v1.17) the "সভার নোটিশ" row of the meeting
+  detail page with "দেখুন" / "View" (file viewer panel) or, for a DOCX, "ডাউনলোড" / "Download" (§13.22).
 - Tests: `decision-file.spec.ts` (DOCX), `notice-rules.spec.ts`, `notices.service.spec.ts`, `test/notices.e2e-spec.ts`,
   `frontend/tests/unit/row-actions.test.ts`, `frontend/e2e/v113.spec.ts`.
 
@@ -421,8 +428,9 @@ pure rules in `decision-rules.ts` and `decision-file.ts` (unit-tested), `decisio
   Upload only **after the start time** (409 `DECISION_NOT_STARTED`) and never for cancelled meetings (409
   `DECISION_CANCELLED`). **Delete:** the uploader, the organizer or the chair (others 403).
 - **Download:** through the authenticated endpoint only, `Content-Disposition` with an ASCII fallback and the UTF-8
-  name, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`; `?inline=true` opens images and PDFs
-  in a new browser tab; a DOCX is always an attachment (v1.13). A macro-enabled Word file → 400 `DECISION_FILE_MACRO`.
+  name (fully Bangla name → `meeting-minutes.<ext>`, v1.17), `X-Content-Type-Options: nosniff`, `Cache-Control: private,
+  no-store`. v1.17: PDF and images are always `inline` (shown in the file viewer panel, §13.22), a DOCX is always an
+  attachment (v1.13); `?inline=true` is accepted but no longer needed. A macro-enabled Word file → 400 `DECISION_FILE_MACRO`.
 - **Audit:** `MEETING_DECISION_UPLOADED` (per file: name, type, size, hash) and `MEETING_DECISION_DELETED`.
 - **Notification:** after an upload the organizer and the chair (never the uploader) get a **bell** notice (no mail,
   `MEETING_DECISION_UPLOADED`): title `সভা কার্যবিবরণী: [শিরোনাম]`, body `"[শিরোনাম]" সভার কার্যবিবরণী আপলোড করা হয়েছে।`
@@ -589,7 +597,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | PATCH | `/meetings/:id` | 👤 | Update (organizer, internal chair or admin; re-runs conflict engine; lead rule on time or chair change) |
 | POST | `/meetings/:id/cancel` | 👤 | Cancel with reason (organizer, internal chair or admin) |
 | POST | `/meetings/:id/notice` | 👤 | Upload or replace the meeting notice (multipart `file`; organizer only; not cancelled), §6.8 |
-| GET | `/meetings/:id/notice` | 👤 | Download the notice (`?inline=true` for PDF / images; its people and admins, also cancelled) |
+| GET | `/meetings/:id/notice` | 👤 | The notice: PDF / images inline, DOCX attachment (v1.17); its people and admins, also cancelled |
 | DELETE | `/meetings/:id/notice` | 👤 | Remove the notice (organizer only; not cancelled) |
 | POST | `/meetings/:id/complete` | 👤 | Mark completed, save notes/minutes |
 | DELETE | `/meetings/:id` | 🛡 | Hard delete (admin only) |
@@ -601,7 +609,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | GET | `/decisions?as=lead\|member&status=PENDING\|COMPLETE` | 👤 | Meetings by decision status (members: Pending only) |
 | GET | `/meetings/:id/decision` | 👤 | Status, files, what I may do (its people and admins; others 403) |
 | POST | `/meetings/:id/decision/files` | 👤 | Upload (multipart `files`; organizer, chair, members; after the start; not cancelled) |
-| GET | `/meetings/:id/decision/files/:fileId` | 👤 | Download (`?inline=true` to open) |
+| GET | `/meetings/:id/decision/files/:fileId` | 👤 | One file: PDF / images inline, DOCX attachment (v1.17) |
 | DELETE | `/meetings/:id/decision/files/:fileId` | 👤 | Delete (uploader, organizer or chair) |
 
 ### Conflicts
@@ -622,7 +630,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/reports/me?period=&date=` or `?from=&to=` (v1.15) | 👤 | My summary + meeting list |
-| GET | `/reports/me/pdf?period=&date=` or `?from=&to=` | 👤 | My report as PDF |
+| GET | `/reports/me/pdf?period=&date=` or `?from=&to=` | 👤 | My report as PDF (inline, v1.17) |
 | GET | `/reports/office?period=&date=` or `from=&to=`, `wingId`, `officerId`, `status`, `organizerWingId`, `chair`, `role`, page | 👤 scope (§6.10) | Office report "অফিস রিপোর্ট" (v1.15) |
 | GET | `/reports/office/pdf?...` (same query incl. page) | 👤 scope (§6.10) | Office report PDF, exactly the on-screen rows; audited |
 
@@ -666,7 +674,8 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
    Meeting minutes files (v1.11, §6.9) and the meeting notice (v1.13, §6.8): magic bytes only (DOCX: ZIP structure
    checked, macro-enabled files and legacy .doc refused), image metadata stripped, private folder
    (`DECISION_UPLOAD_DIR`, notices in `notices/`, never static), only through the authenticated download with
-   `nosniff`; DOCX always as an attachment.
+   `nosniff`; DOCX always as an attachment; PDF / images inline (v1.17), shown only through a Blob URL of the
+   session-fetched bytes (§13.22).
 10. Authorization checked in services (organizer, internal chair or admin for meeting edit/cancel; organizer/admin
     for complete; SUPER_ADMIN protected).
 11. Only parameterized queries (TypeORM query builder / repositories). No string-built SQL.
@@ -797,6 +806,9 @@ Release **v1.15** (2026-11-20, tag `v1.15`; progress in `docs/progress/v1.15.md`
 
 Release **v1.16** (2026-11-20, tag `v1.16`; progress in `docs/progress/v1.16.md`): (1) one label for every PDF button
 (§13.12); (2) structured additional charges, admin only, used for the office report scope (§6.2, §6.10).
+
+Release **v1.17** (2026-11-23, part 1 of 3): the shared file viewer side panel (§13.22) for the report PDFs ("PDF দেখুন"),
+the meeting notice and the minutes files; PDF / images inline, DOCX attachment; `noticeMime` in the list APIs (§6.8).
 
 ## 13. Frontend (`frontend/`)
 
@@ -929,9 +941,9 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   fields and "দেখুন" is disabled. The old tabs, date field and "আগের" / "বর্তমান" / "পরের" are gone; the fiscal year
   was removed in v1.15. The range is shown in Bangla (backend label + first and last day). Summary cards, counts by status, a bar
   chart of meetings per day (per month for a year or a range longer than 62 days; plain HTML bars with a hidden data table,
-  no SVG), paginated meeting list. The filters live in the address. "PDF ডাউনলোড" / "Download PDF" (v1.16, §13.12) fetches the PDF as a Blob with
-  the same filters, shows "তৈরি হচ্ছে…", saves it under the `Content-Disposition` file name and shows the
-  backend's message on failure.
+  no SVG), paginated meeting list. The filters live in the address. "PDF দেখুন" / "View PDF" (v1.17, §13.12) opens the file viewer panel (§13.22),
+  which fetches the PDF as a Blob with the same filters, shows "তৈরি হচ্ছে…", then the PDF; its "ডাউনলোড" / "Download"
+  saves it under the `Content-Disposition` file name; the backend's message shows in the panel on failure.
 - **Profile** (`/profile`): only the fields `PATCH /profile` accepts; mobiles accept Bangla digits and `+880`
   and are sent as `01XXXXXXXXX`; additional charges read-only (v1.16: admin only, §6.2). Photo: preview, client-side
   type/size check (JPEG/PNG/WebP, 2 MB; the server decides), remove with confirmation; the photo is shown next
@@ -952,7 +964,8 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   `X-Content-Type-Options`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`,
   `Permissions-Policy` (camera, microphone, geolocation, payment … all off), `Cross-Origin-Opener-Policy`.
 - `proxy.ts`: `Content-Security-Policy` per request: `default-src 'self'`; scripts and styles only from this
-  origin plus Next.js' own inline ones carrying a fresh nonce; `img-src 'self' blob: data:`;
+  origin plus Next.js' own inline ones carrying a fresh nonce; `img-src 'self' blob: data:`; `frame-src blob:` (v1.17,
+  only for the file viewer panel's PDF iframe, §13.22);
   `frame-ancestors 'none'`; `object-src 'none'`; `form-action 'self'`. Every page is rendered per request for
   that. Development additionally allows `'unsafe-eval'` (React debugging) and inline styles (dev overlay).
 - In production nginx serves one domain: `/api/v1` and `/uploads` go to the backend, everything else to the
@@ -1066,13 +1079,18 @@ English (Latin script); everything else stays Bangla.
 - **Stay Bangla:** the meeting statuses চলমান / সম্পন্ন / বাতিল (SCHEDULED is "চলমান" / en "Pending" since v1.15, owner decision 2026-11-20; same word as the dashboard filter, §13.20) (and the meeting action "সভা বাতিল করুন"), লোড হচ্ছে…,
   আবার চেষ্টা করুন, বন্ধ করুন, দেখুন / লুকান, হ্যাঁ / না, সব. The PDF title is "বাংলাদেশ পরিসংখ্যান ব্যুরো — … কর্মসূচি" (v1.14; before: "সভা প্রতিবেদন").
 - Names stored in the database (for example the seeded account name "সুপার অ্যাডমিন") are data, not labels.
-- **PDF buttons (v1.16, owner decision 2026-11-20):** every PDF download button on the site (my report, office
-  report, any future one) uses ONE shared key, `common.downloadPdf`: bn "PDF ডাউনলোড", en "Download PDF" (before v1.16
-  the Bangla UI said "Download PDF"). `components/reports/report-parts.tsx` `PdfDownloadButton` has no own label;
-  test `tests/unit/pdf-label.test.ts`.
+- **PDF buttons (v1.17, owner decision 2026-11-23; v1.16 before):** every report PDF button on the site (আমার রিপোর্ট,
+  অফিস রিপোর্ট, any future one) is ONE button that opens the file viewer panel (§13.22) and uses ONE shared key,
+  `common.viewPdf`: bn "PDF দেখুন", en "View PDF" (v1.16: `common.downloadPdf` "PDF ডাউনলোড" / "Download PDF", gone).
+  `components/reports/report-parts.tsx` `PdfViewButton` has no own label; test `tests/unit/pdf-label.test.ts`.
+- **File viewer words (v1.17, §13.22):** "দেখুন" / "View", "ডাউনলোড" / "Download" (Bangla in the Bangla UI, unlike the
+  v1.2 word list), "নোটিশ দেখুন" / "View notice", "নোটিশ ডাউনলোড" / "Download notice", "কার্যবিবরণী দেখুন" / "View minutes";
+  the panel's close button says "Close" in both languages (exception to "বন্ধ করুন"). Keys `fileViewer.*`,
+  `rowMenu.viewNotice`, `rowMenu.downloadNotice`, `rowMenu.viewMinutes` (`rowMenu.notice`, `decisions.view` and
+  `decisions.download` are gone).
 - **Exception, three-dot row menu (owner decision 2026-11-20, §13.18), Bangla mode only:** "বিস্তারিত দেখুন"
-  (en "View details"), "কার্যবিবরণী আপলোড" (en "Upload minutes"), "বাতিল করুন" (en "Cancel"); "Edit" and
-  "সভার নোটিশ" stay. These live in their own keys `rowMenu.*`; every other Edit / Cancel / View button keeps its word.
+  (en "View details"), "কার্যবিবরণী আপলোড" (en "Upload minutes"), "বাতিল করুন" (en "Cancel"); "Edit" stays; the notice
+  item became "নোটিশ দেখুন" / "নোটিশ ডাউনলোড" in v1.17. These live in their own keys `rowMenu.*`; every other Edit / Cancel / View button keeps its word.
   Meeting notes are "নোট" / "Notes" everywhere (was "নোট / কার্যবিবরণী"): the complete-meeting form field
   (`meetingDetail.notesLabel`) and the detail-page card (`meetingDetail.notes`).
 - **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
@@ -1321,9 +1339,10 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   a click or tap outside closes it. The menu is `position: fixed` (never clipped by a table's scroll box), opens
   upwards near the bottom edge, follows the button on scroll. Buttons are 44 px on phones.
 - Items (action words in English, except the Bangla-mode menu words of 2026-11-20 in §13.12; rules in `lib/row-actions.ts`, unit-tested):
-  "View details" (everyone who sees the row); "সভার নোটিশ" / "Meeting notice" (v1.13, replaces "Export PDF":
-  everyone who sees the row, **only when an uploaded notice exists** (`hasNotice`), also for cancelled meetings; PDF and
-  images open in a new tab, a DOCX is downloaded, `lib/notice-file.ts`); "Edit" and "Cancel" **only for the organizer and the internal chair** (`myRole`
+  "View details" (everyone who sees the row); the notice item (v1.13, replaces "Export PDF": everyone who sees the
+  row, **only when an uploaded notice exists** (`hasNotice`), also for cancelled meetings) — v1.17, by `noticeMime`:
+  PDF or image → "নোটিশ দেখুন" / "View notice" (file viewer panel, §13.22), DOCX → "নোটিশ ডাউনলোড" / "Download notice"
+  (direct download; `rowActions().noticeAction`); "Edit" and "Cancel" **only for the organizer and the internal chair** (`myRole`
   ORGANIZER / CHAIR, or `organizedByMe` / `chairedByMe` on duplicate meetings cards), with the usual status rules
   (edit: scheduled and not ended; cancel: scheduled; Cancel opens the usual reason dialog). Admins keep their
   rights on the detail page.
@@ -1331,7 +1350,8 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   members; not admins as such), only while an upload is allowed (started or completed, not cancelled, fewer than
   10 files; `decisionFileCount` on summaries and report rows).
 - v1.15 office report rows (`mode="officeReport"`): "বিস্তারিত দেখুন" (read-only), "সভার নোটিশ" (only with a file),
-  "কার্যবিবরণী দেখুন" / "View minutes" (only when minutes exist; view / download only, never "Upload minutes"), and "Edit" /
+  "কার্যবিবরণী দেখুন" / "View minutes" (only when minutes exist; view / download only, never "Upload minutes"; v1.17: opens
+  the file viewer panel with every file listed in its header for switching, DOCX entries only offer Download), and "Edit" /
   "বাতিল করুন" ONLY when the viewer organizes or chairs that meeting.
 - API support: `ConflictMeetingRefDto.chairedByMe`; office report rows carry the viewer's own `myRole`.
 - Tests: `tests/unit/row-actions.test.ts`, `e2e/v110.spec.ts`, `e2e/no-icons.spec.ts` (the glyph only inside its button).
@@ -1350,8 +1370,8 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   (Pending amber / Complete green; a note instead when the meeting has not started or is cancelled), the upload form
   (only when allowed: a labelled native file input with `multiple`, no icons; client pre-check of type, size and
   count; one request per file with a progress bar and per-file errors from the backend), and the file list (name,
-  uploader, time, size via `formatFileSize`, buttons View — opens in a new tab; not for a DOCX (v1.13) —, Download, Delete with confirmation
-  when allowed). Upload progress uses `apiUpload()` in `lib/api.ts` (XMLHttpRequest, same refresh and error rules).
+  uploader, time, size via `formatFileSize`; v1.17: ONE button per file — "দেখুন" / "View" (file viewer panel with all files
+  listed, §13.22) for PDF / images, "ডাউনলোড" / "Download" for a DOCX —, then Delete with confirmation when allowed). Upload progress uses `apiUpload()` in `lib/api.ts` (XMLHttpRequest, same refresh and error rules).
 - All texts in `messages/en.ts` / `bn.ts` (`decisions.*`, `rowMenu.upload`, `nav.decisions`). After an upload or
   delete every "decisions" query is refreshed with the meeting data (`lib/invalidate.ts`).
 - Deployment (README §4.4 / §4.7 / §4.8): `DECISION_UPLOAD_DIR` on persistent storage, in the backups, writable only by
@@ -1382,7 +1402,7 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   as the LAST main menu item, below "প্রোফাইল" (`navFor(admin, t, officeReportScope)`); NONE officers see no item and the
   page shows "৪০৩" with "অফিস রিপোর্ট দেখার অনুমতি আপনার নেই।" (the API answers 403). `/admin/reports` redirects.
 - **Top to bottom:** title "অফিস রিপোর্ট" with the range under it (no "পুরো অফিস" text; with an officer selected:
-  "জনাব [name], [designation] · [wing] · [range]") and the button "PDF ডাউনলোড" / "Download PDF" (the shared label, §13.12); the filter bar (§13.7 period buttons, divider, date range picker, then "উইং" — OFFICE: "সকল উইং" + every wing;
+  "জনাব [name], [designation] · [wing] · [range]") and the button "PDF দেখুন" / "View PDF" (the shared label, §13.12; v1.17 file viewer panel); the filter bar (§13.7 period buttons, divider, date range picker, then "উইং" — OFFICE: "সকল উইং" + every wing;
   WING: their own wing plus (v1.16) the wings of their WING-scope additional charges — one wing: disabled; more: only
   those can be chosen — with the small lock — and "কর্মকর্তা", a searchable picker over `GET /users/directory`
   of the chosen wing or everyone, WING: own wing only); five cards; "উইংভিত্তিক তালিকা" (OFFICE, no wing / officer chosen;
@@ -1392,5 +1412,32 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   with the selects অবস্থা, আয়োজক উইং (OFFICE), সভাপতি, ভূমিকা (with an officer) and the columns তারিখ (dd/mm/yyyy), সময়
   (24-hour HH:mm, `formatNumericDate` / `formatClock`), বিষয়, আয়োজক উইং, সভাপতি (the chair's designation, as in the
   samples), স্থান, [ভূমিকা badge], অবস্থা, ⋮ (§13.18 office mode). No charts; the old "পদবি অনুযায়ী" and "শীর্ষ ১০ আয়োজক"
-  are gone. All filters live in the address; "PDF ডাউনলোড" sends the same filters and page.
+  are gone. All filters live in the address; "PDF দেখুন" sends the same filters and page.
 - Texts: `officeReport.*`, `nav.officeReport`, `rowMenu.viewMinutes`, `admin.officeReportScope*` in en / bn.
+
+### 13.22 File viewer side panel (v1.17, owner decision 2026-11-23)
+ONE shared component, `components/files/file-viewer-panel.tsx` (`FileViewerPanel`, `FileViewButton`); rules in
+`lib/file-viewer.ts` (unit-tested). Used by the report PDFs (আমার রিপোর্ট, অফিস রিপোর্ট: "PDF দেখুন"), the row menu
+(notice, minutes), the meeting detail page (notice row) and the minutes page file list.
+- **Layout:** a native modal `<dialog>` (`role=dialog`, named by the file name) that slides in from the right: half the
+  width from 768 px up, full screen below. The page behind stays mounted and keeps its state (filters, scroll, forms).
+  The slide (200 ms, `@starting-style`, off with reduced motion) is the one exception to "no animation" (§13.16).
+- **Header:** the file name (the server's `Content-Disposition` name once loaded), "ডাউনলোড" / "Download" and "Close"
+  (both languages). With several files (minutes) the header lists them: "দেখুন" / "View" switches, DOCX entries only
+  offer "ডাউনলোড" / "Download".
+- **Closing:** Escape, a click on the dim background or "Close"; focus is trapped inside while open (native modal) and
+  returns to the opener (the row menu's "⋮" button for the row menu).
+- **Showing:** the file is fetched with the session (`apiDownload`) and shown through a Blob URL — PDF in an `iframe`,
+  JPG / PNG in an `img` fit to the width. Only these types become a viewable Blob (`viewKind`); the URL is revoked when
+  the file changes or the panel closes. CSP: `blob:` in `frame-src` and `img-src` only (§13.8).
+- **No inline PDF:** iPhone / iPad (incl. iPadOS reporting a Mac) and browsers with `navigator.pdfViewerEnabled === false`
+  show "এই ফোনে এখানে দেখা যাচ্ছে না।" / "This file can't be shown here on this device." with "নতুন ট্যাবে খুলুন" /
+  "Open in new tab" and "ডাউনলোড" / "Download".
+- **DOCX** is never shown in the panel: it is a direct download labelled "ডাউনলোড" / "Download" ("নোটিশ ডাউনলোড" in the
+  row menu).
+- **Backend:** PDF / images `inline`, DOCX always `attachment`, safe file names, `nosniff`, every permission and scope
+  check unchanged (§6.8, §6.9, §6.6); `noticeMime` on list rows decides the row menu label.
+- Tests: frontend `tests/unit/file-viewer.test.ts`, `row-actions.test.ts`, `messages.test.ts`, `pdf-label.test.ts`,
+  `e2e/v117.spec.ts` and the updated `reports`, `office-report`, `digits`, `v111`, `v113` specs; backend
+  `decision-file.spec.ts`, `notice-mime.spec.ts`, `test/notices.e2e-spec.ts`, `test/decisions.e2e-spec.ts`,
+  `test/reports-admin.e2e-spec.ts`, `test/office-report.e2e-spec.ts`.

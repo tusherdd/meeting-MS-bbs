@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/table";
 import { peopleApi, queryKeys, reportsApi, type OfficeFilter } from "@/lib/endpoints";
+import { whenFileKey } from "@/lib/report-range";
 import { isOrganizerOrChair, isParticipant } from "@/lib/row-actions";
 import type { OfficeMeetingRow, OfficeReport } from "@/lib/types";
 import { useAuth } from "@/providers/auth-provider";
@@ -18,7 +19,7 @@ import { useFormat, useNames, useT } from "@/providers/locale-provider";
 import { LockIcon } from "./lock-icon";
 import { OfficerPicker } from "./officer-picker";
 import { ReportPeriodBar } from "./report-period-bar";
-import { PdfDownloadButton, StatCards } from "./report-parts";
+import { PdfViewButton, StatCards } from "./report-parts";
 import { useReportParams } from "./use-report-params";
 
 const STATUSES = ["SCHEDULED", "COMPLETED", "CANCELLED"] as const;
@@ -136,7 +137,10 @@ function OfficeReport() {
             {subtitle}
           </p>
         </div>
-        <PdfDownloadButton download={() => reportsApi.officePdf(when, filter, page)} />
+        <PdfViewButton
+          load={() => reportsApi.officePdf(when, filter, page)}
+          name={`office-report-${whenFileKey(when)}.pdf`}
+        />
       </div>
 
       <Card>

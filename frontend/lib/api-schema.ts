@@ -881,8 +881,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Download (or with ?inline=true open) one minutes file
-         * @description The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition. A DOCX is always an attachment.
+         * Download or show one minutes file (PDF / image inline, DOCX attachment)
+         * @description The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition. v1.17: PDF and images always inline, a DOCX always an attachment; ?inline is accepted but no longer needed.
          */
         get: operations["DecisionsController_download"];
         put?: never;
@@ -905,8 +905,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Download (PDF / image: or with ?inline=true open) the meeting notice
-         * @description The meeting's people and admins, also for cancelled meetings. A DOCX is always an attachment. Sent with nosniff, no-store and a safe Content-Disposition.
+         * Download or show the meeting notice (PDF / image inline, DOCX attachment)
+         * @description The meeting's people and admins, also for cancelled meetings. v1.17: PDF and images are always sent inline (for the in-app viewer), a DOCX is always an attachment; ?inline is accepted but no longer needed. Sent with nosniff, no-store and a safe Content-Disposition.
          */
         get: operations["NoticesController_download"];
         put?: never;
@@ -1962,6 +1962,11 @@ export interface components {
              * @example false
              */
             hasNotice: boolean;
+            /**
+             * @description v1.17: mime type of the uploaded notice (null = none). PDF / image → "নোটিশ দেখুন" (file viewer); DOCX → "নোটিশ ডাউনলোড"
+             * @example application/pdf
+             */
+            noticeMime: string | null;
         };
         MeetingGuestInputDto: {
             /** @example ড. ফারহানা ইসলাম */
@@ -2192,6 +2197,11 @@ export interface components {
              * @example false
              */
             hasNotice: boolean;
+            /**
+             * @description v1.17: mime type of the uploaded notice (null = none). PDF / image → "নোটিশ দেখুন" (file viewer); DOCX → "নোটিশ ডাউনলোড"
+             * @example application/pdf
+             */
+            noticeMime: string | null;
         };
         MeetingConflictDto: {
             /** Format: uuid */
@@ -2279,6 +2289,11 @@ export interface components {
              * @example false
              */
             hasNotice: boolean;
+            /**
+             * @description v1.17: mime type of the uploaded notice (null = none). PDF / image → "নোটিশ দেখুন" (file viewer); DOCX → "নোটিশ ডাউনলোড"
+             * @example application/pdf
+             */
+            noticeMime: string | null;
             agenda: string | null;
             /** @description Internal chair (null when the chair is a guest, see guests[].isChair) */
             chair: components["schemas"]["PersonDto"] | null;
@@ -2626,6 +2641,11 @@ export interface components {
              * @example false
              */
             hasNotice: boolean;
+            /**
+             * @description v1.17: mime type of the uploaded notice (null = none). PDF / image → "নোটিশ দেখুন" (file viewer); DOCX → "নোটিশ ডাউনলোড"
+             * @example application/pdf
+             */
+            noticeMime: string | null;
         };
         ReportMeetingPageDto: {
             items: components["schemas"]["ReportMeetingDto"][];
@@ -2770,6 +2790,11 @@ export interface components {
              * @example false
              */
             hasNotice: boolean;
+            /**
+             * @description v1.17: mime type of the uploaded notice (null = none). PDF / image → "নোটিশ দেখুন" (file viewer); DOCX → "নোটিশ ডাউনলোড"
+             * @example application/pdf
+             */
+            noticeMime: string | null;
         };
         OfficeMeetingPageDto: {
             items: components["schemas"]["OfficeMeetingRowDto"][];
@@ -5051,7 +5076,7 @@ export interface operations {
     DecisionsController_download: {
         parameters: {
             query?: {
-                /** @description true = open in the browser (Content-Disposition: inline) */
+                /** @description Deprecated (v1.17): accepted for old links, no effect. PDF / images are always inline, a DOCX always an attachment */
                 inline?: boolean;
             };
             header?: {
@@ -5135,7 +5160,7 @@ export interface operations {
     NoticesController_download: {
         parameters: {
             query?: {
-                /** @description true = open a PDF or image in the browser (Content-Disposition: inline); a DOCX is always an attachment */
+                /** @description Deprecated (v1.17): accepted for old links, no effect. PDF / images are always inline, a DOCX always an attachment */
                 inline?: boolean;
             };
             header?: {
@@ -5336,7 +5361,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description A4 landscape PDF (Bangla), downloaded as an attachment */
+            /** @description A4 landscape PDF (Bangla), sent inline (v1.17: shown in the in-app viewer; its Download button saves it under this name) */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5437,7 +5462,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description A4 landscape PDF (Bangla), downloaded as an attachment */
+            /** @description A4 landscape PDF (Bangla), sent inline (v1.17: shown in the in-app viewer; its Download button saves it under this name) */
             200: {
                 headers: {
                     [name: string]: unknown;

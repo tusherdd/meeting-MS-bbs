@@ -154,7 +154,11 @@ test("director (WING): own wing locked, no wing list; the officer filter adds th
 
   // The PDF downloads (server-made, same filters and page).
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "PDF ডাউনলোড" }).click();
+  await page.getByRole("button", { name: "PDF দেখুন" }).click();
+  // v1.17: the file viewer panel opens; its Download button saves the PDF.
+  const viewer = page.getByRole("dialog");
+  await expect(viewer.getByRole("heading", { name: `office-report-${DAY}_${dhakaDate(12)}.pdf` })).toBeVisible();
+  await viewer.getByRole("button", { name: "ডাউনলোড" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe(`office-report-${DAY}_${dhakaDate(12)}.pdf`);
   expect(

@@ -6,6 +6,7 @@ import {
   type PaginatedResponseDto,
 } from '../../common/dto/paginated-response.dto';
 import type { AuthUser } from '../../common/types/auth-user';
+import { noticeMimes } from '../notices/notice-mime';
 import type { ConflictQueryDto } from './dto/meeting-input.dto';
 import type {
   ConflictListItemDto,
@@ -106,6 +107,14 @@ export class ConflictsService {
       actor,
       rows.flatMap((r) => [r.higherMeetingId, r.lowerMeetingId]),
     );
+    // v1.17: notice type for the row menu label.
+    const mimes = await noticeMimes(
+      this.conflicts.manager,
+      rows
+        .flatMap((r) => [r.higherMeeting, r.lowerMeeting])
+        .filter((m) => (m.noticeFileCount ?? 0) > 0)
+        .map((m) => m.id),
+    );
     const ref = (m: Meeting): ConflictMeetingRefDto => ({
       id: m.id,
       title: visible.has(m.id) ? m.title : MSG.hiddenTitle,
@@ -121,6 +130,7 @@ export class ConflictsService {
       organizedByMe: m.organizerId === actor.id,
       chairedByMe: m.chairId === actor.id,
       hasNotice: (m.noticeFileCount ?? 0) > 0,
+      noticeMime: mimes.get(m.id) ?? null,
     });
     return rows.map((r) => ({
       id: r.id,

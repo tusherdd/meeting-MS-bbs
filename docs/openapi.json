@@ -3894,7 +3894,7 @@
     },
     "/api/v1/meetings/{id}/decision/files/{fileId}": {
       "get": {
-        "description": "The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition. A DOCX is always an attachment.",
+        "description": "The meeting's people and admins. Sent with nosniff, no-store and a safe Content-Disposition. v1.17: PDF and images always inline, a DOCX always an attachment; ?inline is accepted but no longer needed.",
         "operationId": "DecisionsController_download",
         "parameters": [
           {
@@ -3917,7 +3917,7 @@
             "name": "inline",
             "required": false,
             "in": "query",
-            "description": "true = open in the browser (Content-Disposition: inline)",
+            "description": "Deprecated (v1.17): accepted for old links, no effect. PDF / images are always inline, a DOCX always an attachment",
             "schema": {
               "default": false,
               "type": "boolean"
@@ -3980,7 +3980,7 @@
             "bearer": []
           }
         ],
-        "summary": "Download (or with ?inline=true open) one minutes file",
+        "summary": "Download or show one minutes file (PDF / image inline, DOCX attachment)",
         "tags": [
           "Meeting minutes"
         ]
@@ -4118,7 +4118,7 @@
         ]
       },
       "get": {
-        "description": "The meeting's people and admins, also for cancelled meetings. A DOCX is always an attachment. Sent with nosniff, no-store and a safe Content-Disposition.",
+        "description": "The meeting's people and admins, also for cancelled meetings. v1.17: PDF and images are always sent inline (for the in-app viewer), a DOCX is always an attachment; ?inline is accepted but no longer needed. Sent with nosniff, no-store and a safe Content-Disposition.",
         "operationId": "NoticesController_download",
         "parameters": [
           {
@@ -4133,7 +4133,7 @@
             "name": "inline",
             "required": false,
             "in": "query",
-            "description": "true = open a PDF or image in the browser (Content-Disposition: inline); a DOCX is always an attachment",
+            "description": "Deprecated (v1.17): accepted for old links, no effect. PDF / images are always inline, a DOCX always an attachment",
             "schema": {
               "default": false,
               "type": "boolean"
@@ -4196,7 +4196,7 @@
             "bearer": []
           }
         ],
-        "summary": "Download (PDF / image: or with ?inline=true open) the meeting notice",
+        "summary": "Download or show the meeting notice (PDF / image inline, DOCX attachment)",
         "tags": [
           "Meeting notice"
         ]
@@ -4431,7 +4431,7 @@
         ],
         "responses": {
           "200": {
-            "description": "A4 landscape PDF (Bangla), downloaded as an attachment",
+            "description": "A4 landscape PDF (Bangla), sent inline (v1.17: shown in the in-app viewer; its Download button saves it under this name)",
             "content": {
               "application/pdf": {
                 "schema": {
@@ -4794,7 +4794,7 @@
         ],
         "responses": {
           "200": {
-            "description": "A4 landscape PDF (Bangla), downloaded as an attachment",
+            "description": "A4 landscape PDF (Bangla), sent inline (v1.17: shown in the in-app viewer; its Download button saves it under this name)",
             "content": {
               "application/pdf": {
                 "schema": {
@@ -7066,6 +7066,12 @@
             "type": "boolean",
             "example": false,
             "description": "v1.13: the meeting has an uploaded notice \"সভার নোটিশ\" (GET /meetings/:id/notice)"
+          },
+          "noticeMime": {
+            "type": "string",
+            "nullable": true,
+            "example": "application/pdf",
+            "description": "v1.17: mime type of the uploaded notice (null = none). PDF / image → \"নোটিশ দেখুন\" (file viewer); DOCX → \"নোটিশ ডাউনলোড\""
           }
         },
         "required": [
@@ -7081,7 +7087,8 @@
           "myRole",
           "decisionFileCount",
           "decisionStatus",
-          "hasNotice"
+          "hasNotice",
+          "noticeMime"
         ]
       },
       "MeetingGuestInputDto": {
@@ -7543,6 +7550,12 @@
             "type": "boolean",
             "example": false,
             "description": "v1.13: the meeting has an uploaded notice \"সভার নোটিশ\""
+          },
+          "noticeMime": {
+            "type": "string",
+            "nullable": true,
+            "example": "application/pdf",
+            "description": "v1.17: mime type of the uploaded notice (null = none). PDF / image → \"নোটিশ দেখুন\" (file viewer); DOCX → \"নোটিশ ডাউনলোড\""
           }
         },
         "required": [
@@ -7559,7 +7572,8 @@
           "organizerWingEn",
           "organizedByMe",
           "chairedByMe",
-          "hasNotice"
+          "hasNotice",
+          "noticeMime"
         ]
       },
       "MeetingConflictDto": {
@@ -7741,6 +7755,12 @@
             "example": false,
             "description": "v1.13: the meeting has an uploaded notice \"সভার নোটিশ\" (GET /meetings/:id/notice)"
           },
+          "noticeMime": {
+            "type": "string",
+            "nullable": true,
+            "example": "application/pdf",
+            "description": "v1.17: mime type of the uploaded notice (null = none). PDF / image → \"নোটিশ দেখুন\" (file viewer); DOCX → \"নোটিশ ডাউনলোড\""
+          },
           "agenda": {
             "type": "string",
             "nullable": true
@@ -7826,6 +7846,7 @@
           "decisionFileCount",
           "decisionStatus",
           "hasNotice",
+          "noticeMime",
           "agenda",
           "chair",
           "guests",
@@ -8548,6 +8569,12 @@
             "type": "boolean",
             "example": false,
             "description": "v1.13: the meeting has an uploaded notice (\"সভার নোটিশ\")"
+          },
+          "noticeMime": {
+            "type": "string",
+            "nullable": true,
+            "example": "application/pdf",
+            "description": "v1.17: mime type of the uploaded notice (null = none). PDF / image → \"নোটিশ দেখুন\" (file viewer); DOCX → \"নোটিশ ডাউনলোড\""
           }
         },
         "required": [
@@ -8568,7 +8595,8 @@
           "chairNameEn",
           "guests",
           "decisionFileCount",
-          "hasNotice"
+          "hasNotice",
+          "noticeMime"
         ]
       },
       "ReportMeetingPageDto": {
@@ -8966,6 +8994,12 @@
             "type": "boolean",
             "example": false,
             "description": "Uploaded notice (\"সভার নোটিশ\")"
+          },
+          "noticeMime": {
+            "type": "string",
+            "nullable": true,
+            "example": "application/pdf",
+            "description": "v1.17: mime type of the uploaded notice (null = none). PDF / image → \"নোটিশ দেখুন\" (file viewer); DOCX → \"নোটিশ ডাউনলোড\""
           }
         },
         "required": [
@@ -8986,7 +9020,8 @@
           "myRole",
           "officerRole",
           "decisionFileCount",
-          "hasNotice"
+          "hasNotice",
+          "noticeMime"
         ]
       },
       "OfficeMeetingPageDto": {

@@ -156,14 +156,14 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | GET | `/decisions` | 👤 | Meetings by decision status | `page` (query), `limit` (query), `status` (query), `as` (query) | 200 |
 | GET | `/meetings/:id/decision` | 👤 | Decision of a meeting: status, files and what I may do | — | 200, 403, 404 |
 | POST | `/meetings/:id/decision/files` | 👤 | Upload decision files (organizer, chair, members; after the start) | `files`*, (multipart) | 201, 400, 403, 409, 413 |
-| GET | `/meetings/:id/decision/files/:fileId` | 👤 | Download (or with ?inline=true open) one minutes file | `inline` (query) | 200, 403, 404 |
+| GET | `/meetings/:id/decision/files/:fileId` | 👤 | Download or show one minutes file (PDF / image inline, DOCX attachment) | `inline` (query) | 200, 403, 404 |
 | DELETE | `/meetings/:id/decision/files/:fileId` | 👤 | Delete a decision file (uploader, organizer or chair) | — | 204, 403, 404 |
 
 ## Meeting notice
 
 | Method | Path | Access | Purpose | Main request fields | Responses |
 |---|---|---|---|---|---|
-| GET | `/meetings/:id/notice` | 👤 | Download (PDF / image: or with ?inline=true open) the meeting notice | `inline` (query) | 200, 403, 404 |
+| GET | `/meetings/:id/notice` | 👤 | Download or show the meeting notice (PDF / image inline, DOCX attachment) | `inline` (query) | 200, 403, 404 |
 | POST | `/meetings/:id/notice` | 👤 | Upload or replace the meeting notice (organizer only) | `file`*, (multipart) | 201, 400, 403, 404, 409, 413 |
 | DELETE | `/meetings/:id/notice` | 👤 | Remove the meeting notice (organizer only) | — | 204, 403, 404, 409 |
 

@@ -113,9 +113,12 @@ test("a member uploads a decision → Complete; the organizer sees the counts", 
       bn.decisions.badType("notes.txt"),
     );
 
-    // Download works.
+    // v1.17: "দেখুন" opens the file viewer panel; its Download button saves the file.
+    await member.getByRole("button", { name: bn.fileViewer.view }).click();
+    const viewer = member.getByRole("dialog");
+    await expect(viewer.getByRole("heading", { name: "সভার কার্যবিবরণী.pdf" })).toBeVisible();
     const download = member.waitForEvent("download");
-    await member.getByRole("button", { name: bn.decisions.download }).click();
+    await viewer.getByRole("button", { name: bn.fileViewer.download }).click();
     expect((await download).suggestedFilename()).toBe("সভার কার্যবিবরণী.pdf");
 
     // The organizer: one Pending less, one Complete more; and a bell notice.

@@ -53,7 +53,7 @@ export class NoticeUploadDto {
 export class NoticeDownloadQueryDto {
   @ApiPropertyOptional({
     description:
-      'true = open a PDF or image in the browser (Content-Disposition: inline); a DOCX is always an attachment',
+      'Deprecated (v1.17): accepted for old links, no effect. PDF / images are always inline, a DOCX always an attachment',
     default: false,
   })
   @IsOptional()

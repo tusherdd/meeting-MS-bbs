@@ -240,11 +240,11 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
       expect(html).toContain('বাংলাদেশ পরিসংখ্যান ব্যুরো — কর্মসূচি');
       expect(html).toContain('১ নভেম্বর ২০২৬ – ১৫ ডিসেম্বর ২০২৬');
       expect(pdf.headers['content-disposition']).toBe(
-        'attachment; filename="meeting-report-2026-11-01_2026-12-15.pdf"',
+        'inline; filename="meeting-report-2026-11-01_2026-12-15.pdf"',
       );
     }, 60_000);
 
-    it('GET /reports/me/pdf returns a real PDF attachment with a safe file name', async () => {
+    it('GET /reports/me/pdf returns a real PDF, inline (v1.17) with a safe file name and nosniff', async () => {
       const spy = jest.spyOn(app.get(PdfService), 'render');
       const res = await http()
         .get(`${API}/reports/me/pdf`)
@@ -268,8 +268,9 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
       expect(html).not.toContain('সভা প্রতিবেদন');
       expect(res.headers['content-type']).toBe('application/pdf');
       expect(res.headers['content-disposition']).toBe(
-        `attachment; filename="meeting-report-${dateParam}.pdf"`,
+        `inline; filename="meeting-report-${dateParam}.pdf"`,
       );
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
       const pdf = res.body as Buffer;
       expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
       expect(pdf.length).toBeGreaterThan(5000);
@@ -336,7 +337,7 @@ describe('Reports, admin stats, audit log, hardening (e2e)', () => {
       expect(html).toContain('<td>জনাব রিপোর্ট admin</td>');
       expect(html).toContain('সহকর্মীর সভা');
       expect(pdf.headers['content-disposition']).toMatch(
-        /^attachment; filename="office-report-\d{4}-\d{2}\.pdf"$/,
+        /^inline; filename="office-report-\d{4}-\d{2}\.pdf"$/,
       );
       const audit = await ds.getRepository(AuditLog).findOne({
         where: {

@@ -9,6 +9,7 @@ import { MeetingConflict } from '../meetings/entities/meeting-conflict.entity';
 import { MeetingParticipant } from '../meetings/entities/meeting-participant.entity';
 import { Meeting } from '../meetings/entities/meeting.entity';
 import type { ParticipantRole } from '../meetings/enums/participant-role.enum';
+import { noticeMimes } from '../notices/notice-mime';
 import { User } from '../users/entities/user.entity';
 import type {
   PeriodDto,
@@ -183,6 +184,11 @@ export class ReportsService {
             ).map((r) => [r.meetingId, r.role]),
           )
         : new Map<string, ParticipantRole>();
+    // v1.17: notice type for the row menu label.
+    const mimes = await noticeMimes(
+      this.dataSource.manager,
+      rows.filter((m) => (m.noticeFileCount ?? 0) > 0).map((m) => m.id),
+    );
 
     return rows.map((m) => ({
       id: m.id,
@@ -215,6 +221,7 @@ export class ReportsService {
       })),
       decisionFileCount: m.decisionFileCount ?? 0,
       hasNotice: (m.noticeFileCount ?? 0) > 0,
+      noticeMime: mimes.get(m.id) ?? null,
     }));
   }
 
@@ -276,5 +283,6 @@ function toItem(m: ReportMeeting): ReportMeetingDto {
     guests: m.guests,
     decisionFileCount: m.decisionFileCount ?? 0,
     hasNotice: m.hasNotice ?? false,
+    noticeMime: m.noticeMime ?? null,
   };
 }

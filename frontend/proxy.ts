@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * Content Security Policy with a fresh nonce per request (SPEC.md §13.4, production readiness):
- * scripts only from this origin plus Next.js' own inline scripts carrying the nonce; no frames,
- * no plugins, no foreign forms. Next.js reads the nonce from this header and puts it on its
+ * scripts only from this origin plus Next.js' own inline scripts carrying the nonce; frames only
+ * for blob: URLs (v1.17 file viewer), no plugins, no foreign forms. Next.js reads the nonce from this header and puts it on its
  * scripts automatically (the root layout renders per request for that).
  *
  * Development: React needs eval for its debug stacks and the Next.js dev overlay uses inline
@@ -20,6 +20,8 @@ export function proxy(request: NextRequest) {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
     dev ? "style-src 'self' 'unsafe-inline'" : `style-src 'self' 'nonce-${nonce}'`,
     "img-src 'self' blob: data:",
+    // v1.17: the file viewer panel shows session-fetched PDFs through a Blob URL in an iframe.
+    "frame-src blob:",
     "font-src 'self'",
     "connect-src 'self'",
     "object-src 'none'",

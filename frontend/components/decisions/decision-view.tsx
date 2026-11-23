@@ -13,7 +13,8 @@ import { LoadingBlock } from "@/components/ui/spinner";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
 import { isApiError, saveBlob } from "@/lib/api";
-import { opensInline } from "@/lib/notice-file";
+import { FileViewerPanel, type ViewerFile } from "@/components/files/file-viewer-panel";
+import { opensInPanel } from "@/lib/file-viewer";
 import { decisionsApi, queryKeys } from "@/lib/endpoints";
 import { invalidateMeetingData } from "@/lib/invalidate";
 import type { DecisionDetail, DecisionFile } from "@/lib/types";
@@ -251,25 +252,15 @@ function FileList({ id, files }: { id: string; files: DecisionFile[] }) {
     },
   });
 
-  async function onView(file: DecisionFile) {
-    setActionError(null);
-    // Open the tab during the click (popup blockers), then show the file in it.
-    const tab = window.open("", "_blank");
-    try {
-      const { blob } = await decisionsApi.download(id, file.id, true);
-      const url = URL.createObjectURL(new Blob([blob], { type: file.mime }));
-      if (tab) {
-        tab.opener = null;
-        tab.location.href = url;
-      } else {
-        window.location.assign(url);
-      }
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch (err) {
-      tab?.close();
-      setActionError(err);
-    }
-  }
+  // v1.17 (SPEC.md §13.22): PDF / images open in the shared file viewer panel, with every file
+  // of the meeting listed for switching; a DOCX is a direct download.
+  const [viewing, setViewing] = useState<string | null>(null);
+  const viewerFiles: ViewerFile[] = files.map((f) => ({
+    id: f.id,
+    name: f.originalName,
+    mime: f.mime,
+    load: () => decisionsApi.download(id, f.id),
+  }));
 
   async function onDownload(file: DecisionFile) {
     setActionError(null);
@@ -310,15 +301,16 @@ function FileList({ id, files }: { id: string; files: DecisionFile[] }) {
                 <Td className="whitespace-nowrap">{formatFileSize(f.size)}</Td>
                 <Td>
                   <div className="flex flex-wrap gap-2">
-                    {/* v1.13: a DOCX is always downloaded, never opened in the browser. */}
-                    {opensInline(f.mime) && (
-                      <Button variant="secondary" size="sm" onClick={() => void onView(f)}>
-                        {t.decisions.view}
+                    {/* v1.17: one button — View (panel) for PDF / images, Download for a DOCX. */}
+                    {opensInPanel(f.mime) ? (
+                      <Button variant="secondary" size="sm" onClick={() => setViewing(f.id)}>
+                        {t.fileViewer.view}
+                      </Button>
+                    ) : (
+                      <Button variant="secondary" size="sm" onClick={() => void onDownload(f)}>
+                        {t.fileViewer.download}
                       </Button>
                     )}
-                    <Button variant="secondary" size="sm" onClick={() => void onDownload(f)}>
-                      {t.decisions.download}
-                    </Button>
                     {f.canDelete && (
                       <Button
                         variant="secondary"
@@ -339,6 +331,12 @@ function FileList({ id, files }: { id: string; files: DecisionFile[] }) {
           </TBody>
         </Table>
       )}
+      <FileViewerPanel
+        open={viewing !== null}
+        onClose={() => setViewing(null)}
+        files={viewerFiles}
+        initialId={viewing ?? undefined}
+      />
       <ConfirmModal
         open={toDelete !== null}
         onClose={() => setToDelete(null)}

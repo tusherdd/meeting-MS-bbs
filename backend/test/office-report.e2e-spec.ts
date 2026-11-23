@@ -371,7 +371,7 @@ describe('Office report scope (v1.15, e2e)', () => {
     expect(html).not.toContain('সভা A');
     expect(html).not.toContain('সভা C');
     expect(pdf.headers['content-disposition']).toBe(
-      `attachment; filename="office-report-${date}_${date}.pdf"`,
+      `inline; filename="office-report-${date}_${date}.pdf"`,
     );
     const audit = await ds.getRepository(AuditLog).findOne({
       where: { actorId: ids.dg, action: AuditAction.OFFICE_REPORT_EXPORTED },

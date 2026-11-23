@@ -18,8 +18,8 @@ export const en: Messages = {
     switchAria: "Switch to Bangla",
   },
   common: {
-    /** v1.16: the one label of every PDF download button. */
-    downloadPdf: "Download PDF",
+    /** v1.17: the one label of every report PDF button (opens the file viewer panel). */
+    viewPdf: "View PDF",
     loading: "Loading…",
     retry: "Try again",
     close: "Close",
@@ -364,12 +364,24 @@ export const en: Messages = {
     button: "More actions",
     column: "Actions",
     view: "View details",
-    notice: "Meeting notice",
+    /** v1.17: the notice is a PDF or an image → file viewer panel. */
+    viewNotice: "View notice",
+    /** v1.17: the notice is a DOCX → direct download. */
+    downloadNotice: "Download notice",
     edit: "Edit",
     cancel: "Cancel",
     upload: "Upload minutes",
     /** v1.15 office report: view / download only. */
     viewMinutes: "View minutes",
+  },
+  /** v1.17: the shared file viewer side panel (SPEC.md §13.22). */
+  fileViewer: {
+    view: "View",
+    download: "Download",
+    close: "Close",
+    files: "Files",
+    cantShow: "This file can't be shown here on this device.",
+    openNewTab: "Open in new tab",
   },
   /** v1.11 (renamed v1.13): meeting minutes (SPEC.md §6.9, §13.19). */
   decisions: {
@@ -414,8 +426,6 @@ export const en: Messages = {
     colTime: "Time",
     colSize: "Size",
     colActions: "Actions",
-    view: "View",
-    download: "Download",
     delete: "Delete",
     deleteTitle: "Delete this file?",
     deleteBody: (name: string) => `The file "${name}" will be deleted. This cannot be undone.`,
@@ -494,7 +504,7 @@ export const en: Messages = {
     nameCol: "Name",
     meetingsCol: "Meetings",
     hourCol: "Hours",
-    topNote: "Organizer, president and member: meetings in every role are counted.",
+    topNote: "",
     busiestTitle: "Busiest 5 days",
     dateCol: "Date",
     listTitle: "Meetings",
@@ -587,7 +597,6 @@ export const en: Messages = {
     chair: "President",
     guests: "Guest officers",
     pdfLoading: "Preparing…",
-    pdfDone: "The PDF download has started.",
   },
   profile: {
     title: "Profile",

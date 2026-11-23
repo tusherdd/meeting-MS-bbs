@@ -4,13 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ConflictBadge, RoleBadge, StatusBadge } from "@/components/dashboard/meeting-badges";
+import { FileViewButton } from "@/components/files/file-viewer-panel";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { isApiError } from "@/lib/api";
-import { meetingsApi, queryKeys } from "@/lib/endpoints";
+import { meetingsApi, noticesApi, queryKeys } from "@/lib/endpoints";
 
 import type { MeetingConflict, MeetingDetail } from "@/lib/types";
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
@@ -148,6 +149,24 @@ function Detail({ meeting }: { meeting: MeetingDetail }) {
                 </Row>
                 {meeting.cancelReason && (
                   <Row label={t.meetingDetail.cancelReason}>{meeting.cancelReason}</Row>
+                )}
+                {/* v1.17 (SPEC.md §13.22): the uploaded notice — View (panel) or Download (DOCX). */}
+                {meeting.notice && (
+                  <Row label={t.notice.label}>
+                    <div className="flex flex-wrap items-center gap-2" data-testid="meeting-notice">
+                      <span className="break-all">{meeting.notice.originalName}</span>
+                      <FileViewButton
+                        file={{
+                          id: "notice",
+                          name: meeting.notice.originalName,
+                          mime: meeting.notice.mime,
+                          load: () => noticesApi.download(meeting.id),
+                        }}
+                        viewLabel={t.fileViewer.view}
+                        downloadLabel={t.fileViewer.download}
+                      />
+                    </div>
+                  </Row>
                 )}
               </dl>
             </CardBody>

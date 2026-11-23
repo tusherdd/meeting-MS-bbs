@@ -34,6 +34,7 @@ const row = (
   officerRole: null,
   decisionFileCount: 0,
   hasNotice: false,
+  noticeMime: null,
   ...over,
 });
 

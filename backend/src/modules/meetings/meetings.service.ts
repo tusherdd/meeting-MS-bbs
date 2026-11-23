@@ -20,6 +20,7 @@ import { AuditAction } from '../audit/enums/audit-action.enum';
 import { DecisionStorageService } from '../decisions/decision-storage.service';
 import { decisionStatus } from '../decisions/decision-rules';
 import { MeetingNoticeFile } from '../notices/entities/meeting-notice-file.entity';
+import { noticeMimes } from '../notices/notice-mime';
 import { noticeDto } from '../notices/notice-view';
 import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
@@ -735,6 +736,7 @@ export class MeetingsService {
       .getRepository(MeetingNoticeFile)
       .findOne({ where: { meetingId: id }, relations: { uploadedBy: true } });
     meeting.noticeFileCount = notice ? 1 : 0;
+    meeting.noticeMime = notice?.mime ?? null;
     return {
       ...this.summary(meeting, actor),
       notice: notice ? noticeDto(notice, meeting, actor.id) : null,
@@ -1401,8 +1403,14 @@ export class MeetingsService {
         })
       : [];
     const roleOf = new Map(mine.map((p) => [p.meetingId, p.role]));
+    // v1.17: the notice type decides the row menu label ("নোটিশ দেখুন" / "নোটিশ ডাউনলোড").
+    const mimes = await noticeMimes(
+      this.dataSource.manager,
+      rows.filter((m) => (m.noticeFileCount ?? 0) > 0).map((m) => m.id),
+    );
     return rows.map((m) => ({
       ...this.summary(m, actor),
+      noticeMime: mimes.get(m.id) ?? null,
       myRole: roleOf.get(m.id) ?? null,
     }));
   }
@@ -1422,6 +1430,7 @@ export class MeetingsService {
       decisionFileCount: m.decisionFileCount ?? 0,
       decisionStatus: decisionStatus(m, m.decisionFileCount ?? 0),
       hasNotice: (m.noticeFileCount ?? 0) > 0,
+      noticeMime: m.noticeMime ?? null,
     };
   }
 
@@ -1443,16 +1452,7 @@ export class MeetingsService {
       r.higherMeetingId === meetingId ? r.lowerMeetingId : r.higherMeetingId,
     );
     const visible = await this.visibleMeetingIds(actor, otherIds);
-    const withNotice = new Set(
-      otherIds.length
-        ? (
-            await this.dataSource.getRepository(MeetingNoticeFile).find({
-              select: { meetingId: true },
-              where: { meetingId: In(otherIds) },
-            })
-          ).map((n) => n.meetingId)
-        : [],
-    );
+    const withNotice = await noticeMimes(this.dataSource.manager, otherIds);
     return rows.map((r) => {
       const isHigher = r.higherMeetingId === meetingId;
       const other = isHigher ? r.lowerMeeting : r.higherMeeting;
@@ -1475,6 +1475,7 @@ export class MeetingsService {
           organizedByMe: other.organizerId === actor.id,
           chairedByMe: other.chairId === actor.id,
           hasNotice: withNotice.has(other.id),
+          noticeMime: withNotice.get(other.id) ?? null,
         },
         officer: {
           id: r.user.id,

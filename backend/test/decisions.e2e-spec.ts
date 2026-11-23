@@ -251,7 +251,7 @@ describe('v1.11: meeting decisions (e2e)', () => {
       expect((list.body as Detail['meeting']).decisionStatus).toBe('COMPLETE');
     });
 
-    it('download: same bytes, attachment with a safe name, nosniff, no-store', async () => {
+    it('download: same bytes, a PDF inline (v1.17) with a safe name, nosniff, no-store', async () => {
       const res = await binary(
         http()
           .get(`${base(id)}/files/${fileId}`)
@@ -262,7 +262,7 @@ describe('v1.11: meeting decisions (e2e)', () => {
       expect(res.headers['x-content-type-options']).toBe('nosniff');
       expect(res.headers['cache-control']).toContain('no-store');
       expect(res.headers['content-disposition']).toMatch(
-        /^attachment; filename="[^"]+"; filename\*=UTF-8''/,
+        /^inline; filename="[^"]+"; filename\*=UTF-8''/,
       );
       const inline = await binary(
         http()

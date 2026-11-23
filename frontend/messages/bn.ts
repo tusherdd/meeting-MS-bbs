@@ -15,8 +15,8 @@ const bnMessages = {
     switchAria: "ভাষা ইংরেজিতে বদলান",
   },
   common: {
-    /** v1.16: the one label of every PDF download button. */
-    downloadPdf: "PDF ডাউনলোড",
+    /** v1.17: the one label of every report PDF button (opens the file viewer panel). */
+    viewPdf: "PDF দেখুন",
     loading: "লোড হচ্ছে…",
     retry: "আবার চেষ্টা করুন",
     close: "বন্ধ করুন",
@@ -363,12 +363,24 @@ const bnMessages = {
     button: "আরও অপশন",
     column: "অপশন",
     view: "বিস্তারিত দেখুন",
-    notice: "সভার নোটিশ",
+    /** v1.17: the notice is a PDF or an image → file viewer panel. */
+    viewNotice: "নোটিশ দেখুন",
+    /** v1.17: the notice is a DOCX → direct download. */
+    downloadNotice: "নোটিশ ডাউনলোড",
     edit: "Edit",
     cancel: "বাতিল করুন",
     upload: "কার্যবিবরণী আপলোড",
     /** v1.15 office report: view / download only. */
     viewMinutes: "কার্যবিবরণী দেখুন",
+  },
+  /** v1.17: the shared file viewer side panel (SPEC.md §13.22). */
+  fileViewer: {
+    view: "দেখুন",
+    download: "ডাউনলোড",
+    close: "Close",
+    files: "ফাইল",
+    cantShow: "এই ফোনে এখানে দেখা যাচ্ছে না।",
+    openNewTab: "নতুন ট্যাবে খুলুন",
   },
   /** v1.11 (renamed v1.13): meeting minutes "সভা কার্যবিবরণী" (SPEC.md §6.9, §13.19). */
   decisions: {
@@ -413,8 +425,6 @@ const bnMessages = {
     colTime: "সময়",
     colSize: "আকার",
     colActions: "অপশন",
-    view: "View",
-    download: "Download",
     delete: "Delete",
     deleteTitle: "ফাইলটি মুছে ফেলবেন?",
     deleteBody: (name: string) => `"${name}" ফাইলটি মুছে ফেলা হবে। এটি আর ফিরিয়ে আনা যাবে না।`,
@@ -493,7 +503,7 @@ const bnMessages = {
     nameCol: "নাম",
     meetingsCol: "সভা",
     hourCol: "ঘণ্টা",
-    topNote: "আয়োজক, সভাপতি ও সদস্য — সব ভূমিকার সভা গোনা হয়েছে।",
+    topNote:"",
     busiestTitle: "সবচেয়ে ব্যস্ত ৫ দিন",
     dateCol: "তারিখ",
     listTitle: "সভার তালিকা",
@@ -586,7 +596,6 @@ const bnMessages = {
     chair: "সভাপতি",
     guests: "অতিথি কর্মকর্তা",
     pdfLoading: "তৈরি হচ্ছে…",
-    pdfDone: "PDF Download শুরু হয়েছে।",
   },
   profile: {
     title: "প্রোফাইল",

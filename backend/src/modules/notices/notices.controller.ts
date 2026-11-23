@@ -35,11 +35,7 @@ import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import type { AppRequest, AuthUser } from '../../common/types/auth-user';
-import {
-  contentDisposition,
-  DOCX_MIME,
-  mayOpenInline,
-} from '../decisions/decision-file';
+import { DOCX_MIME, fileDisposition } from '../decisions/decision-file';
 import {
   NoticeDownloadQueryDto,
   NoticeFileDto,
@@ -93,9 +89,10 @@ export class NoticesController {
   @Get()
   @ApiOperation({
     summary:
-      'Download (PDF / image: or with ?inline=true open) the meeting notice',
+      'Download or show the meeting notice (PDF / image inline, DOCX attachment)',
     description:
-      "The meeting's people and admins, also for cancelled meetings. A DOCX is always an attachment. " +
+      "The meeting's people and admins, also for cancelled meetings. v1.17: PDF and images are always sent inline " +
+      '(for the in-app viewer), a DOCX is always an attachment; ?inline is accepted but no longer needed. ' +
       'Sent with nosniff, no-store and a safe Content-Disposition.',
   })
   @ApiProduces('application/pdf', DOCX_MIME, 'image/jpeg', 'image/png')
@@ -115,7 +112,8 @@ export class NoticesController {
   async download(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseIdPipe) id: string,
-    @Query() query: NoticeDownloadQueryDto,
+    // Kept so old ?inline=true links stay valid; the type alone decides (v1.17).
+    @Query() _query: NoticeDownloadQueryDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const { file, stream } = await this.notices.download(user, id);
@@ -123,10 +121,7 @@ export class NoticesController {
     res.setHeader('Content-Length', String(file.size));
     res.setHeader(
       'Content-Disposition',
-      contentDisposition(
-        file.originalName,
-        query.inline === true && mayOpenInline(file.mime),
-      ),
+      fileDisposition(file.originalName, file.mime, 'meeting-notice'),
     );
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'private, no-store');

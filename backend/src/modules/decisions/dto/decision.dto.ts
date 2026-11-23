@@ -128,7 +128,8 @@ export class DecisionListQueryDto extends PaginationQueryDto {
 
 export class DecisionDownloadQueryDto {
   @ApiPropertyOptional({
-    description: 'true = open in the browser (Content-Disposition: inline)',
+    description:
+      'Deprecated (v1.17): accepted for old links, no effect. PDF / images are always inline, a DOCX always an attachment',
     default: false,
   })
   @IsOptional()

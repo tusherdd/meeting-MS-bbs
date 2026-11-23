@@ -232,9 +232,15 @@ describe('v1.13: meeting notice upload and the chair lead rule (e2e)', () => {
         list.body as { items: Array<{ id: string; hasNotice: boolean }> }
       ).items;
       expect(items.find((m) => m.id === id)?.hasNotice).toBe(true);
+      // v1.17: the row menu label depends on the type.
+      expect(
+        (items as Array<{ id: string; noticeMime?: string | null }>).find(
+          (m) => m.id === id,
+        )?.noticeMime,
+      ).toBe('application/pdf');
     });
 
-    it('a member downloads it: same bytes, inline for a PDF when asked, nosniff, no-store', async () => {
+    it('a member downloads it: same bytes, a PDF always inline (v1.17), nosniff, no-store', async () => {
       const res = await download('member', id, true).expect(200);
       expect((res.body as Buffer).equals(PDF)).toBe(true);
       expect(res.headers['content-type']).toBe('application/pdf');
@@ -242,8 +248,9 @@ describe('v1.13: meeting notice upload and the chair lead rule (e2e)', () => {
       expect(res.headers['content-disposition']).toContain("filename*=UTF-8''");
       expect(res.headers['x-content-type-options']).toBe('nosniff');
       expect(res.headers['cache-control']).toBe('private, no-store');
+      // v1.17: inline without ?inline too (the file viewer panel fetches the plain URL).
       const plain = await download('member', id).expect(200);
-      expect(plain.headers['content-disposition']).toMatch(/^attachment;/);
+      expect(plain.headers['content-disposition']).toMatch(/^inline;/);
     });
 
     it('an admin may download; a stranger may not (403)', async () => {
@@ -265,6 +272,8 @@ describe('v1.13: meeting notice upload and the chair lead rule (e2e)', () => {
       const res = await download('member', id, true).expect(200);
       expect(res.headers['content-type']).toBe(DOCX_TYPE);
       expect(res.headers['content-disposition']).toMatch(/^attachment;/);
+      const plainDocx = await download('member', id).expect(200);
+      expect(plainDocx.headers['content-disposition']).toMatch(/^attachment;/);
       expect((res.body as Buffer).equals(bytes)).toBe(true);
     });
 

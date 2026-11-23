@@ -32,7 +32,8 @@ import { ReportsService, type PdfFile } from './reports.service';
 const PDF_THROTTLE = { default: { limit: 10, ttl: minutes(1) } };
 
 const PDF_RESPONSE = {
-  description: 'A4 landscape PDF (Bangla), downloaded as an attachment',
+  description:
+    'A4 landscape PDF (Bangla), sent inline (v1.17: shown in the in-app viewer; its Download button saves it under this name)',
   content: {
     'application/pdf': { schema: { type: 'string', format: 'binary' } },
   },
@@ -41,11 +42,10 @@ const PDF_RESPONSE = {
 function sendPdf(res: Response, file: PdfFile): StreamableFile {
   // The file name is built from fixed text + digits only (see resolvePeriod), never user input.
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader(
-    'Content-Disposition',
-    `attachment; filename="${file.filename}"`,
-  );
-  res.setHeader('Cache-Control', 'no-store');
+  // v1.17: inline, so the file viewer panel (and a direct link) can show it.
+  res.setHeader('Content-Disposition', `inline; filename="${file.filename}"`);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'private, no-store');
   return new StreamableFile(file.content);
 }
 

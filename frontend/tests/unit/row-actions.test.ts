@@ -18,6 +18,7 @@ describe("row menu items (v1.10, v1.13)", () => {
     expect(rowActions(future, true, now)).toEqual({
       view: true,
       notice: false,
+      noticeAction: null,
       edit: true,
       cancel: true,
       uploadDecision: false,
@@ -29,6 +30,7 @@ describe("row menu items (v1.10, v1.13)", () => {
     expect(rowActions(future, false, now)).toEqual({
       view: true,
       notice: false,
+      noticeAction: null,
       edit: false,
       cancel: false,
       uploadDecision: false,
@@ -40,6 +42,7 @@ describe("row menu items (v1.10, v1.13)", () => {
     expect(rowActions({ ...started, status: "CANCELLED" }, true, now)).toEqual({
       view: true,
       notice: false,
+      noticeAction: null,
       edit: false,
       cancel: false,
       uploadDecision: false,
@@ -102,6 +105,7 @@ describe("Upload decision (v1.11)", () => {
     expect(rowActions(done, false, now, false, "officeReport")).toEqual({
       view: true,
       notice: true,
+      noticeAction: "download",
       edit: false,
       cancel: false,
       uploadDecision: false,
@@ -115,5 +119,20 @@ describe("Upload decision (v1.11)", () => {
     expect([mine.edit, mine.cancel]).toEqual([true, true]);
     // The default menu never shows View minutes.
     expect(rowActions(done, true, now).viewDecision).toBe(false);
+  });
+});
+
+describe("v1.17: notice item by type (file viewer panel)", () => {
+  it("PDF / image → view, DOCX or unknown → download, none → null", () => {
+    const at = (noticeMime: string | null | undefined, hasNotice = true) =>
+      rowActions({ ...future, hasNotice, noticeMime }, false, now).noticeAction;
+    expect(at("application/pdf")).toBe("view");
+    expect(at("image/jpeg")).toBe("view");
+    expect(at("image/png")).toBe("view");
+    expect(at("application/vnd.openxmlformats-officedocument.wordprocessingml.document")).toBe(
+      "download",
+    );
+    expect(at(undefined)).toBe("download");
+    expect(at("application/pdf", false)).toBeNull();
   });
 });
