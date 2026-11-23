@@ -410,9 +410,25 @@ The minutes (signed resolutions) of a meeting are uploaded as files. v1.13: ever
 pure rules in `decision-rules.ts` and `decision-file.ts` (unit-tested), `decisions.service.ts`,
 `decision-storage.service.ts`.
 - **Status (derived, never stored):** **Complete** = at least one file; **Pending** = the meeting has started (or
-  is completed), is not cancelled and has no file; cancelled meetings and meetings that have not started have
-  **no** decision status (null). Deleting the last file makes it Pending again. `MeetingSummaryDto` carries
-  `decisionFileCount` and `decisionStatus`; report rows carry `decisionFileCount`.
+  is completed), is not cancelled, has no file **and minutes are required**; cancelled meetings and meetings that
+  have not started have **no** decision status (null). Deleting the last file makes it Pending again (or, when minutes
+  are not required, no status). `MeetingSummaryDto` carries `decisionFileCount`, `decisionStatus` and (v1.19)
+  `minutesRequired`; report rows carry `decisionFileCount`.
+- **Minutes required yes / no (v1.19, owner decision 2026-11-23).** Column `meetings.minutesRequired` (boolean,
+  NOT NULL, default true; migration `MeetingMinutesRequired1795400000000`, every existing meeting true). Set in the
+  meeting create / edit form (§13.6) and in `CreateMeetingDto` / `UpdateMeetingDto` (optional boolean, default true;
+  400 `MINUTES_REQUIRED_BOOLEAN`; not part of `CheckConflictsDto`); whoever may edit the meeting (organizer, internal
+  chair, admin; while scheduled and not ended) may change it; the value is in the `MEETING_CREATE` / `MEETING_UPDATE`
+  audit snapshots. Rules:
+  - `true`: exactly as above (Pending until at least one file, then Complete).
+  - `false` and no file: **no status** — not in the Pending tab, not in the sidebar Pending count (`GET /decisions/summary`),
+    not in the "আমি সদস্য" list, and not in Complete either.
+  - `false` and at least one file: **Complete** (in the Complete tab and count).
+  - Uploading stays allowed with the same permissions and time rules; the row menu still offers
+    "কার্যবিবরণী আপলোড" (no files) and "কার্যবিবরণী দেখুন" (files) — it goes by the file count (`lib/row-actions.ts`).
+  - The meeting detail page shows, when `false` and no file, the muted line "এই সভার কার্যবিবরণী প্রয়োজন নেই।" /
+    "Minutes are not required for this meeting." in the minutes area (only for those who may see the minutes); the
+    `/meetings/:id/decision` page shows the same text instead of a status once the meeting has started.
 - **Storage:** table `meeting_decision_files` (§7) + the bytes on disk under **`DECISION_UPLOAD_DIR`** (default
   `./storage/uploads`, git-ignored), a folder per meeting, random names (`<uuid>.pdf|.docx|.jpg|.png`), folders 0700, files
   0600. A separate variable from `UPLOAD_DIR` (owner decision 2026-11-17), because `UPLOAD_DIR` is served
@@ -437,7 +453,8 @@ pure rules in `decision-rules.ts` and `decision-file.ts` (unit-tested), `decisio
   `MEETING_DECISION_UPLOADED`): title `সভা কার্যবিবরণী: [শিরোনাম]`, body `"[শিরোনাম]" সভার কার্যবিবরণী আপলোড করা হয়েছে।`
   (v1.13; older notices keep their stored text), linking to the minutes page.
 - Tests: `decision-file.spec.ts`, `decision-rules.spec.ts`, `decisions.service.spec.ts`, `test/decisions.e2e-spec.ts`,
-  `frontend/e2e/v111.spec.ts`.
+  `frontend/e2e/v111.spec.ts`; v1.19: `decision-rules.spec.ts`, `meeting-input.dto.spec.ts`, `test/decisions.e2e-spec.ts`,
+  `frontend/tests/unit/{row-actions,required-fields,messages}.test.ts`, `frontend/e2e/v119.spec.ts`.
 
 ### 6.10 Office report "অফিস রিপোর্ট" (v1.15, owner decision 2026-11-20)
 One page and one route (`/office-report`) for everyone who may see it; layout as `docs/samples/office-report/`
@@ -529,7 +546,7 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
 - **change_requests**: userId, type (`LOGIN_EMAIL` | `DESIGNATION`), newValue (json), status
   (`PENDING` | `APPROVED` | `REJECTED` | `CANCELLED`), reviewedById, reviewedAt, reviewNote
 - **meetings**: title, agenda, startAt, endAt, room, onlineLink, organizerId, chairId, priority,
-  status, cancelReason, notes, cancelledAt, completedAt
+  status, cancelReason, notes, cancelledAt, completedAt, minutesRequired (boolean, default true, v1.19, §6.9)
 - **meeting_participants**: meetingId, userId, role (`ORGANIZER` | `CHAIR` | `MEMBER`) — unique (meetingId, userId)
 - **meeting_guests** (v1.5): meetingId (→ meetings, CASCADE), name, designation, email (lowercased), isChair —
   unique (meetingId, lower(email)); one guest chair per meeting; never together with `meetings.chairId`
@@ -848,6 +865,10 @@ Part 3 of 3: one required-field mark for every form (§13.6a) — no "ঐচ্�
 Release **v1.18** (2026-11-23): (1) "কনকারেন্ট সভা" / "Concurrent meetings" replaces the v1.5 term everywhere
 (§13.12, §13.14); (2) default meeting duration 45 minutes, the end time follows the start time (§13.6).
 
+Release **v1.19** (2026-11-23): minutes required yes / no per meeting — `meetings.minutesRequired` (migration
+`MeetingMinutesRequired1795400000000`), the form checkbox, the minutes status rules and the detail-page line (§6.9, §13.6,
+§13.19).
+
 ## 13. Frontend (`frontend/`)
 
 ### 13.1 Stack
@@ -965,6 +986,10 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   "নির্বাচিত কর্মকর্তাদের কারও এই সময়ে আরেকটি সভা আছে" with the list of clashes; Save stays enabled, no extra
   confirmation; red = only the lead rule (§6.4): "আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি। সময় বদলান।" and/or
   (v1.13, from `blockedBy`) "সভাপতি একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি। সময় বা সভাপতি বদলান।", Save disabled. Only an officer chair is sent to the check. A 409 on save shows the same red panel and keeps the form data.
+- **Minutes required (v1.19, §6.9):** below the venue / link row, a native checkbox "এই সভার কার্যবিবরণী আপলোড করতে
+  হবে" / "Minutes must be uploaded for this meeting", **checked** by default on create; edit shows the stored value.
+  Everyone who can open the form (organizer, internal chair, admin) can change it. No required mark (a checkbox is
+  never "required" in `lib/required-fields.ts`). Owner's wording: "আপলোড" in Bangla here (like the row menu).
 - **Meeting notice field (v1.13, §6.8)** `components/meetings/notice-field.tsx`: label "সভার নোটিশ" / "Meeting notice",
   hint "PDF, DOCX, JPG বা PNG; সর্বোচ্চ ১০ MB" / "PDF, DOCX, JPG or PNG; max 10 MB"; not required, so it
   shows no mark (§13.6a). Shown **only to the organizer** (not to a chair or an admin editing). Create: the file is
@@ -1459,7 +1484,8 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   when 0; screen readers hear "৩টি Pending কার্যবিবরণী").
 - **`/decisions`** ("সভা কার্যবিবরণী"): tabs "Pending (n)" and "Complete (n)" with the meetings I organize or chair (meeting
   rows with the three-dot menu, paginated); below, the section "আমি সদস্য" / "As member": meetings where I am only a
-  member and the decision is Pending (no counts for members), so members can upload.
+  member and the decision is Pending (no counts for members), so members can upload. v1.19: meetings whose minutes
+  are not required and that have no file appear in neither tab, nor in "আমি সদস্য", nor in the count (§6.9).
 - **Dashboard:** no minutes card. (A decisions card with Pending / Complete counts shipped in v1.11 and was
   removed the same day, owner decision 2026-11-17; the `leads` field of `GET /decisions/summary`, used only by it,
   was removed too.)

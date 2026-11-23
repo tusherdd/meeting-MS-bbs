@@ -126,6 +126,8 @@ export function createSchemas(t: Messages) {
           t.meetingForm.linkInvalid,
         ),
       chairId: z.string(),
+      // v1.19: minutes must be uploaded (checked by default; a checkbox, never "required").
+      minutesRequired: z.boolean(),
     })
     .superRefine((v, ctx) => {
       if (!/^\d{2}:\d{2}$/.test(v.startTime) || !/^\d{2}:\d{2}$/.test(v.endTime)) return;

@@ -81,6 +81,13 @@ export class Meeting extends BaseEntity {
   @Column({ type: 'timestamptz', nullable: true })
   completedAt!: Date | null;
 
+  /**
+   * v1.19 (SPEC.md §6.9): minutes must be uploaded for this meeting. false + no file → no minutes
+   * status (never Pending); false + a file → Complete. Uploading is allowed either way.
+   */
+  @Column({ type: 'boolean', default: true })
+  minutesRequired!: boolean;
+
   @OneToMany(() => MeetingParticipant, (participant) => participant.meeting)
   participants!: Relation<MeetingParticipant>[];
 

@@ -5,6 +5,7 @@
  * Rule: a field is required when its own schema rejects an empty value (""). Fields that accept
  * "" (optional text, an optional select with an empty option) are not required. Object-level
  * refinements (e.g. "passwords match") are not looked at; give such a field its own `.min(1)`.
+ * v1.19: a checkbox (a field that accepts both true and false, e.g. `minutesRequired`) is never required.
  */
 import type { z } from "zod";
 
@@ -22,7 +23,9 @@ export function requiredFields<S extends AnyObjectSchema>(schema: S): RequiredMa
   if (!map) {
     map = {};
     for (const [key, field] of Object.entries(schema.shape)) {
-      map[key] = !(field as z.ZodType).safeParse("").success;
+      const f = field as z.ZodType;
+      const checkbox = f.safeParse(true).success && f.safeParse(false).success;
+      map[key] = !checkbox && !f.safeParse("").success;
     }
     cache.set(schema, map);
   }

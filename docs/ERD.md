@@ -2,7 +2,7 @@
 
 Source of truth: the TypeORM entities in `backend/src/modules/*/entities/` and **all** migrations in
 `backend/src/database/migrations/` (list at the end). Business rules: [`SPEC.md`](../SPEC.md) §6–7.
-Last checked against the code: 2026-11-16 (v1.5).
+Last checked against the code: 2026-11-23 (v1.19).
 
 Every table also has `id uuid PK DEFAULT gen_random_uuid()`, `createdAt timestamptz` and
 `updatedAt timestamptz` (left out of the boxes below to keep the diagram readable).
@@ -130,6 +130,7 @@ erDiagram
         text notes
         timestamptz cancelledAt
         timestamptz completedAt
+        boolean minutesRequired "default true (v1.19)"
     }
     meeting_participants {
         uuid meetingId FK "UK with userId"
@@ -263,6 +264,7 @@ erDiagram
 | `1795100000000-DesignationOfficeReportScope` | `designations.officeReportScope` (enum `office_report_scope_enum`, default `NONE`, v1.15 office report); backfill: সচিব and মহাপরিচালক → `OFFICE`, পরিচালক → `WING` |
 | `1795200000000-StructuredAdditionalCharges` | `user_additional_charges.description` → `note`; `designationId`, `wingId` (RESTRICT), `needsReview`, check "designation unless needs review"; old rows matched safely (whole-word names), the rest need review (v1.16) |
 | `1795300000000-MeetingAttachments` | `meeting_attachments` (other attachments "অন্যান্য সংযুক্তি", at most 5 per meeting, v1.17), index on `meetingId` |
+| `1795400000000-MeetingMinutesRequired` | `meetings.minutesRequired` boolean NOT NULL DEFAULT true (minutes required yes / no, v1.19); existing meetings true |
 
 Schema changes are made only through migrations (`synchronize` is always `false`):
 `npm run migration:generate -- src/database/migrations/<Name>`, then `npm run migration:run`.

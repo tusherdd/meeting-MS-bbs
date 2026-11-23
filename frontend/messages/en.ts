@@ -219,6 +219,8 @@ export const en: Messages = {
     more: (count: string) => `${count} more`,
   },
   meetingForm: {
+    // v1.19: minutes required yes / no (checkbox, checked by default).
+    minutesRequired: "Minutes must be uploaded for this meeting",
     newTitle: "New meeting",
     editTitle: "Edit meeting",
     title: "Meeting title",
@@ -390,6 +392,8 @@ export const en: Messages = {
   },
   /** v1.11 (renamed v1.13): meeting minutes (SPEC.md §6.9, §13.19). */
   decisions: {
+    // v1.19: detail page, minutes not required and no file yet.
+    notRequired: "Minutes are not required for this meeting.",
     title: "Meeting minutes",
     status: {
       PENDING: "Pending",

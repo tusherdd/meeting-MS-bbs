@@ -17,12 +17,15 @@ export enum DecisionStatus {
 export interface DecisionMeeting {
   status: MeetingStatus;
   startAt: Date;
+  /** v1.19: minutes must be uploaded for this meeting (default true). */
+  minutesRequired: boolean;
 }
 
 /**
  * Derived, never stored:
  * - cancelled meetings have no decision status (null), files or not;
- * - at least one file → COMPLETE;
+ * - at least one file → COMPLETE (also when minutes are not required, v1.19);
+ * - v1.19: minutes not required and no file → null (never Pending);
  * - started (or completed) and no file → PENDING;
  * - not started yet → null.
  */
@@ -33,6 +36,7 @@ export function decisionStatus(
 ): DecisionStatus | null {
   if (meeting.status === MeetingStatus.CANCELLED) return null;
   if (fileCount > 0) return DecisionStatus.COMPLETE;
+  if (meeting.minutesRequired === false) return null;
   if (
     meeting.status === MeetingStatus.COMPLETED ||
     meeting.startAt.getTime() <= now.getTime()

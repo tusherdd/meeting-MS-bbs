@@ -34,6 +34,11 @@ export interface RowMeeting {
   hasNotice?: boolean;
   /** v1.17: the notice's mime type; unknown → "Download notice" (the bytes decide nothing here). */
   noticeMime?: string | null;
+  /**
+   * v1.19: minutes required yes / no. Deliberately NOT used: uploading stays allowed when minutes
+   * are not required, so the menu offers "Upload" / "View" by the file count alone (SPEC.md §6.9).
+   */
+  minutesRequired?: boolean;
 }
 
 /** v1.17: the one minutes item of the row menu (null = none). */

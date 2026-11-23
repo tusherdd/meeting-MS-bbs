@@ -96,10 +96,10 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 |---|---|---|---|---|---|
 | GET | `/meetings/today` | 👤 | My meetings today (Asia/Dhaka day), ordered by start — dashboard default | — | 200 |
 | GET | `/meetings` | 👤 | My meetings by range | `page` (query), `limit` (query), `from` (query), `to` (query), `status` (query), `role` (query), `scope` (query) | 200, 403 |
-| POST | `/meetings` | 👤 | Create a meeting (you are the organizer; priority = your designation priority now) | `title`*, `agenda`, `startAt`*, `endAt`*, `room`*, `onlineLink`, `chairId`, `participantIds`, `guests` | 201, 400, 403, 409 |
+| POST | `/meetings` | 👤 | Create a meeting (you are the organizer; priority = your designation priority now) | `title`*, `agenda`, `startAt`*, `endAt`*, `room`*, `onlineLink`, `chairId`, `participantIds`, `guests`, `minutesRequired` | 201, 400, 403, 409 |
 | POST | `/meetings/check-conflicts` | 👤 | Dry run of the conflict engine (nothing is saved) | `title`*, `agenda`, `startAt`*, `endAt`*, `onlineLink`, `chairId`, `participantIds`, `guests`, `room`, `meetingId` | 200, 400 |
 | GET | `/meetings/:id` | 👤 | Meeting detail with people, chair and conflicts (its people and admins only) | — | 200, 404 |
-| PATCH | `/meetings/:id` | 👤 | Update (organizer, internal chair or ADMIN; not after the meeting ended) | `title`, `agenda`, `startAt`, `endAt`, `onlineLink`, `chairId`, `participantIds`, `guests`, `room` | 200, 403, 404, 409 |
+| PATCH | `/meetings/:id` | 👤 | Update (organizer, internal chair or ADMIN; not after the meeting ended) | `title`, `agenda`, `startAt`, `endAt`, `onlineLink`, `chairId`, `participantIds`, `guests`, `minutesRequired`, `room` | 200, 403, 404, 409 |
 | DELETE | `/meetings/:id` | 🛡 | Hard delete (ADMIN); participants and conflicts are deleted too | — | 204, 403, 404 |
 | POST | `/meetings/:id/cancel` | 👤 | Cancel with a reason (organizer, internal chair or ADMIN); resolves its conflicts | `reason`* | 200, 403, 404, 409 |
 | POST | `/meetings/:id/complete` | 👤 | Mark completed and save notes/minutes (after the start; organizer or ADMIN) | `notes` | 200, 403, 409 |
@@ -178,7 +178,7 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 
 ## Message codes
 
-237 codes from `backend/src/common/i18n/message-catalog.ts`. `{name}` = a value filled in at run time.
+238 codes from `backend/src/common/i18n/message-catalog.ts`. `{name}` = a value filled in at run time.
 
 | Code | English | Bangla |
 |---|---|---|
@@ -261,6 +261,7 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 | `GUEST_EMAIL_TOO_LONG` | The guest officer's email is too long. | অতিথি কর্মকর্তার Email খুব দীর্ঘ। |
 | `GUEST_EMAIL_INVALID` | Enter a valid email address for the guest officer. | অতিথি কর্মকর্তার সঠিক Email ঠিকানা দিন। |
 | `IS_CHAIR_BOOLEAN` | isChair must be true or false. | isChair true অথবা false হতে হবে। |
+| `MINUTES_REQUIRED_BOOLEAN` | minutesRequired must be true or false. | minutesRequired true অথবা false হতে হবে। |
 | `MEETING_TITLE_REQUIRED` | Enter the meeting title. | সভার শিরোনাম দিন। |
 | `MEETING_TITLE_LENGTH` | The title must be 3 to 200 characters long. | শিরোনাম ৩ থেকে ২০০ অক্ষরের হতে হবে। |
 | `AGENDA_NOT_STRING` | The description must be text. | আলোচ্যসূচি লেখা হতে হবে। |

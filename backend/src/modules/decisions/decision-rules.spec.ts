@@ -16,10 +16,12 @@ const now = new Date('2026-11-17T06:00:00Z');
 const started = {
   status: MeetingStatus.SCHEDULED,
   startAt: new Date('2026-11-17T05:00:00Z'),
+  minutesRequired: true,
 };
 const future = {
   status: MeetingStatus.SCHEDULED,
   startAt: new Date('2026-11-18T05:00:00Z'),
+  minutesRequired: true,
 };
 const cancelled = { ...started, status: MeetingStatus.CANCELLED };
 const completed = { ...future, status: MeetingStatus.COMPLETED };
@@ -51,6 +53,47 @@ describe('decision status (derived)', () => {
   it('delete-last → Pending again', () => {
     expect(decisionStatus(started, 1, now)).toBe(DecisionStatus.COMPLETE);
     expect(decisionStatus(started, 0, now)).toBe(DecisionStatus.PENDING);
+  });
+});
+
+describe('v1.19: minutes not required (minutesRequired = false)', () => {
+  const notRequired = { ...started, minutesRequired: false };
+  const completedNotRequired = { ...completed, minutesRequired: false };
+  it('no file → no status (never Pending, not Complete)', () => {
+    expect(decisionStatus(notRequired, 0, now)).toBeNull();
+    expect(decisionStatus(completedNotRequired, 0, now)).toBeNull();
+  });
+  it('at least one file → Complete', () => {
+    expect(decisionStatus(notRequired, 1, now)).toBe(DecisionStatus.COMPLETE);
+    expect(decisionStatus(completedNotRequired, 2, now)).toBe(
+      DecisionStatus.COMPLETE,
+    );
+  });
+  it('cancelled stays without status', () => {
+    expect(
+      decisionStatus(
+        { ...notRequired, status: MeetingStatus.CANCELLED },
+        1,
+        now,
+      ),
+    ).toBeNull();
+  });
+  it('uploading is still allowed with the same rules', () => {
+    expect(
+      uploadBlock(notRequired, as(ParticipantRole.MEMBER), 0, 1, now),
+    ).toBeNull();
+    expect(
+      uploadBlock(
+        { ...future, minutesRequired: false },
+        as(ParticipantRole.ORGANIZER),
+        0,
+        1,
+        now,
+      ),
+    ).toBe('notStarted');
+    expect(uploadBlock(notRequired, as(null, true), 0, 1, now)).toBe(
+      'forbidden',
+    );
   });
 });
 

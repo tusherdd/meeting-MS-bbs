@@ -97,7 +97,11 @@ function DecisionContent({ id, data }: { id: string; data: DecisionDetail }) {
                 <DecisionBadge status={data.status} />
               ) : (
                 <span className="text-slate-600">
-                  {m.status === "CANCELLED" ? t.decisions.cancelled : t.decisions.notStarted}
+                  {m.status === "CANCELLED"
+                    ? t.decisions.cancelled
+                    : !m.minutesRequired && data.uploadBlock !== "notStarted"
+                      ? t.decisions.notRequired // v1.19: started, minutes not required, no file
+                      : t.decisions.notStarted}
                 </span>
               )}
             </dd>

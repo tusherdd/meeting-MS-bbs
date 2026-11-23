@@ -216,6 +216,8 @@ const bnMessages = {
     more: (count: string) => `আরও ${count}টি`,
   },
   meetingForm: {
+    // v1.19: minutes required yes / no (checkbox, checked by default).
+    minutesRequired: "এই সভার কার্যবিবরণী আপলোড করতে হবে",
     newTitle: "নতুন সভা",
     editTitle: "সভা সম্পাদনা",
     title: "সভার শিরোনাম",
@@ -387,6 +389,8 @@ const bnMessages = {
   },
   /** v1.11 (renamed v1.13): meeting minutes "সভা কার্যবিবরণী" (SPEC.md §6.9, §13.19). */
   decisions: {
+    // v1.19: detail page, minutes not required and no file yet.
+    notRequired: "এই সভার কার্যবিবরণী প্রয়োজন নেই।",
     title: "সভা কার্যবিবরণী",
     status: {
       PENDING: "Pending",

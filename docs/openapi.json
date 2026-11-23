@@ -7269,7 +7269,7 @@
           "PENDING",
           "COMPLETE"
         ],
-        "description": "v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started"
+        "description": "v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file and minutes required (v1.19); null = cancelled, not started, or (v1.19) minutes not required and no file"
       },
       "MeetingSummaryDto": {
         "type": "object",
@@ -7333,12 +7333,17 @@
           },
           "decisionStatus": {
             "nullable": true,
-            "description": "v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started",
+            "description": "v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file and minutes required (v1.19); null = cancelled, not started, or (v1.19) minutes not required and no file",
             "allOf": [
               {
                 "$ref": "#/components/schemas/DecisionStatus"
               }
             ]
+          },
+          "minutesRequired": {
+            "type": "boolean",
+            "example": true,
+            "description": "v1.19: minutes must be uploaded for this meeting (default true). false + no file → decisionStatus null"
           },
           "hasNotice": {
             "type": "boolean",
@@ -7370,6 +7375,7 @@
           "myRole",
           "decisionFileCount",
           "decisionStatus",
+          "minutesRequired",
           "hasNotice",
           "noticeMime",
           "decisionViewable"
@@ -8027,12 +8033,17 @@
           },
           "decisionStatus": {
             "nullable": true,
-            "description": "v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started",
+            "description": "v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file and minutes required (v1.19); null = cancelled, not started, or (v1.19) minutes not required and no file",
             "allOf": [
               {
                 "$ref": "#/components/schemas/DecisionStatus"
               }
             ]
+          },
+          "minutesRequired": {
+            "type": "boolean",
+            "example": true,
+            "description": "v1.19: minutes must be uploaded for this meeting (default true). false + no file → decisionStatus null"
           },
           "hasNotice": {
             "type": "boolean",
@@ -8134,6 +8145,7 @@
           "myRole",
           "decisionFileCount",
           "decisionStatus",
+          "minutesRequired",
           "hasNotice",
           "noticeMime",
           "decisionViewable",
@@ -8209,6 +8221,11 @@
             "items": {
               "$ref": "#/components/schemas/MeetingGuestInputDto"
             }
+          },
+          "minutesRequired": {
+            "type": "boolean",
+            "default": true,
+            "description": "v1.19: minutes must be uploaded for this meeting. false → without files the meeting has no minutes status (not Pending); with files it is Complete. Uploading stays allowed. Organizer and internal chair may change it."
           }
         },
         "required": [
@@ -8307,6 +8324,11 @@
             "items": {
               "$ref": "#/components/schemas/MeetingGuestInputDto"
             }
+          },
+          "minutesRequired": {
+            "type": "boolean",
+            "default": true,
+            "description": "v1.19: minutes must be uploaded for this meeting. false → without files the meeting has no minutes status (not Pending); with files it is Complete. Uploading stays allowed. Organizer and internal chair may change it."
           },
           "room": {
             "type": "string",

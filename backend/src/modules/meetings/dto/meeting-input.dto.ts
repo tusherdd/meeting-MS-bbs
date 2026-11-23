@@ -211,6 +211,16 @@ export class CreateMeetingDto {
   @ValidateNested({ each: true })
   @Type(() => MeetingGuestInputDto)
   guests?: MeetingGuestInputDto[];
+
+  @ApiPropertyOptional({
+    default: true,
+    description:
+      'v1.19: minutes must be uploaded for this meeting. false → without files the meeting has no minutes status ' +
+      '(not Pending); with files it is Complete. Uploading stays allowed. Organizer and internal chair may change it.',
+  })
+  @IsOptional()
+  @IsBoolean({ message: 'minutesRequired true অথবা false হতে হবে।' })
+  minutesRequired?: boolean;
 }
 
 /**
@@ -238,6 +248,7 @@ export class UpdateMeetingDto extends PartialType(
 /** Live dry run: the venue is not needed (it is never part of the conflict check). */
 export class CheckConflictsDto extends OmitType(CreateMeetingDto, [
   'room',
+  'minutesRequired',
 ] as const) {
   @ApiPropertyOptional({
     example: 'সম্মেলন কক্ষ (কক্ষ নং ৫০১)',

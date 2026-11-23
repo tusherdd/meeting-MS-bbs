@@ -30,6 +30,8 @@ describe("required fields derived from the zod schemas", () => {
         room: true,
         onlineLink: false,
         chairId: false,
+        // v1.19: the checkbox "এই সভার কার্যবিবরণী আপলোড করতে হবে" has no required mark.
+        minutesRequired: false,
       });
     });
 

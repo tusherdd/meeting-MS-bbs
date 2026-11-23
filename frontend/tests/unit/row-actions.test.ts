@@ -131,3 +131,22 @@ describe("v1.17: notice item by type (file viewer panel)", () => {
     expect(at("application/pdf", false)).toBeNull();
   });
 });
+
+describe("v1.19: minutes not required (SPEC.md §6.9)", () => {
+  it("no files: the participant still gets Upload once the meeting started", () => {
+    expect(rowActions({ ...started, minutesRequired: false }, false, now, true).minutes).toBe(
+      "upload",
+    );
+  });
+
+  it("with files: View, exactly as with minutes required", () => {
+    expect(
+      rowActions({ ...started, minutesRequired: false, decisionFileCount: 1 }, false, now, true)
+        .minutes,
+    ).toBe("view");
+  });
+
+  it("not started: no minutes item, either way", () => {
+    expect(rowActions({ ...future, minutesRequired: false }, true, now).minutes).toBeNull();
+  });
+});

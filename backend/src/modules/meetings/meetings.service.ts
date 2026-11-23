@@ -201,6 +201,8 @@ export class MeetingsService {
           chairId,
           priority,
           status: MeetingStatus.SCHEDULED,
+          // v1.19: minutes required unless the organizer unticks it.
+          minutesRequired: dto.minutesRequired ?? true,
         }),
       );
       await this.writeParticipants(
@@ -226,6 +228,7 @@ export class MeetingsService {
             people,
             guests: guests.map((g) => g.email).sort(),
             chairGuest: guests.find((g) => g.isChair)?.email ?? null,
+            minutesRequired: meeting.minutesRequired,
           },
           ip,
         },
@@ -394,6 +397,7 @@ export class MeetingsService {
           dto.onlineLink !== undefined ? dto.onlineLink : meeting.onlineLink,
         chairId,
         priority,
+        minutesRequired: dto.minutesRequired ?? meeting.minutesRequired,
       });
       if (peopleChanged || chairChanged || dto.participantIds !== undefined) {
         await manager
@@ -1362,6 +1366,8 @@ export class MeetingsService {
       priority: m.priority,
       guests: guests.map((g) => g.email).sort(),
       chairGuest: guests.find((g) => g.isChair)?.email ?? null,
+      // v1.19: audit-logged with every meeting update.
+      minutesRequired: m.minutesRequired,
     };
   }
 
@@ -1436,6 +1442,7 @@ export class MeetingsService {
       myRole: m.participants?.find((p) => p.userId === actor.id)?.role ?? null,
       decisionFileCount: m.decisionFileCount ?? 0,
       decisionStatus: decisionStatus(m, m.decisionFileCount ?? 0),
+      minutesRequired: m.minutesRequired,
       hasNotice: (m.noticeFileCount ?? 0) > 0,
       noticeMime: m.noticeMime ?? null,
       decisionViewable: m.decisionViewable ?? false,

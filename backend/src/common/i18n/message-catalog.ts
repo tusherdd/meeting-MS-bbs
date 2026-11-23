@@ -332,6 +332,10 @@ export const MESSAGE_CATALOG = {
     bn: 'isChair true অথবা false হতে হবে।',
     en: 'isChair must be true or false.',
   },
+  MINUTES_REQUIRED_BOOLEAN: {
+    bn: 'minutesRequired true অথবা false হতে হবে।',
+    en: 'minutesRequired must be true or false.',
+  },
   MEETING_TITLE_REQUIRED: {
     bn: 'সভার শিরোনাম দিন।',
     en: 'Enter the meeting title.',

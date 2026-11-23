@@ -371,15 +371,18 @@ export class DecisionsService {
       'EXISTS (SELECT 1 FROM meeting_decision_files f WHERE f."meetingId" = m.id)';
     if (status === DecisionStatus.COMPLETE) qb.andWhere(hasFile);
     if (status === DecisionStatus.PENDING) {
-      qb.andWhere(`NOT ${hasFile}`).andWhere(
-        new Brackets((b) =>
-          b
-            .where('m.status = :completed', {
-              completed: MeetingStatus.COMPLETED,
-            })
-            .orWhere('m.startAt <= :now', { now }),
-        ),
-      );
+      // v1.19: a meeting whose minutes are not required is never Pending.
+      qb.andWhere(`NOT ${hasFile}`)
+        .andWhere('m.minutesRequired = true')
+        .andWhere(
+          new Brackets((b) =>
+            b
+              .where('m.status = :completed', {
+                completed: MeetingStatus.COMPLETED,
+              })
+              .orWhere('m.startAt <= :now', { now }),
+          ),
+        );
     }
     return qb;
   }

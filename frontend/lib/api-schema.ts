@@ -1968,7 +1968,7 @@ export interface components {
             wing: components["schemas"]["WingRefDto"] | null;
         };
         /**
-         * @description v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started
+         * @description v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file and minutes required (v1.19); null = cancelled, not started, or (v1.19) minutes not required and no file
          * @enum {string}
          */
         DecisionStatus: "PENDING" | "COMPLETE";
@@ -2003,8 +2003,13 @@ export interface components {
              * @example 0
              */
             decisionFileCount: number;
-            /** @description v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started */
+            /** @description v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file and minutes required (v1.19); null = cancelled, not started, or (v1.19) minutes not required and no file */
             decisionStatus: components["schemas"]["DecisionStatus"] | null;
+            /**
+             * @description v1.19: minutes must be uploaded for this meeting (default true). false + no file → decisionStatus null
+             * @example true
+             */
+            minutesRequired: boolean;
             /**
              * @description v1.13: the meeting has an uploaded notice "সভার নোটিশ" (GET /meetings/:id/notice)
              * @example false
@@ -2335,8 +2340,13 @@ export interface components {
              * @example 0
              */
             decisionFileCount: number;
-            /** @description v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started */
+            /** @description v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file and minutes required (v1.19); null = cancelled, not started, or (v1.19) minutes not required and no file */
             decisionStatus: components["schemas"]["DecisionStatus"] | null;
+            /**
+             * @description v1.19: minutes must be uploaded for this meeting (default true). false + no file → decisionStatus null
+             * @example true
+             */
+            minutesRequired: boolean;
             /**
              * @description v1.13: the meeting has an uploaded notice "সভার নোটিশ" (GET /meetings/:id/notice)
              * @example false
@@ -2408,6 +2418,11 @@ export interface components {
             participantIds?: string[];
             /** @description Guest officers (no account; mail only). On update the whole list is replaced. Not part of the conflict check. */
             guests?: components["schemas"]["MeetingGuestInputDto"][];
+            /**
+             * @description v1.19: minutes must be uploaded for this meeting. false → without files the meeting has no minutes status (not Pending); with files it is Complete. Uploading stays allowed. Organizer and internal chair may change it.
+             * @default true
+             */
+            minutesRequired: boolean;
         };
         MeetingConflictErrorDto: {
             /** @example 409 */
@@ -2457,6 +2472,11 @@ export interface components {
             participantIds?: string[];
             /** @description Guest officers (no account; mail only). On update the whole list is replaced. Not part of the conflict check. */
             guests?: components["schemas"]["MeetingGuestInputDto"][];
+            /**
+             * @description v1.19: minutes must be uploaded for this meeting. false → without files the meeting has no minutes status (not Pending); with files it is Complete. Uploading stays allowed. Organizer and internal chair may change it.
+             * @default true
+             */
+            minutesRequired: boolean;
             /**
              * @description Venue; omit to keep it. null or empty is rejected ("স্থান লিখতে হবে।")
              * @example সম্মেলন কক্ষ (কক্ষ নং ৫০১)

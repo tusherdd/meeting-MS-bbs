@@ -120,7 +120,13 @@ function FileLine({
  * minutes files. Each list is loaded separately and only shown when the backend lets me see it
  * (403 → hidden) and it is not empty.
  */
-function MeetingFiles({ meetingId }: { meetingId: string }) {
+function MeetingFiles({
+  meetingId,
+  minutesRequired,
+}: {
+  meetingId: string;
+  minutesRequired: boolean;
+}) {
   const t = useT();
   const attachments = useQuery({
     queryKey: queryKeys.attachments(meetingId),
@@ -155,6 +161,14 @@ function MeetingFiles({ meetingId }: { meetingId: string }) {
               />
             ))}
           </ul>
+        </Row>
+      )}
+      {/* v1.19: minutes not required and none uploaded → one muted line (only for those who see minutes). */}
+      {minutes.data && minuteFiles.length === 0 && !minutesRequired && (
+        <Row label={t.decisions.title}>
+          <p className="text-sm text-slate-600" data-testid="minutes-not-required">
+            {t.decisions.notRequired}
+          </p>
         </Row>
       )}
       {minuteFiles.length > 0 && (
@@ -262,7 +276,7 @@ function Detail({ meeting }: { meeting: MeetingDetail }) {
                     </div>
                   </Row>
                 )}
-                <MeetingFiles meetingId={meeting.id} />
+                <MeetingFiles meetingId={meeting.id} minutesRequired={meeting.minutesRequired} />
               </dl>
             </CardBody>
           </Card>

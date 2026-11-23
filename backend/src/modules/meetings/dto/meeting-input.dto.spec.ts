@@ -93,3 +93,33 @@ describe('venue (room) is required (v1.9)', () => {
     });
   });
 });
+
+describe('v1.19: minutesRequired is an optional boolean', () => {
+  const withRoom = { ...base, room: 'সম্মেলন কক্ষ' };
+
+  it.each([[true], [false]])('create accepts %s', async (value) => {
+    expect(
+      await errorsOf(CreateMeetingDto, { ...withRoom, minutesRequired: value }),
+    ).toEqual([]);
+  });
+
+  it('may be left out (default true in the service)', async () => {
+    expect(await errorsOf(CreateMeetingDto, withRoom)).toEqual([]);
+    expect(await errorsOf(UpdateMeetingDto, {})).toEqual([]);
+  });
+
+  it.each([['yes'], [1]])('not a boolean (%p) → 400 message', async (value) => {
+    expect(
+      await errorsOf(UpdateMeetingDto, { minutesRequired: value }),
+    ).toEqual(['minutesRequired true অথবা false হতে হবে।']);
+  });
+
+  it('is not part of the live conflict check', async () => {
+    const dto = plainToInstance(CheckConflictsDto, {
+      ...base,
+      minutesRequired: false,
+    });
+    await validate(dto, { whitelist: true });
+    expect('minutesRequired' in dto).toBe(false);
+  });
+});

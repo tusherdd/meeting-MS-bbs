@@ -65,6 +65,7 @@ function initialValues(meeting?: MeetingDetail, slot?: Props["initialSlot"]): Me
         (meeting.guests.find((g) => g.isChair)
           ? guestChairValue(meeting.guests.find((g) => g.isChair)!.email)
           : ""),
+      minutesRequired: meeting.minutesRequired,
     };
   }
   return {
@@ -76,6 +77,8 @@ function initialValues(meeting?: MeetingDetail, slot?: Props["initialSlot"]): Me
     room: "",
     onlineLink: "",
     chairId: "",
+    // v1.19: checked by default.
+    minutesRequired: true,
   };
 }
 
@@ -169,6 +172,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
         agenda: values.agenda.trim() || null,
         room: values.room.trim(),
         onlineLink: values.onlineLink.trim() || null,
+        minutesRequired: values.minutesRequired,
         chairId:
           values.chairId && !values.chairId.startsWith(GUEST_CHAIR_PREFIX) ? values.chairId : null,
         participantIds,
@@ -341,6 +345,16 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                   {...form.register("onlineLink")}
                 />
               </div>
+              {/* v1.19 (SPEC.md §6.9): minutes required yes / no; a checkbox, so no required mark. */}
+              <label className="flex w-fit items-center gap-2 text-sm font-medium text-slate-800">
+                <input
+                  id="minutesRequired"
+                  type="checkbox"
+                  className="size-4 accent-brand-700"
+                  {...form.register("minutesRequired")}
+                />
+                {t.meetingForm.minutesRequired}
+              </label>
               {isOrganizer && !cannotOrganize && (
                 <NoticeField
                   meetingId={meeting?.id}

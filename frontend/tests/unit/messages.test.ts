@@ -157,4 +157,13 @@ describe("v1.13 wording (SPEC.md §6.8, §6.9, §13.19)", () => {
       "Add / remove files",
     ]);
   });
+
+  it("v1.19: minutes required checkbox and the detail line (SPEC.md §6.9)", () => {
+    expect(bn.meetingForm.minutesRequired).toBe("এই সভার কার্যবিবরণী আপলোড করতে হবে");
+    expect(en.meetingForm.minutesRequired).toBe("Minutes must be uploaded for this meeting");
+    // "প্রয়োজন" with YYA as U+09AF U+09BC (SPEC.md §13.13), built from code points.
+    const proyojon = String.fromCharCode(0x09aa, 0x09cd, 0x09b0, 0x09af, 0x09bc, 0x09cb, 0x099c, 0x09a8);
+    expect(bn.decisions.notRequired).toBe(`এই সভার কার্যবিবরণী ${proyojon} নেই।`);
+    expect(en.decisions.notRequired).toBe("Minutes are not required for this meeting.");
+  });
 });

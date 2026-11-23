@@ -102,8 +102,16 @@ describe('v1.11: meeting decisions (e2e)', () => {
       res.on('end', () => done(null, Buffer.concat(chunks)));
     });
 
-  /** A meeting org organizes, chair chairs, member + member2 attend; moved to the past if `started`. */
-  async function meeting(offset: number, title: string, started = true) {
+  /**
+   * A meeting org organizes, chair chairs, member + member2 attend; moved to the past if `started`.
+   * v1.19: `minutesRequired` is sent only when given (omitted → default true).
+   */
+  async function meeting(
+    offset: number,
+    title: string,
+    started = true,
+    minutesRequired?: boolean,
+  ) {
     const res = await http()
       .post(`${API}/meetings`)
       .set(as('org'))
@@ -114,6 +122,7 @@ describe('v1.11: meeting decisions (e2e)', () => {
         room: 'সম্মেলন কক্ষ',
         chairId: ids.chair,
         participantIds: [ids.member, ids.member2],
+        ...(minutesRequired === undefined ? {} : { minutesRequired }),
       })
       .expect(201);
     const id = (res.body as { id: string }).id;
@@ -464,6 +473,95 @@ describe('v1.11: meeting decisions (e2e)', () => {
           .expect(200)
       ).body as typeof before;
       expect(memberSummary).toEqual({ pending: 0, complete: 0 });
+    });
+  });
+  describe('v1.19: minutes required yes / no per meeting', () => {
+    const listIds = async (who: Who, query: string) =>
+      (
+        (await http().get(`${API}/decisions?${query}`).set(as(who)).expect(200))
+          .body as { items: Array<{ id: string }> }
+      ).items.map((m) => m.id);
+    const counts = async (who: Who) =>
+      (await http().get(`${API}/decisions/summary`).set(as(who)).expect(200))
+        .body as { pending: number; complete: number };
+
+    it('default true: omitted on create → minutesRequired true, Pending as before', async () => {
+      const id = await meeting(95, 'ডিফল্ট কার্যবিবরণী সভা');
+      const d = await detail('org', id);
+      expect((d.meeting as { minutesRequired?: boolean }).minutesRequired).toBe(
+        true,
+      );
+      expect(d.status).toBe('PENDING');
+    });
+
+    it('false + no file: not Pending, not Complete, no count; upload still allowed → Complete', async () => {
+      const before = await counts('org');
+      const id = await meeting(96, 'কার্যবিবরণী লাগবে না সভা', true, false);
+      const d = await detail('member', id);
+      expect((d.meeting as { minutesRequired?: boolean }).minutesRequired).toBe(
+        false,
+      );
+      expect(d.status).toBeNull();
+      expect(d.meeting.decisionStatus).toBeNull();
+      expect(d.canUpload).toBe(true);
+      expect(await listIds('chair', 'status=PENDING')).not.toContain(id);
+      expect(await listIds('org', 'status=COMPLETE')).not.toContain(id);
+      expect(await listIds('member', 'as=member')).not.toContain(id);
+      expect(await counts('org')).toEqual(before);
+
+      // The meeting list API carries the flag too.
+      const mine = await http()
+        .get(`${API}/meetings?role=organizer&limit=100`)
+        .set(as('org'))
+        .expect(200);
+      const row = (
+        mine.body as { items: Array<{ id: string; minutesRequired: boolean }> }
+      ).items.find((m) => m.id === id);
+      expect(row?.minutesRequired).toBe(false);
+
+      await upload('member', id, 'scan.pdf', PDF).expect(201);
+      expect((await detail('org', id)).status).toBe('COMPLETE');
+      expect(await listIds('org', 'status=COMPLETE')).toContain(id);
+      expect((await counts('org')).complete).toBe(before.complete + 1);
+    });
+
+    it('the organizer and the chair change it on edit; audit-logged; not a boolean → 400', async () => {
+      const id = await meeting(97, 'পরিবর্তনযোগ্য কার্যবিবরণী সভা', false);
+      await http()
+        .patch(`${API}/meetings/${id}`)
+        .set(as('org'))
+        .send({ minutesRequired: false })
+        .expect(200);
+      expect(
+        (await ds.getRepository(Meeting).findOneByOrFail({ id }))
+          .minutesRequired,
+      ).toBe(false);
+      const log = await ds.getRepository(AuditLog).findOneOrFail({
+        where: { entityId: id, action: AuditAction.MEETING_UPDATE },
+        order: { createdAt: 'DESC' },
+      });
+      expect(
+        (log.before as { minutesRequired?: boolean }).minutesRequired,
+      ).toBe(true);
+      expect((log.after as { minutesRequired?: boolean }).minutesRequired).toBe(
+        false,
+      );
+
+      await http()
+        .patch(`${API}/meetings/${id}`)
+        .set(as('chair'))
+        .send({ minutesRequired: true })
+        .expect(200);
+      expect(
+        (await ds.getRepository(Meeting).findOneByOrFail({ id }))
+          .minutesRequired,
+      ).toBe(true);
+
+      await http()
+        .patch(`${API}/meetings/${id}`)
+        .set(as('org'))
+        .send({ minutesRequired: 'yes' })
+        .expect(400);
     });
   });
 });

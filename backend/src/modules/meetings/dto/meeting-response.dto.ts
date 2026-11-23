@@ -112,9 +112,16 @@ export class MeetingSummaryDto {
     enumName: 'DecisionStatus',
     nullable: true,
     description:
-      'v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file; null = cancelled or not started',
+      'v1.11: COMPLETE = at least one decision file; PENDING = started or completed, not cancelled, no file and minutes required (v1.19); null = cancelled, not started, or (v1.19) minutes not required and no file',
   })
   decisionStatus!: DecisionStatus | null;
+
+  @ApiProperty({
+    example: true,
+    description:
+      'v1.19: minutes must be uploaded for this meeting (default true). false + no file → decisionStatus null',
+  })
+  minutesRequired!: boolean;
 
   @ApiProperty({
     example: false,
