@@ -49,6 +49,8 @@ export interface ReportMeeting {
   hasNotice?: boolean;
   /** v1.17: the notice's mime type (row menu "নোটিশ দেখুন" / "নোটিশ ডাউনলোড"). */
   noticeMime?: string | null;
+  /** v1.17: a minutes file is PDF / image (row menu "কার্যবিবরণী দেখুন" vs "ডাউনলোড"). */
+  decisionViewable?: boolean;
 }
 
 export type StatusCounts = Record<MeetingStatus, number>;

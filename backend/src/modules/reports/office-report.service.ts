@@ -14,6 +14,7 @@ import { OfficeReportScope } from '../designations/enums/office-report-scope.enu
 import { MeetingParticipant } from '../meetings/entities/meeting-participant.entity';
 import { Meeting } from '../meetings/entities/meeting.entity';
 import { noticeMimes } from '../notices/notice-mime';
+import { decisionViewableIds } from '../decisions/decision-viewable';
 import { OfficeScopeService } from '../office-scope/office-scope.service';
 import { User } from '../users/entities/user.entity';
 import { Wing } from '../wings/entities/wing.entity';
@@ -296,6 +297,10 @@ export class OfficeReportService {
       this.dataSource.manager,
       rows.filter((m) => (m.noticeFileCount ?? 0) > 0).map((m) => m.id),
     );
+    const viewable = await decisionViewableIds(
+      this.dataSource.manager,
+      rows.filter((m) => (m.decisionFileCount ?? 0) > 0).map((m) => m.id),
+    );
 
     return rows.map((m) => {
       const guestChair = m.guests.find((g) => g.isChair);
@@ -338,6 +343,7 @@ export class OfficeReportService {
         decisionFileCount: m.decisionFileCount ?? 0,
         hasNotice: (m.noticeFileCount ?? 0) > 0,
         noticeMime: mimes.get(m.id) ?? null,
+        decisionViewable: viewable.has(m.id),
         people: people.get(m.id) ?? [],
       };
     });
@@ -395,6 +401,7 @@ function toRow(
     decisionFileCount: m.decisionFileCount ?? 0,
     hasNotice: m.hasNotice ?? false,
     noticeMime: m.noticeMime ?? null,
+    decisionViewable: m.decisionViewable ?? false,
   };
 }
 

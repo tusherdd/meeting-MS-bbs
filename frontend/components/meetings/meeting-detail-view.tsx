@@ -91,10 +91,12 @@ function FileLine({
   label,
   fileName,
   file,
+  headerLink,
 }: {
   label: string;
   fileName?: string;
   file: ViewerFile;
+  headerLink?: { href: string; label: string };
 }) {
   const t = useT();
   return (
@@ -107,6 +109,7 @@ function FileLine({
         file={file}
         viewLabel={t.fileViewer.view}
         downloadLabel={t.fileViewer.download}
+        headerLink={headerLink}
       />
     </li>
   );
@@ -129,6 +132,11 @@ function MeetingFiles({ meetingId }: { meetingId: string }) {
   });
   const attachmentItems = attachments.data?.items ?? [];
   const minuteFiles = minutes.data?.files ?? [];
+  // v1.17: those who may upload or delete minutes get "ফাইল যোগ / মুছুন" in the panel header.
+  const manageLink =
+    minutes.data && (minutes.data.canUpload || minuteFiles.some((f) => f.canDelete))
+      ? { href: `/meetings/${meetingId}/decision`, label: t.fileViewer.manageMinutes }
+      : undefined;
   return (
     <>
       {attachmentItems.length > 0 && (
@@ -162,6 +170,7 @@ function MeetingFiles({ meetingId }: { meetingId: string }) {
                   mime: f.mime,
                   load: () => decisionsApi.download(meetingId, f.id),
                 }}
+                headerLink={manageLink}
               />
             ))}
           </ul>

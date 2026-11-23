@@ -370,8 +370,10 @@ const bnMessages = {
     edit: "Edit",
     cancel: "বাতিল করুন",
     upload: "কার্যবিবরণী আপলোড",
-    /** v1.15 office report: view / download only. */
+    /** v1.17: minutes exist → file viewer panel (any type viewable). */
     viewMinutes: "কার্যবিবরণী দেখুন",
+    /** v1.17: every minutes file is a DOCX → download. */
+    downloadMinutes: "কার্যবিবরণী ডাউনলোড",
   },
   /** v1.17: the shared file viewer side panel (SPEC.md §13.22). */
   fileViewer: {
@@ -381,6 +383,8 @@ const bnMessages = {
     files: "ফাইল",
     cantShow: "এই ফোনে এখানে দেখা যাচ্ছে না।",
     openNewTab: "নতুন ট্যাবে খুলুন",
+    /** v1.17: minutes panel header link to /meetings/[id]/decision (may upload or delete). */
+    manageMinutes: "ফাইল যোগ / মুছুন",
   },
   /** v1.11 (renamed v1.13): meeting minutes "সভা কার্যবিবরণী" (SPEC.md §6.9, §13.19). */
   decisions: {

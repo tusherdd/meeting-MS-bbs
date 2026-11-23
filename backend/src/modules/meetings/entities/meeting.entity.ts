@@ -106,4 +106,7 @@ export class Meeting extends BaseEntity {
 
   /** Not a column (v1.17): the notice's mime type, filled by `noticeMimes()` where needed. */
   noticeMime?: string | null;
+
+  /** Not a column (v1.17): a minutes file is PDF / image, filled by `decisionViewableIds()`. */
+  decisionViewable?: boolean;
 }

@@ -7350,6 +7350,11 @@
             "nullable": true,
             "example": "application/pdf",
             "description": "v1.17: mime type of the uploaded notice (null = none). PDF / image → \"নোটিশ দেখুন\" (file viewer); DOCX → \"নোটিশ ডাউনলোড\""
+          },
+          "decisionViewable": {
+            "type": "boolean",
+            "example": true,
+            "description": "v1.17: at least one minutes file is a PDF or an image → row menu \"কার্যবিবরণী দেখুন\" (file viewer); with files but false (DOCX only) → \"কার্যবিবরণী ডাউনলোড\""
           }
         },
         "required": [
@@ -7366,7 +7371,8 @@
           "decisionFileCount",
           "decisionStatus",
           "hasNotice",
-          "noticeMime"
+          "noticeMime",
+          "decisionViewable"
         ]
       },
       "MeetingGuestInputDto": {
@@ -8039,6 +8045,11 @@
             "example": "application/pdf",
             "description": "v1.17: mime type of the uploaded notice (null = none). PDF / image → \"নোটিশ দেখুন\" (file viewer); DOCX → \"নোটিশ ডাউনলোড\""
           },
+          "decisionViewable": {
+            "type": "boolean",
+            "example": true,
+            "description": "v1.17: at least one minutes file is a PDF or an image → row menu \"কার্যবিবরণী দেখুন\" (file viewer); with files but false (DOCX only) → \"কার্যবিবরণী ডাউনলোড\""
+          },
           "agenda": {
             "type": "string",
             "nullable": true
@@ -8125,6 +8136,7 @@
           "decisionStatus",
           "hasNotice",
           "noticeMime",
+          "decisionViewable",
           "agenda",
           "chair",
           "guests",
@@ -8941,6 +8953,11 @@
             "nullable": true,
             "example": "application/pdf",
             "description": "v1.17: mime type of the uploaded notice (null = none). PDF / image → \"নোটিশ দেখুন\" (file viewer); DOCX → \"নোটিশ ডাউনলোড\""
+          },
+          "decisionViewable": {
+            "type": "boolean",
+            "example": true,
+            "description": "v1.17: at least one minutes file is a PDF or an image → row menu \"কার্যবিবরণী দেখুন\" (file viewer); with files but false (DOCX only) → \"কার্যবিবরণী ডাউনলোড\""
           }
         },
         "required": [
@@ -8962,7 +8979,8 @@
           "guests",
           "decisionFileCount",
           "hasNotice",
-          "noticeMime"
+          "noticeMime",
+          "decisionViewable"
         ]
       },
       "ReportMeetingPageDto": {
@@ -9366,6 +9384,11 @@
             "nullable": true,
             "example": "application/pdf",
             "description": "v1.17: mime type of the uploaded notice (null = none). PDF / image → \"নোটিশ দেখুন\" (file viewer); DOCX → \"নোটিশ ডাউনলোড\""
+          },
+          "decisionViewable": {
+            "type": "boolean",
+            "example": true,
+            "description": "v1.17: at least one minutes file is a PDF or an image → row menu \"কার্যবিবরণী দেখুন\" (file viewer); with files but false (DOCX only) → \"কার্যবিবরণী ডাউনলোড\""
           }
         },
         "required": [
@@ -9387,7 +9410,8 @@
           "officerRole",
           "decisionFileCount",
           "hasNotice",
-          "noticeMime"
+          "noticeMime",
+          "decisionViewable"
         ]
       },
       "OfficeMeetingPageDto": {

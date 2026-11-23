@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export function FileViewerPanel({
   initialId,
   loadingText,
   returnFocus,
+  headerLink,
 }: {
   open: boolean;
   onClose: () => void;
@@ -58,6 +60,8 @@ export function FileViewerPanel({
   loadingText?: string;
   /** Where focus goes on close when the opener was busy (disabled) while the panel opened. */
   returnFocus?: RefObject<HTMLElement | null>;
+  /** v1.17: a small link under the title (minutes: "ফাইল যোগ / মুছুন" → the minutes page). */
+  headerLink?: { href: string; label: string };
 }) {
   const t = useT();
   const ref = useRef<HTMLDialogElement>(null);
@@ -113,7 +117,8 @@ export function FileViewerPanel({
         const kind = viewKind(currentKey.mime ?? file.blob.type);
         if (kind !== "download") {
           // Only the allowed types are ever turned into a viewable Blob URL.
-          const type = kind === "pdf" ? "application/pdf" : bareMime(currentKey.mime ?? file.blob.type);
+          const type =
+            kind === "pdf" ? "application/pdf" : bareMime(currentKey.mime ?? file.blob.type);
           url = URL.createObjectURL(new Blob([file.blob], { type }));
         }
         setLoaded({ id, status: "ready", file, kind, url });
@@ -177,14 +182,32 @@ export function FileViewerPanel({
                 {t.fileViewer.close}
               </Button>
             </div>
+            {headerLink && (
+              <p className="mt-1 text-sm">
+                <Link
+                  href={headerLink.href}
+                  onClick={onClose}
+                  className="text-brand-700 underline hover:text-brand-800"
+                  data-panel-link
+                >
+                  {headerLink.label}
+                </Link>
+              </p>
+            )}
             {files.length > 1 && (
-              <ul aria-label={t.fileViewer.files} className="mt-3 flex flex-col gap-1" data-file-list>
+              <ul
+                aria-label={t.fileViewer.files}
+                className="mt-3 flex flex-col gap-1"
+                data-file-list
+              >
                 {files.map((f) => {
                   const viewable = mayView(f);
                   const selected = f.id === current.id;
                   return (
                     <li key={f.id} className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className={`min-w-0 flex-1 truncate ${selected ? "font-semibold" : ""}`}>
+                      <span
+                        className={`min-w-0 flex-1 truncate ${selected ? "font-semibold" : ""}`}
+                      >
                         {f.name}
                       </span>
                       {viewable ? (
@@ -225,7 +248,11 @@ export function FileViewerPanel({
               </div>
             )}
             {shown.status === "ready" && shown.kind === "pdf" && shown.url && pdfInline && (
-              <iframe src={shown.url} title={title} className="block h-full w-full border-0 bg-white" />
+              <iframe
+                src={shown.url}
+                title={title}
+                className="block h-full w-full border-0 bg-white"
+              />
             )}
             {shown.status === "ready" && shown.kind === "pdf" && shown.url && !pdfInline && (
               <div className="space-y-3 p-4" data-pdf-fallback>
@@ -263,11 +290,14 @@ export function FileViewButton({
   viewLabel,
   downloadLabel,
   size = "sm",
+  headerLink,
 }: {
   file: ViewerFile;
   viewLabel: string;
   downloadLabel: string;
   size?: "sm" | "md";
+  /** Passed to the panel's header (minutes: "ফাইল যোগ / মুছুন"). */
+  headerLink?: { href: string; label: string };
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -293,7 +323,14 @@ export function FileViewButton({
           {downloadLabel}
         </Button>
       )}
-      {viewable && <FileViewerPanel open={open} onClose={() => setOpen(false)} files={[file]} />}
+      {viewable && (
+        <FileViewerPanel
+          open={open}
+          onClose={() => setOpen(false)}
+          files={[file]}
+          headerLink={headerLink}
+        />
+      )}
       {error !== null && <ErrorAlert error={error} />}
     </>
   );

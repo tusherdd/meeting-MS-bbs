@@ -2015,6 +2015,11 @@ export interface components {
              * @example application/pdf
              */
             noticeMime: string | null;
+            /**
+             * @description v1.17: at least one minutes file is a PDF or an image → row menu "কার্যবিবরণী দেখুন" (file viewer); with files but false (DOCX only) → "কার্যবিবরণী ডাউনলোড"
+             * @example true
+             */
+            decisionViewable: boolean;
         };
         MeetingGuestInputDto: {
             /** @example ড. ফারহানা ইসলাম */
@@ -2342,6 +2347,11 @@ export interface components {
              * @example application/pdf
              */
             noticeMime: string | null;
+            /**
+             * @description v1.17: at least one minutes file is a PDF or an image → row menu "কার্যবিবরণী দেখুন" (file viewer); with files but false (DOCX only) → "কার্যবিবরণী ডাউনলোড"
+             * @example true
+             */
+            decisionViewable: boolean;
             agenda: string | null;
             /** @description Internal chair (null when the chair is a guest, see guests[].isChair) */
             chair: components["schemas"]["PersonDto"] | null;
@@ -2746,6 +2756,11 @@ export interface components {
              * @example application/pdf
              */
             noticeMime: string | null;
+            /**
+             * @description v1.17: at least one minutes file is a PDF or an image → row menu "কার্যবিবরণী দেখুন" (file viewer); with files but false (DOCX only) → "কার্যবিবরণী ডাউনলোড"
+             * @example true
+             */
+            decisionViewable: boolean;
         };
         ReportMeetingPageDto: {
             items: components["schemas"]["ReportMeetingDto"][];
@@ -2895,6 +2910,11 @@ export interface components {
              * @example application/pdf
              */
             noticeMime: string | null;
+            /**
+             * @description v1.17: at least one minutes file is a PDF or an image → row menu "কার্যবিবরণী দেখুন" (file viewer); with files but false (DOCX only) → "কার্যবিবরণী ডাউনলোড"
+             * @example true
+             */
+            decisionViewable: boolean;
         };
         OfficeMeetingPageDto: {
             items: components["schemas"]["OfficeMeetingRowDto"][];

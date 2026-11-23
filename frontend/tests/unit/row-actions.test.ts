@@ -21,8 +21,7 @@ describe("row menu items (v1.10, v1.13)", () => {
       noticeAction: null,
       edit: true,
       cancel: true,
-      uploadDecision: false,
-      viewDecision: false,
+      minutes: null,
     });
   });
 
@@ -33,8 +32,7 @@ describe("row menu items (v1.10, v1.13)", () => {
       noticeAction: null,
       edit: false,
       cancel: false,
-      uploadDecision: false,
-      viewDecision: false,
+      minutes: null,
     });
   });
 
@@ -45,24 +43,23 @@ describe("row menu items (v1.10, v1.13)", () => {
       noticeAction: null,
       edit: false,
       cancel: false,
-      uploadDecision: false,
-      viewDecision: false,
+      minutes: null,
     });
   });
 
   it("completed: Upload minutes for its people, no Edit / Cancel", () => {
     const r = rowActions({ ...future, status: "COMPLETED" }, true, now);
-    expect([r.edit, r.cancel, r.uploadDecision]).toEqual([false, false, true]);
+    expect([r.edit, r.cancel, r.minutes]).toEqual([false, false, "upload"]);
   });
 
-  it("v1.13: \"Meeting notice\" appears ONLY when a notice file exists — for everyone who sees the row, also when cancelled", () => {
+  it('v1.13: "Meeting notice" appears ONLY when a notice file exists — for everyone who sees the row, also when cancelled', () => {
     expect(rowActions(future, false, now).notice).toBe(false);
     expect(rowActions({ ...future, hasNotice: false }, true, now).notice).toBe(false);
     expect(rowActions({ ...future, hasNotice: true }, false, now).notice).toBe(true);
     expect(rowActions({ ...future, hasNotice: true }, true, now).notice).toBe(true);
-    expect(rowActions({ ...started, status: "CANCELLED", hasNotice: true }, false, now).notice).toBe(
-      true,
-    );
+    expect(
+      rowActions({ ...started, status: "CANCELLED", hasNotice: true }, false, now).notice,
+    ).toBe(true);
   });
 
   it("scheduled but already ended: Cancel, no Edit", () => {
@@ -84,41 +81,39 @@ describe("row menu items (v1.10, v1.13)", () => {
   });
 });
 
-describe("Upload decision (v1.11)", () => {
-  it("a member of a started meeting may upload", () => {
-    expect(rowActions(started, false, now, true).uploadDecision).toBe(true);
+describe("v1.17 part 2: ONE minutes item by status (every menu)", () => {
+  const minutes = (m: Parameters<typeof rowActions>[0], participant: boolean) =>
+    rowActions(m, false, now, participant).minutes;
+
+  it("Pending (no file): Upload minutes for its people of a started, not cancelled meeting", () => {
+    expect(minutes(started, true)).toBe("upload");
+    expect(minutes({ ...started, decisionFileCount: 0 }, true)).toBe("upload");
+    expect(minutes({ ...future, status: "COMPLETED" }, true)).toBe("upload");
+    // not before the start, not for non-participants (admins, report viewers), not when cancelled
+    expect(minutes(future, true)).toBeNull();
+    expect(minutes(started, false)).toBeNull();
+    expect(minutes({ ...started, status: "CANCELLED" }, true)).toBeNull();
   });
-  it("not before the start, not for non-participants (admins), not at 10 files", () => {
-    expect(rowActions(future, true, now, true).uploadDecision).toBe(false);
-    expect(rowActions(started, false, now, false).uploadDecision).toBe(false);
-    expect(rowActions({ ...started, decisionFileCount: 10 }, true, now, true).uploadDecision).toBe(
-      false,
-    );
-    expect(rowActions({ ...started, decisionFileCount: 9 }, true, now, true).uploadDecision).toBe(
-      true,
+
+  it("Complete (at least one file): View minutes for everyone who sees the row, never Upload", () => {
+    const done = { ...started, decisionFileCount: 2, decisionViewable: true };
+    expect(minutes(done, true)).toBe("view");
+    expect(minutes(done, false)).toBe("view");
+    // unknown type → the panel decides (DOCX entries only offer Download there)
+    expect(minutes({ ...started, decisionFileCount: 1 }, true)).toBe("view");
+    // also for a cancelled meeting that already has minutes
+    expect(minutes({ ...done, status: "CANCELLED" }, false)).toBe("view");
+  });
+
+  it("Complete with DOCX files only: Download minutes", () => {
+    expect(minutes({ ...started, decisionFileCount: 1, decisionViewable: false }, true)).toBe(
+      "download",
     );
   });
 
-  it("v1.15 office report: View minutes only when minutes exist, never Upload; Edit / Cancel only for organizer or chair", () => {
-    const done = { ...future, status: "COMPLETED" as const, decisionFileCount: 2, hasNotice: true };
-    // A report viewer who is not one of its people.
-    expect(rowActions(done, false, now, false, "officeReport")).toEqual({
-      view: true,
-      notice: true,
-      noticeAction: "download",
-      edit: false,
-      cancel: false,
-      uploadDecision: false,
-      viewDecision: true,
-    });
-    // Even the organizer gets no Upload item here.
-    expect(rowActions(done, true, now, true, "officeReport").uploadDecision).toBe(false);
-    expect(rowActions({ ...done, decisionFileCount: 0 }, false, now, false, "officeReport").viewDecision).toBe(false);
-    // Edit and Cancel stay with the organizer or the chair.
-    const mine = rowActions(future, true, now, true, "officeReport");
-    expect([mine.edit, mine.cancel]).toEqual([true, true]);
-    // The default menu never shows View minutes.
-    expect(rowActions(done, true, now).viewDecision).toBe(false);
+  it("Edit / Cancel stay with the organizer or the chair", () => {
+    const mine = rowActions({ ...future, decisionFileCount: 1 }, true, now, true);
+    expect([mine.edit, mine.cancel, mine.minutes]).toEqual([true, true, "view"]);
   });
 });
 

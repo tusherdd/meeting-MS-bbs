@@ -841,7 +841,8 @@ Release **v1.16** (2026-11-20, tag `v1.16`; progress in `docs/progress/v1.16.md`
 Release **v1.17** (2026-11-23, part 1 of 3): the shared file viewer side panel (§13.22) for the report PDFs ("PDF দেখুন"),
 the meeting notice and the minutes files; PDF / images inline, DOCX attachment; `noticeMime` in the list APIs (§6.8).
 Part 2 of 3: the other attachments "অন্যান্য সংযুক্তি" (§6.11, §13.6; migration `MeetingAttachments1795300000000`) and,
-on the meeting detail page, the attachments and the minutes files with View / Download (§13.22).
+on the meeting detail page, the attachments and the minutes files with View / Download (§13.22); one minutes item in
+every row menu by status — Upload while Pending, View / Download when Complete — and the panel link "ফাইল যোগ / মুছুন" (§13.18).
 
 ## 13. Frontend (`frontend/`)
 
@@ -1386,12 +1387,20 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   ORGANIZER / CHAIR, or `organizedByMe` / `chairedByMe` on duplicate meetings cards), with the usual status rules
   (edit: scheduled and not ended; cancel: scheduled; Cancel opens the usual reason dialog). Admins keep their
   rights on the detail page.
-- v1.11: "Upload minutes" (v1.13; was "Upload decision"; opens `/meetings/:id/decision`) for the meeting's people (organizer, internal chair,
-  members; not admins as such), only while an upload is allowed (started or completed, not cancelled, fewer than
-  10 files; `decisionFileCount` on summaries and report rows).
-- v1.15 office report rows (`mode="officeReport"`): "বিস্তারিত দেখুন" (read-only), "সভার নোটিশ" (only with a file),
-  "কার্যবিবরণী দেখুন" / "View minutes" (only when minutes exist; view / download only, never "Upload minutes"; v1.17: opens
-  the file viewer panel with every file listed in its header for switching, DOCX entries only offer Download), and "Edit" /
+- **Minutes item (v1.17 part 2, owner decision 2026-11-23; replaces the v1.11 "Upload minutes" rule and the v1.15
+  `mode="officeReport"`):** ONE item, by the minutes status, the same in every menu (dashboard, meetings list, minutes page
+  `/decisions`, my report, office report; `rowActions().minutes`):
+  - **Pending** (no minutes file): "কার্যবিবরণী আপলোড" / "Upload minutes" (opens `/meetings/:id/decision`) for the meeting's
+    people (organizer, internal chair, members; not admins or report viewers as such), only when an upload is allowed
+    (started or completed, not cancelled);
+  - **Complete** (at least one file, `decisionFileCount`): "কার্যবিবরণী দেখুন" / "View minutes" for everyone who sees the row —
+    the file viewer panel with every file listed for switching (DOCX entries only offer Download); when every file is a
+    DOCX (`decisionViewable` false on summaries, report and office report rows) "কার্যবিবরণী ডাউনলোড" / "Download minutes"
+    (one file: saved directly; several: listed in the panel). **Never** "Upload minutes" then.
+  - In the minutes panel header, users who may upload or delete minutes (`canUpload` or a file's `canDelete` from
+    `GET /meetings/:id/decision`) see a small link "ফাইল যোগ / মুছুন" / "Add / remove files" to `/meetings/:id/decision`
+    (also in the minutes panel of the meeting detail page).
+- Office report rows: "বিস্তারিত দেখুন" (read-only), "সভার নোটিশ" (only with a file), the minutes item above, and "Edit" /
   "বাতিল করুন" ONLY when the viewer organizes or chairs that meeting.
 - API support: `ConflictMeetingRefDto.chairedByMe`; office report rows carry the viewer's own `myRole`.
 - Tests: `tests/unit/row-actions.test.ts`, `e2e/v110.spec.ts`, `e2e/no-icons.spec.ts` (the glyph only inside its button).
@@ -1453,7 +1462,7 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   (24-hour HH:mm, `formatNumericDate` / `formatClock`), বিষয়, আয়োজক উইং, সভাপতি (the chair's designation, as in the
   samples), স্থান, [ভূমিকা badge], অবস্থা, ⋮ (§13.18 office mode). No charts; the old "পদবি অনুযায়ী" and "শীর্ষ ১০ আয়োজক"
   are gone. All filters live in the address; "PDF দেখুন" sends the same filters and page.
-- Texts: `officeReport.*`, `nav.officeReport`, `rowMenu.viewMinutes`, `admin.officeReportScope*` in en / bn.
+- Texts: `officeReport.*`, `nav.officeReport`, `rowMenu.viewMinutes` / `downloadMinutes`, `admin.officeReportScope*` in en / bn.
 
 ### 13.22 File viewer side panel (v1.17, owner decision 2026-11-23)
 ONE shared component, `components/files/file-viewer-panel.tsx` (`FileViewerPanel`, `FileViewButton`); rules in

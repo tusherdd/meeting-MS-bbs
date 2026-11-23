@@ -128,6 +128,20 @@ test("a member uploads a decision → Complete; the organizer sees the counts", 
     await expectOrganizerCounts(org, after);
     await org.getByRole("tab", { name: new RegExp("^Complete") }).click();
     await expect(org.getByRole("link", { name: title })).toBeVisible();
+
+    // v1.17 part 2: Complete → "কার্যবিবরণী দেখুন" (never "আপলোড"); the panel header links the
+    // organizer (may upload / delete) to the minutes page.
+    const orgRow = org.getByRole("row").filter({ hasText: title });
+    await orgRow.getByRole("button", { name: bn.rowMenu.button }).click();
+    const orgItems = (await org.getByRole("menuitem").allInnerTexts()).map((s) => s.trim());
+    expect(orgItems).toContain(bn.rowMenu.viewMinutes);
+    expect(orgItems).not.toContain(bn.rowMenu.upload);
+    await org.getByRole("menuitem", { name: bn.rowMenu.viewMinutes }).click();
+    const panel = org.getByRole("dialog");
+    await expect(panel.locator("iframe")).toHaveAttribute("src", /^blob:/);
+    await panel.getByRole("link", { name: bn.fileViewer.manageMinutes }).click();
+    await expect(org).toHaveURL(new RegExp(`/meetings/${meeting.id}/decision$`));
+    await org.goto("/decisions");
     const notes = await apiAsPage<{ items: Array<{ body: string }> }>(
       org,
       "GET",

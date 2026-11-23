@@ -8,7 +8,7 @@ import { ErrorAlert } from "@/components/ui/alert";
 import { Modal } from "@/components/ui/modal";
 import { saveBlob } from "@/lib/api";
 import { decisionsApi, noticesApi } from "@/lib/endpoints";
-import { rowActions, type RowMeeting, type RowMenuMode } from "@/lib/row-actions";
+import { rowActions, type RowMeeting } from "@/lib/row-actions";
 import { useT } from "@/providers/locale-provider";
 import { CancelMeetingModal } from "./cancel-meeting-modal";
 
@@ -30,15 +30,12 @@ export function MeetingRowMenu({
   meeting,
   mine,
   participant = mine,
-  mode = "default",
 }: {
   meeting: RowMeeting & { id: string; title: string };
   /** The viewer organizes the meeting or is its internal chair. */
   mine: boolean;
-  /** v1.11: the viewer is one of the meeting's people (may upload a decision). */
+  /** v1.11: the viewer is one of the meeting's people (may upload minutes while Pending). */
   participant?: boolean;
-  /** v1.15: the office report menu (view minutes instead of upload). */
-  mode?: RowMenuMode;
 }) {
   const t = useT();
   const menuId = useId();
@@ -52,7 +49,9 @@ export function MeetingRowMenu({
   const [noticeError, setNoticeError] = useState<unknown>(null);
   // v1.17: the file viewer panel (notice, or the minutes files listed for switching).
   const [viewerFiles, setViewerFiles] = useState<ViewerFile[] | null>(null);
-  const can = rowActions(meeting, mine, new Date(), participant, mode);
+  // v1.17: "ফাইল যোগ / মুছুন" in the minutes panel header, for those who may upload or delete.
+  const [manageMinutes, setManageMinutes] = useState(false);
+  const can = rowActions(meeting, mine, new Date(), participant);
 
   const close = useCallback((returnFocus: boolean) => {
     setOpen(false);
@@ -171,6 +170,7 @@ export function MeetingRowMenu({
           load: () => noticesApi.download(meeting.id),
         },
       ]);
+      setManageMinutes(false);
       return;
     }
     setOpening(true);
@@ -183,13 +183,19 @@ export function MeetingRowMenu({
     }
   }
 
-  // v1.17: "View minutes" — the minutes files in the panel (DOCX entries: Download only).
+  // v1.17: "View minutes" — the minutes files in the panel (DOCX entries: Download only);
+  // "Download minutes" (DOCX only) — one file is saved directly, several are listed in the panel.
   async function onMinutes() {
     close(true);
     setNoticeError(null);
     setOpening(true);
     try {
       const detail = await decisionsApi.detail(meeting.id);
+      if (can.minutes === "download" && detail.files.length === 1) {
+        saveBlob(await decisionsApi.download(meeting.id, detail.files[0].id));
+        return;
+      }
+      setManageMinutes(detail.canUpload || detail.files.some((f) => f.canDelete));
       setViewerFiles(
         detail.files.map((f) => ({
           id: f.id,
@@ -267,7 +273,7 @@ export function MeetingRowMenu({
               {can.noticeAction === "view" ? t.rowMenu.viewNotice : t.rowMenu.downloadNotice}
             </button>
           )}
-          {can.viewDecision && (
+          {(can.minutes === "view" || can.minutes === "download") && (
             <button
               role="menuitem"
               tabIndex={-1}
@@ -275,10 +281,10 @@ export function MeetingRowMenu({
               className={itemClass}
               onClick={() => void onMinutes()}
             >
-              {t.rowMenu.viewMinutes}
+              {can.minutes === "view" ? t.rowMenu.viewMinutes : t.rowMenu.downloadMinutes}
             </button>
           )}
-          {can.uploadDecision && (
+          {can.minutes === "upload" && (
             <Link
               role="menuitem"
               tabIndex={-1}
@@ -335,12 +341,13 @@ export function MeetingRowMenu({
         onClose={() => setViewerFiles(null)}
         files={viewerFiles ?? []}
         returnFocus={buttonRef}
+        headerLink={
+          manageMinutes
+            ? { href: `/meetings/${meeting.id}/decision`, label: t.fileViewer.manageMinutes }
+            : undefined
+        }
       />
-      <Modal
-        open={noticeError !== null}
-        onClose={() => setNoticeError(null)}
-        title={meeting.title}
-      >
+      <Modal open={noticeError !== null} onClose={() => setNoticeError(null)} title={meeting.title}>
         {noticeError !== null && <ErrorAlert error={noticeError} />}
       </Modal>
     </div>

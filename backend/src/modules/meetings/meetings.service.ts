@@ -21,6 +21,7 @@ import { DecisionStorageService } from '../decisions/decision-storage.service';
 import { decisionStatus } from '../decisions/decision-rules';
 import { MeetingNoticeFile } from '../notices/entities/meeting-notice-file.entity';
 import { noticeMimes } from '../notices/notice-mime';
+import { decisionViewableIds } from '../decisions/decision-viewable';
 import { noticeDto } from '../notices/notice-view';
 import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
@@ -1408,9 +1409,15 @@ export class MeetingsService {
       this.dataSource.manager,
       rows.filter((m) => (m.noticeFileCount ?? 0) > 0).map((m) => m.id),
     );
+    // v1.17: "কার্যবিবরণী দেখুন" or, for DOCX-only minutes, "কার্যবিবরণী ডাউনলোড".
+    const viewable = await decisionViewableIds(
+      this.dataSource.manager,
+      rows.filter((m) => (m.decisionFileCount ?? 0) > 0).map((m) => m.id),
+    );
     return rows.map((m) => ({
       ...this.summary(m, actor),
       noticeMime: mimes.get(m.id) ?? null,
+      decisionViewable: viewable.has(m.id),
       myRole: roleOf.get(m.id) ?? null,
     }));
   }
@@ -1431,6 +1438,7 @@ export class MeetingsService {
       decisionStatus: decisionStatus(m, m.decisionFileCount ?? 0),
       hasNotice: (m.noticeFileCount ?? 0) > 0,
       noticeMime: m.noticeMime ?? null,
+      decisionViewable: m.decisionViewable ?? false,
     };
   }
 

@@ -147,5 +147,14 @@ describe("v1.13 wording (SPEC.md §6.8, §6.9, §13.19)", () => {
       "Open in new tab",
     ]);
     expect([bn.rowMenu.viewMinutes, en.rowMenu.viewMinutes]).toEqual(["কার্যবিবরণী দেখুন", "View minutes"]);
+    // v1.17 part 2: DOCX-only minutes and the panel header link.
+    expect([bn.rowMenu.downloadMinutes, en.rowMenu.downloadMinutes]).toEqual([
+      "কার্যবিবরণী ডাউনলোড",
+      "Download minutes",
+    ]);
+    expect([bn.fileViewer.manageMinutes, en.fileViewer.manageMinutes]).toEqual([
+      "ফাইল যোগ / মুছুন",
+      "Add / remove files",
+    ]);
   });
 });

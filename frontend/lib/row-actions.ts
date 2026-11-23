@@ -10,25 +10,34 @@
  * - Edit / Cancel: ONLY the organizer and the internal chair (`mine`), with the usual status
  *   rules (edit: scheduled and not ended yet; cancel: scheduled). Admins keep their rights on the
  *   detail page; the row menu does not offer them Edit / Cancel for other people's meetings.
- * - Upload minutes (v1.11, SPEC.md §13.19): the meeting's people (organizer, internal chair,
- *   members — not admins as such), only when an upload is allowed: started (or completed), not
- *   cancelled, fewer than MAX_DECISION_FILES files.
+ * - Minutes (v1.17 part 2, SPEC.md §13.18): ONE item, by the minutes status —
+ *   - Pending (no minutes file): "কার্যবিবরণী আপলোড" / "Upload minutes" for the meeting's people
+ *     (organizer, internal chair, members — not admins as such), only when an upload is allowed:
+ *     started (or completed), not cancelled;
+ *   - Complete (at least one file): "কার্যবিবরণী দেখুন" / "View minutes" (file viewer panel) for
+ *     everyone who sees the row, or "কার্যবিবরণী ডাউনলোড" / "Download minutes" when every file is a
+ *     DOCX (`decisionViewable` false). Never "Upload minutes" then (more files: from the panel's
+ *     "ফাইল যোগ / মুছুন" link or the minutes page).
+ *   The same rules in every menu: dashboard, meetings list, minutes page, my report, office report.
  */
 import { opensInPanel } from "./file-viewer";
-
-export const MAX_DECISION_FILES = 10;
 
 export interface RowMeeting {
   status: "SCHEDULED" | "CANCELLED" | "COMPLETED";
   startAt: string;
   endAt: string;
-  /** Number of decision files; unknown → the backend still checks the limit. */
+  /** Number of minutes files; unknown → treated as none. */
   decisionFileCount?: number;
+  /** v1.17: a minutes file is a PDF or an image; false with files = DOCX only; unknown → view. */
+  decisionViewable?: boolean;
   /** v1.13: an uploaded notice exists; unknown → no menu item. */
   hasNotice?: boolean;
   /** v1.17: the notice's mime type; unknown → "Download notice" (the bytes decide nothing here). */
   noticeMime?: string | null;
 }
+
+/** v1.17: the one minutes item of the row menu (null = none). */
+export type MinutesAction = "upload" | "view" | "download" | null;
 
 export interface RowActions {
   view: boolean;
@@ -37,27 +46,25 @@ export interface RowActions {
   noticeAction: "view" | "download" | null;
   edit: boolean;
   cancel: boolean;
-  uploadDecision: boolean;
-  /** v1.15 office report: "কার্যবিবরণী দেখুন" (view / download only) when minutes exist. */
-  viewDecision: boolean;
+  minutes: MinutesAction;
 }
-
-/**
- * "default": the usual menu. "officeReport" (v1.15, SPEC.md §13.21): View details, Meeting notice,
- * "View minutes" only when minutes exist (never "Upload minutes"), Edit / Cancel only for the
- * organizer or the chair.
- */
-export type RowMenuMode = "default" | "officeReport";
 
 export function rowActions(
   meeting: RowMeeting,
   mine: boolean,
   now = new Date(),
   participant = mine,
-  mode: RowMenuMode = "default",
 ): RowActions {
   const scheduled = meeting.status === "SCHEDULED";
   const started = meeting.status === "COMPLETED" || now >= new Date(meeting.startAt);
+  const complete = (meeting.decisionFileCount ?? 0) > 0;
+  const minutes: MinutesAction = complete
+    ? meeting.decisionViewable === false
+      ? "download"
+      : "view"
+    : participant && meeting.status !== "CANCELLED" && started
+      ? "upload"
+      : null;
   return {
     view: true,
     notice: meeting.hasNotice === true,
@@ -65,13 +72,7 @@ export function rowActions(
       meeting.hasNotice === true ? (opensInPanel(meeting.noticeMime) ? "view" : "download") : null,
     edit: mine && scheduled && now < new Date(meeting.endAt),
     cancel: mine && scheduled,
-    viewDecision: mode === "officeReport" && (meeting.decisionFileCount ?? 0) > 0,
-    uploadDecision:
-      mode === "default" &&
-      participant &&
-      meeting.status !== "CANCELLED" &&
-      started &&
-      (meeting.decisionFileCount ?? 0) < MAX_DECISION_FILES,
+    minutes,
   };
 }
 

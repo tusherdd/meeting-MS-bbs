@@ -523,7 +523,6 @@ function OfficeMeetingsTable({ rows, withRole }: { rows: OfficeMeetingRow[]; wit
                 meeting={m}
                 mine={isOrganizerOrChair(m.myRole)}
                 participant={isParticipant(m.myRole)}
-                mode="officeReport"
               />
             </Td>
           </Tr>

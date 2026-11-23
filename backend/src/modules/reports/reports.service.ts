@@ -10,6 +10,7 @@ import { MeetingParticipant } from '../meetings/entities/meeting-participant.ent
 import { Meeting } from '../meetings/entities/meeting.entity';
 import type { ParticipantRole } from '../meetings/enums/participant-role.enum';
 import { noticeMimes } from '../notices/notice-mime';
+import { decisionViewableIds } from '../decisions/decision-viewable';
 import { User } from '../users/entities/user.entity';
 import type {
   PeriodDto,
@@ -189,6 +190,10 @@ export class ReportsService {
       this.dataSource.manager,
       rows.filter((m) => (m.noticeFileCount ?? 0) > 0).map((m) => m.id),
     );
+    const viewable = await decisionViewableIds(
+      this.dataSource.manager,
+      rows.filter((m) => (m.decisionFileCount ?? 0) > 0).map((m) => m.id),
+    );
 
     return rows.map((m) => ({
       id: m.id,
@@ -222,6 +227,7 @@ export class ReportsService {
       decisionFileCount: m.decisionFileCount ?? 0,
       hasNotice: (m.noticeFileCount ?? 0) > 0,
       noticeMime: mimes.get(m.id) ?? null,
+      decisionViewable: viewable.has(m.id),
     }));
   }
 
@@ -284,5 +290,6 @@ function toItem(m: ReportMeeting): ReportMeetingDto {
     decisionFileCount: m.decisionFileCount ?? 0,
     hasNotice: m.hasNotice ?? false,
     noticeMime: m.noticeMime ?? null,
+    decisionViewable: m.decisionViewable ?? false,
   };
 }

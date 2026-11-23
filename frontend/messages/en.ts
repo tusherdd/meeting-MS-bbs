@@ -371,8 +371,10 @@ export const en: Messages = {
     edit: "Edit",
     cancel: "Cancel",
     upload: "Upload minutes",
-    /** v1.15 office report: view / download only. */
+    /** v1.17: minutes exist → file viewer panel (any type viewable). */
     viewMinutes: "View minutes",
+    /** v1.17: every minutes file is a DOCX → download. */
+    downloadMinutes: "Download minutes",
   },
   /** v1.17: the shared file viewer side panel (SPEC.md §13.22). */
   fileViewer: {
@@ -382,6 +384,8 @@ export const en: Messages = {
     files: "Files",
     cantShow: "This file can't be shown here on this device.",
     openNewTab: "Open in new tab",
+    /** v1.17: minutes panel header link to /meetings/[id]/decision (may upload or delete). */
+    manageMinutes: "Add / remove files",
   },
   /** v1.11 (renamed v1.13): meeting minutes (SPEC.md §6.9, §13.19). */
   decisions: {

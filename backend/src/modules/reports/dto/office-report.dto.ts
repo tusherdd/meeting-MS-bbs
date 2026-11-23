@@ -213,6 +213,13 @@ export class OfficeMeetingRowDto {
       'v1.17: mime type of the uploaded notice (null = none). PDF / image → "নোটিশ দেখুন" (file viewer); DOCX → "নোটিশ ডাউনলোড"',
   })
   noticeMime!: string | null;
+
+  @ApiProperty({
+    example: true,
+    description:
+      'v1.17: at least one minutes file is a PDF or an image → row menu "কার্যবিবরণী দেখুন" (file viewer); with files but false (DOCX only) → "কার্যবিবরণী ডাউনলোড"',
+  })
+  decisionViewable!: boolean;
 }
 
 export class OfficeMeetingPageDto {

@@ -35,6 +35,7 @@ const row = (
   decisionFileCount: 0,
   hasNotice: false,
   noticeMime: null,
+  decisionViewable: false,
   ...over,
 });
 
