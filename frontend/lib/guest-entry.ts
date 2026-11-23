@@ -1,7 +1,7 @@
 /**
  * A guest officer row of the meeting form (অতিথি কর্মকর্তা, SPEC.md §6.7): same limits as the
- * backend MeetingGuestInputDto. The schema decides when "যোগ করুন" is enabled and (v1.17 part 3)
- * which of the three fields carry the required mark.
+ * backend MeetingGuestInputDto. The schema decides when "যোগ করুন" is enabled. The section is optional,
+ * so its fields carry no required mark (SPEC.md §13.6a exception).
  */
 import { z } from "zod";
 

@@ -22,8 +22,8 @@ export function attachmentProblem(name: string, file: File | null): AttachmentPr
 }
 
 /**
- * One attachment row: a name AND an allowed file. Decides when "Add" is enabled and (v1.17 part 3,
- * SPEC.md §13.6a) that both fields carry the required mark.
+ * One attachment row: a name AND an allowed file. Decides when "Add" is enabled. The section is
+ * optional, so its fields carry no required mark (SPEC.md §13.6a exception).
  */
 export const attachmentEntrySchema = z.object({
   name: z.string().transform(attachmentLabel).pipe(z.string().min(1).max(MAX_ATTACHMENT_NAME)),

@@ -1,9 +1,13 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { attachmentEntrySchema } from "@/lib/attachments";
 import { guestEntrySchema } from "@/lib/guest-entry";
 import { requiredFields } from "@/lib/required-fields";
 import { createSchemas } from "@/lib/schemas";
 import { bn, en } from "@/messages";
+
+const root = join(__dirname, "..", "..");
 
 /**
  * v1.17 part 3 (SPEC.md §13.6a): the red "*" + "আবশ্যক" / "Required" mark comes from the form's
@@ -79,13 +83,25 @@ describe("required fields derived from the zod schemas", () => {
     });
   }
 
-  it("conditionally required: guest name, designation and email; attachment name and file", () => {
+  it("optional sub-sections (guests, other attachments): no required mark (§13.6a exception)", () => {
+    for (const file of ["guest-officers.tsx", "attachments-field.tsx"]) {
+      const src = readFileSync(join(root, "components", "meetings", file), "utf8");
+      expect(src).not.toMatch(/requiredFields|\brequired=|aria-required/);
+    }
+  });
+
+  it("…but Add still needs every field of the row", () => {
+    // The schemas still treat every field of a row as needed; they decide "যোগ করুন" / "Add".
     expect(requiredFields(guestEntrySchema)).toEqual({
       name: true,
       designation: true,
       email: true,
     });
     expect(requiredFields(attachmentEntrySchema)).toEqual({ name: true, file: true });
+    const pdf = new File([new Uint8Array(10)], "a.pdf");
+    expect(attachmentEntrySchema.safeParse({ name: "বাজেট", file: pdf }).success).toBe(true);
+    expect(attachmentEntrySchema.safeParse({ name: "  ", file: pdf }).success).toBe(false);
+    expect(attachmentEntrySchema.safeParse({ name: "বাজেট", file: null }).success).toBe(false);
   });
 
   it("the guest schema matches the Add rules", () => {

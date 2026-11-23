@@ -983,9 +983,12 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   designation of the admin officer form, an array row, always required on save, §6.2). "Confirm password" has its
   own `.min(1)` ("Password আবার লিখুন।" / "Enter the password again."); the designation Change Request has
   `designationRequestSchema`.
-- **Conditionally required** fields carry the mark too: guest name, designation and Email (`lib/guest-entry.ts`
-  `guestEntrySchema`, also decides "যোগ করুন") and attachment name and file (`lib/attachments.ts`
-  `attachmentEntrySchema`, also decides "যোগ করুন" / "Add").
+- **Exception — the two optional sub-sections of the meeting form (owner decision 2026-11-23):** "অতিথি কর্মকর্তা"
+  (নাম, পদবি, Email) and "অন্যান্য সংযুক্তি" (ফাইলের নাম, ফাইল) show **no** "*" and no "আবশ্যক" / "Required" and have
+  no `aria-required`. Their behaviour is unchanged: "যোগ করুন" / "Add" stays disabled until every field of that
+  sub-section is valid (`lib/guest-entry.ts` `guestEntrySchema`, `lib/attachments.ts` `attachmentEntrySchema`), and the
+  inline errors (invalid or duplicate Email, wrong file type / size, name too long) still show. Every other required
+  field keeps the mark.
 - **No notes:** no "* চিহ্নিত ঘর আবশ্যক"-style note at the top of a form and no other separate "আবশ্যক" /
   "(required)" text (the reject-note hint lost its "আবশ্যক।"), so all forms look the same.
 - Tests: `tests/unit/required-fields.test.ts`, `tests/unit/required-wording.test.ts` (no "ঐচ্ছিক" / "(optional)"

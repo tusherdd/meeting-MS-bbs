@@ -9,7 +9,6 @@ import {
   MAX_GUEST_EMAIL as MAX_EMAIL,
   MAX_GUEST_TEXT as MAX_TEXT,
 } from "@/lib/guest-entry";
-import { requiredFields } from "@/lib/required-fields";
 import { useT } from "@/providers/locale-provider";
 
 /** A guest officer (অতিথি কর্মকর্তা, SPEC.md §6.7): no account, invited by name and email. */
@@ -31,9 +30,9 @@ const sameEmail = (a: string, b: string) => a.trim().toLowerCase() === b.trim().
 /**
  * The "অতিথি কর্মকর্তা" section of the meeting form: three fields and "যোগ করুন"
  * (enabled once all three are filled and the email is valid and new), then the list with
- * "বাদ দিন" per guest. v1.17 part 3: the three fields carry the required mark (from
- * guestEntrySchema), because a guest needs all three. Lives inside the meeting <form>, so Enter adds a guest instead of
- * submitting the meeting.
+ * "বাদ দিন" per guest (rules: guestEntrySchema). An optional sub-section, so the fields carry
+ * no required mark (SPEC.md §13.6a exception). Lives inside the meeting <form>, so Enter adds a
+ * guest instead of submitting the meeting.
  */
 export function GuestOfficers({
   guests,
@@ -48,7 +47,6 @@ export function GuestOfficers({
   const [email, setEmail] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
 
-  const req = requiredFields(guestEntrySchema);
   const emailValid = guestEntrySchema.shape.email.safeParse(email).success;
   const duplicate = email.trim() !== "" && guests.some((g) => sameEmail(g.email, email));
   const full = guests.length >= MAX_GUESTS;
@@ -94,7 +92,6 @@ export function GuestOfficers({
         <Input
           id="guest-name"
           label={t.meetingForm.guestName}
-          required={req.name}
           value={name}
           maxLength={MAX_TEXT}
           autoComplete="off"
@@ -104,7 +101,6 @@ export function GuestOfficers({
         <Input
           id="guest-designation"
           label={t.meetingForm.guestDesignation}
-          required={req.designation}
           value={designation}
           maxLength={MAX_TEXT}
           autoComplete="off"
@@ -116,7 +112,6 @@ export function GuestOfficers({
           type="email"
           inputMode="email"
           label={t.meetingForm.guestEmail}
-          required={req.email}
           value={email}
           maxLength={MAX_EMAIL}
           autoComplete="off"

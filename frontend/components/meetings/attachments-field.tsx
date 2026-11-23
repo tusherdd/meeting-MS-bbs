@@ -8,14 +8,12 @@ import { FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import {
-  attachmentEntrySchema,
   attachmentLabel,
   attachmentProblem,
   canAddAttachment,
   MAX_ATTACHMENTS,
 } from "@/lib/attachments";
 import { attachmentsApi, queryKeys } from "@/lib/endpoints";
-import { requiredFields } from "@/lib/required-fields";
 import { invalidateMeetingData } from "@/lib/invalidate";
 import { useT } from "@/providers/locale-provider";
 import { NOTICE_ACCEPT } from "./notice-field";
@@ -105,8 +103,8 @@ export function AttachmentsField({
   const count = rows.length;
   const atLimit = count >= MAX_ATTACHMENTS;
   const problem = attachmentProblem(name, file);
-  // v1.17 part 3: a new attachment needs both a name and a file → both carry the required mark.
-  const req = requiredFields(attachmentEntrySchema);
+  // An optional sub-section (SPEC.md §13.6a exception): no required mark, but "Add" still needs a
+  // valid name AND file (canAddAttachment → attachmentEntrySchema).
   const busy = add.isPending || remove.isPending || (!!meetingId && saved.isPending);
   const enabled = !busy && canAddAttachment(name, file, count);
 
@@ -166,7 +164,6 @@ export function AttachmentsField({
         <Input
           id={nameId}
           label={t.attachments.nameLabel}
-          required={req.name}
           value={name}
           maxLength={200}
           disabled={atLimit || busy}
@@ -184,16 +181,13 @@ export function AttachmentsField({
           }}
         />
         <div>
-          <FieldLabel htmlFor={fileId} required={req.file}>
-            {t.attachments.fileLabel}
-          </FieldLabel>
+          <FieldLabel htmlFor={fileId}>{t.attachments.fileLabel}</FieldLabel>
           <input
             ref={fileRef}
             id={fileId}
             type="file"
             accept={NOTICE_ACCEPT}
             aria-describedby={hintId}
-            aria-required={req.file || undefined}
             disabled={atLimit || busy}
             onChange={(e) => {
               add.reset();
