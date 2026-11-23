@@ -11,12 +11,14 @@ import { useToast } from "@/components/ui/toast";
 import { profileApi, queryKeys } from "@/lib/endpoints";
 import { type EmailFormValues } from "@/lib/schemas";
 import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import type { Profile } from "@/lib/types";
 import { useT } from "@/providers/locale-provider";
 
 /** Notification email: current address, pending address, request a change (verification mail). */
 export function NotificationEmailSection({ profile }: { profile: Profile }) {
   const { emailFormSchema } = useSchemas();
+  const req = requiredFields(emailFormSchema);
   const t = useT();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -60,6 +62,7 @@ export function NotificationEmailSection({ profile }: { profile: Profile }) {
               type="email"
               autoComplete="email"
               label={t.profile.emailNew}
+              required={req.email}
               hint={t.profile.emailHint}
               error={form.formState.errors.email?.message}
               {...form.register("email")}

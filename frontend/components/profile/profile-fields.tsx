@@ -4,6 +4,8 @@ import { useFormState, type UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 
+import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import { type ProfileFormValues } from "@/lib/schemas";
 import type { Profile, Wing } from "@/lib/types";
 import { useT } from "@/providers/locale-provider";
@@ -58,6 +60,8 @@ export function ProfileFields({
   wingOptions: { value: string; label: string }[];
 }) {
   const t = useT();
+  // The admin user form extends profileFormSchema with the same rules for these fields.
+  const req = requiredFields(useSchemas().profileFormSchema);
   const { register, control } = form;
   // Subscribe explicitly: this is a child of the form owner, so reading form.formState here
   // would not re-render it when errors change (the React Compiler memoizes on `form`).
@@ -70,14 +74,14 @@ export function ProfileFields({
         <Input
           id={id("nameBn")}
           label={t.profile.nameBn}
-          required
+          required={req.nameBn}
           error={errors.nameBn?.message}
           {...register("nameBn")}
         />
         <Input
           id={id("nameEn")}
           label={t.profile.nameEn}
-          required
+          required={req.nameEn}
           error={errors.nameEn?.message}
           {...register("nameEn")}
         />

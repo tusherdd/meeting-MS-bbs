@@ -24,6 +24,7 @@ import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { changeRequestsApi, queryKeys } from "@/lib/endpoints";
 
 import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import type { ChangeRequest, ChangeRequestStatus } from "@/lib/types";
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
 import { useCurrentUser } from "@/providers/auth-provider";
@@ -262,6 +263,7 @@ function RejectModal({
   error: unknown;
 }) {
   const { rejectNoteSchema } = useSchemas();
+  const req = requiredFields(rejectNoteSchema);
   const t = useT();
   const names = useNames();
   const form = useForm<{ note: string }>({
@@ -308,7 +310,7 @@ function RejectModal({
             id="reject-note"
             label={t.admin.rejectNote}
             hint={t.admin.rejectNoteHint}
-            required
+            required={req.note}
             rows={3}
             error={form.formState.errors.note?.message}
             {...form.register("note")}

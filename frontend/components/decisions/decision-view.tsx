@@ -9,6 +9,7 @@ import { Button, LinkButton } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FieldLabel } from "@/components/ui/field";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
@@ -176,9 +177,7 @@ function UploadForm({ id, data }: { id: string; data: DecisionDetail }) {
       <CardBody>
         <form onSubmit={onSubmit} className="space-y-3" data-testid="decision-upload">
           <div>
-            <label htmlFor={inputId} className="block text-sm font-medium text-slate-800">
-              {t.decisions.pickLabel}
-            </label>
+            <FieldLabel htmlFor={inputId}>{t.decisions.pickLabel}</FieldLabel>
             <p id={hintId} className="mt-1 text-sm text-slate-600">
               {t.decisions.pickHint(maxMb, formatNumber(data.maxFiles))}
             </p>
@@ -347,7 +346,9 @@ function FileList({ id, files }: { id: string; files: DecisionFile[] }) {
         error={remove.error}
         danger
       >
-        {toDelete && <p className="text-sm text-slate-700">{t.decisions.deleteBody(toDelete.originalName)}</p>}
+        {toDelete && (
+          <p className="text-sm text-slate-700">{t.decisions.deleteBody(toDelete.originalName)}</p>
+        )}
       </ConfirmModal>
     </Card>
   );

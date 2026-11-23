@@ -53,6 +53,9 @@ export function createSchemas(t: Messages) {
     .max(PASSWORD_MAX_LENGTH, t.validation.passwordTooLong)
     .refine((v) => checkPasswordRules(v).every((r) => r.ok), t.validation.passwordWeak);
 
+  /** v1.17 part 3: its own `.min(1)` so the field carries the required mark (lib/required-fields). */
+  const confirmPassword = z.string().min(1, t.validation.confirmPasswordRequired);
+
   const loginSchema = z.object({
     loginEmail: email,
     password: z
@@ -64,7 +67,7 @@ export function createSchemas(t: Messages) {
   const forgotPasswordSchema = z.object({ loginEmail: email });
 
   const newPasswordSchema = z
-    .object({ newPassword, confirmPassword: z.string() })
+    .object({ newPassword, confirmPassword })
     .refine((v) => v.newPassword === v.confirmPassword, {
       path: ["confirmPassword"],
       message: t.validation.passwordMismatch,
@@ -79,7 +82,7 @@ export function createSchemas(t: Messages) {
           .min(1, t.validation.currentPasswordRequired)
           .max(PASSWORD_MAX_LENGTH, t.validation.passwordTooLong),
         newPassword,
-        confirmPassword: z.string(),
+        confirmPassword,
       })
       .refine((v) => v.newPassword.trim().toLowerCase() !== loginEmail.trim().toLowerCase(), {
         path: ["newPassword"],
@@ -233,6 +236,11 @@ export function createSchemas(t: Messages) {
 
   const loginEmailRequestSchema = z.object({ loginEmail: email });
 
+  /** The designation Change Request (profile): one select, a designation must be chosen. */
+  const designationRequestSchema = z.object({
+    designationId: z.string().min(1, t.validation.designationRequired),
+  });
+
   // Designations and wings (CreateDesignationDto / CreateWingDto) -----------------------------------
   const nameBn = z
     .string()
@@ -276,6 +284,7 @@ export function createSchemas(t: Messages) {
     userFormSchema,
     emailFormSchema,
     loginEmailRequestSchema,
+    designationRequestSchema,
     designationFormSchema,
     wingFormSchema,
     rejectNoteSchema,

@@ -26,6 +26,7 @@ export function Select({
       <select
         id={id}
         required={required}
+        aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, error, hint)}
         className={controlClass(!!error, `h-11 sm:h-10 ${className ?? ""}`)}

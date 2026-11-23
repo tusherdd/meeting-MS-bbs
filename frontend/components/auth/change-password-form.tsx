@@ -13,6 +13,7 @@ import { authApi } from "@/lib/endpoints";
 import { DEFAULT_AFTER_LOGIN } from "@/lib/safe-next";
 import { type ChangePasswordForm as Values } from "@/lib/schemas";
 import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import { useT } from "@/providers/locale-provider";
 import { useAuth, useCurrentUser } from "@/providers/auth-provider";
 import { PasswordInput } from "./password-input";
@@ -33,6 +34,7 @@ export function ChangePasswordForm({ embedded = false }: { embedded?: boolean })
     () => changePasswordSchema(user.loginEmail),
     [changePasswordSchema, user.loginEmail],
   );
+  const req = requiredFields(schema);
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -66,7 +68,7 @@ export function ChangePasswordForm({ embedded = false }: { embedded?: boolean })
         id={`${idp}currentPassword`}
         label={t.auth.currentPassword}
         autoComplete="current-password"
-        required
+        required={req.currentPassword}
         error={errors.currentPassword?.message}
         {...form.register("currentPassword")}
       />
@@ -74,7 +76,7 @@ export function ChangePasswordForm({ embedded = false }: { embedded?: boolean })
         id={`${idp}newPassword`}
         label={t.auth.newPassword}
         autoComplete="new-password"
-        required
+        required={req.newPassword}
         error={errors.newPassword?.message}
         {...form.register("newPassword")}
       />
@@ -83,7 +85,7 @@ export function ChangePasswordForm({ embedded = false }: { embedded?: boolean })
         id={`${idp}confirmPassword`}
         label={t.auth.confirmPassword}
         autoComplete="new-password"
-        required
+        required={req.confirmPassword}
         error={errors.confirmPassword?.message}
         {...form.register("confirmPassword")}
       />

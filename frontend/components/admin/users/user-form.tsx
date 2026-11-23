@@ -20,6 +20,7 @@ import {
 } from "@/lib/schemas";
 import { AdditionalChargesEditor } from "./additional-charges-editor";
 import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import type { UserDetail } from "@/lib/types";
 import type { Messages } from "@/messages";
 import { useNames, useT } from "@/providers/locale-provider";
@@ -68,6 +69,7 @@ function defaults(t: Messages, user?: UserDetail): UserFormValues {
  */
 export function UserForm({ user }: { user?: UserDetail }) {
   const { userFormSchema } = useSchemas();
+  const req = requiredFields(userFormSchema);
   const t = useT();
   const names = useNames();
   const router = useRouter();
@@ -157,7 +159,7 @@ export function UserForm({ user }: { user?: UserDetail }) {
               type="email"
               autoComplete="off"
               label={t.admin.loginEmail}
-              required
+              required={req.loginEmail}
               hint={editing ? t.admin.loginEmailEditHint : t.admin.loginEmailHint}
               error={errors.loginEmail?.message}
               {...form.register("loginEmail")}
@@ -165,7 +167,7 @@ export function UserForm({ user }: { user?: UserDetail }) {
             <Select
               id="user-designationId"
               label={t.admin.designation}
-              required
+              required={req.designationId}
               placeholder={t.admin.designationChoose}
               options={designationChoices}
               hint={editing ? t.admin.designationEditNote : undefined}

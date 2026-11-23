@@ -12,6 +12,7 @@ import { meetingsApi } from "@/lib/endpoints";
 import { invalidateMeetingData } from "@/lib/invalidate";
 import { type CancelReasonForm } from "@/lib/schemas";
 import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import { useT } from "@/providers/locale-provider";
 
 /** "Cancel meeting" with a required reason (used on the detail page and on /conflicts). */
@@ -27,6 +28,7 @@ export function CancelMeetingModal({
   onClose: () => void;
 }) {
   const { cancelReasonSchema } = useSchemas();
+  const req = requiredFields(cancelReasonSchema);
   const t = useT();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -73,7 +75,7 @@ export function CancelMeetingModal({
           id={`${formId}-reason`}
           label={t.meetingDetail.cancelReasonLabel}
           hint={t.meetingDetail.cancelReasonHint}
-          required
+          required={req.reason}
           rows={3}
           error={form.formState.errors.reason?.message}
           {...form.register("reason")}

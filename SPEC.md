@@ -843,6 +843,7 @@ the meeting notice and the minutes files; PDF / images inline, DOCX attachment; 
 Part 2 of 3: the other attachments "অন্যান্য সংযুক্তি" (§6.11, §13.6; migration `MeetingAttachments1795300000000`) and,
 on the meeting detail page, the attachments and the minutes files with View / Download (§13.22); one minutes item in
 every row menu by status — Upload while Pending, View / Download when Complete — and the panel link "ফাইল যোগ / মুছুন" (§13.18).
+Part 3 of 3: one required-field mark for every form (§13.6a) — no "ঐচ্ছিক" / "optional" text anywhere.
 
 ## 13. Frontend (`frontend/`)
 
@@ -942,7 +943,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   unchanged; the quick-duration buttons and the time-zone hint were removed in v1.5), venue ("স্থান", required
   since v1.9), https link,
   participants from `GET /users/directory` (search, wing filter, "add the whole wing" with a count).
-- v1.5: no priority box. Directly above the chair select, the optional section "অতিথি কর্মকর্তা"
+- v1.5: no priority box. Directly above the chair select, the section "অতিথি কর্মকর্তা"
   (`guest-officers.tsx`): নাম, পদবি, Email and "যোগ করুন" (enabled once all three are filled and the email is
   valid and new; Enter adds instead of submitting; fields clear after adding; inline errors for an invalid or
   duplicate email); the list "নাম — পদবি — email" with "বাদ দিন". The chair select lists the organizer, the
@@ -954,8 +955,8 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   confirmation; red = only the lead rule (§6.4): "আয়োজক একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি। সময় বদলান।" and/or
   (v1.13, from `blockedBy`) "সভাপতি একই সময়ে আরেকটি সভার আয়োজক বা সভাপতি। সময় বা সভাপতি বদলান।", Save disabled. Only an officer chair is sent to the check. A 409 on save shows the same red panel and keeps the form data.
 - **Meeting notice field (v1.13, §6.8)** `components/meetings/notice-field.tsx`: label "সভার নোটিশ" / "Meeting notice",
-  hint "PDF, DOCX, JPG বা PNG; সর্বোচ্চ ১০ MB" / "PDF, DOCX, JPG or PNG; max 10 MB"; optional but never marked
-  "ঐচ্ছিক" / "optional". Shown **only to the organizer** (not to a chair or an admin editing). Create: the file is
+  hint "PDF, DOCX, JPG বা PNG; সর্বোচ্চ ১০ MB" / "PDF, DOCX, JPG or PNG; max 10 MB"; not required, so it
+  shows no mark (§13.6a). Shown **only to the organizer** (not to a chair or an admin editing). Create: the file is
   uploaded right after the meeting is saved; if that fails the meeting stays saved, a red toast explains why and the
   edit page opens to retry. Edit: the current file (name, size) with "Replace" (upload at once) and "Remove"
   (confirmation), independent of "Save Changes". Client pre-check of extension and size; the backend decides.
@@ -968,6 +969,27 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   keeps the meeting, shows a red toast and opens the edit page. Edit: Add and Remove are immediate (no confirmation).
 - After create/edit/cancel/complete/delete, every cached "meetings", "conflicts", "notifications" and "reports"
   query is refreshed (`lib/invalidate.ts`).
+
+### 13.6a Required fields: one mark for every form (v1.17 part 3, owner decision 2026-11-23)
+- **Mark:** every required field shows a red "*" and the small muted word "আবশ্যক" / "Required" right after its
+  label ("শিরোনাম * আবশ্যক"); `common.required`. Fields that are not required show **nothing extra**. The words
+  "ঐচ্ছিক", "(ঐচ্ছিক)", "optional" and "(optional)" appear in no label, hint or placeholder.
+- **One component:** `FieldLabel` in `components/ui/field.tsx` (used by `Field` → `Input` / `Select` / `Textarea`
+  and by the file inputs: notice, attachments, minutes upload, photo). The mark sits outside the `<label>` and is
+  `aria-hidden` (both the "*" and the word), so the accessible name stays the label text; the control gets
+  `aria-required="true"` (and `required`; every form is `noValidate`).
+- **From the zod schema:** `requiredFields(schema)` (`lib/required-fields.ts`): a field is required when its own
+  schema rejects `""`. Forms pass `required={req.<field>}`, never a hand-written flag (exception: the charge
+  designation of the admin officer form, an array row, always required on save, §6.2). "Confirm password" has its
+  own `.min(1)` ("Password আবার লিখুন।" / "Enter the password again."); the designation Change Request has
+  `designationRequestSchema`.
+- **Conditionally required** fields carry the mark too: guest name, designation and Email (`lib/guest-entry.ts`
+  `guestEntrySchema`, also decides "যোগ করুন") and attachment name and file (`lib/attachments.ts`
+  `attachmentEntrySchema`, also decides "যোগ করুন" / "Add").
+- **No notes:** no "* চিহ্নিত ঘর আবশ্যক"-style note at the top of a form and no other separate "আবশ্যক" /
+  "(required)" text (the reject-note hint lost its "আবশ্যক।"), so all forms look the same.
+- Tests: `tests/unit/required-fields.test.ts`, `tests/unit/required-wording.test.ts` (no "ঐচ্ছিক" / "(optional)"
+  in `messages/bn.ts` / `en.ts`), `e2e/v117-required.spec.ts`.
 
 ### 13.7 Reports, profile and admin panel (F3)
 - **Reports** (`/reports`, "আমার রিপোর্ট"; v1.15, owner decision 2026-11-20): one filter row

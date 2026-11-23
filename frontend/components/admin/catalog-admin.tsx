@@ -20,6 +20,7 @@ import { designationsApi, queryKeys, wingsApi } from "@/lib/endpoints";
 
 import { type DesignationFormValues } from "@/lib/schemas";
 import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import { toEnglishDigits } from "@/lib/phone";
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
@@ -92,8 +93,10 @@ function ItemForm({
   const { designationFormSchema, wingFormSchema } = useSchemas();
   const t = useT();
   const withPriority = kind === "designation";
+  const schema = withPriority ? designationFormSchema : wingFormSchema;
+  const req = requiredFields(schema);
   const form = useForm<Values>({
-    resolver: zodResolver(withPriority ? designationFormSchema : wingFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: initial,
   });
   const errors = form.formState.errors;
@@ -107,14 +110,14 @@ function ItemForm({
         <Input
           id={`${idPrefix}-nameBn`}
           label={t.admin.nameBn}
-          required
+          required={req.nameBn}
           error={errors.nameBn?.message}
           {...form.register("nameBn")}
         />
         <Input
           id={`${idPrefix}-nameEn`}
           label={t.admin.nameEn}
-          required
+          required={req.nameEn}
           error={errors.nameEn?.message}
           {...form.register("nameEn")}
         />
@@ -124,7 +127,7 @@ function ItemForm({
             type="text"
             inputMode="numeric"
             label={t.admin.priority}
-            required
+            required={req.priority}
             hint={t.admin.priorityHint}
             error={errors.priority?.message}
             {...form.register("priority", { setValueAs: (v: string) => toEnglishDigits(v) })}
@@ -134,6 +137,7 @@ function ItemForm({
           <Select
             id={`${idPrefix}-officeReportScope`}
             label={t.admin.officeReportScope}
+            required={req.officeReportScope}
             options={OFFICE_REPORT_SCOPES.map((s) => ({
               value: s,
               label: t.admin.officeReportScopes[s],

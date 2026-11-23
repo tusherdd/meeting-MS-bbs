@@ -13,6 +13,7 @@ import { authApi } from "@/lib/endpoints";
 import { safeNextPath } from "@/lib/safe-next";
 import { type LoginForm as LoginValues } from "@/lib/schemas";
 import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import { useT } from "@/providers/locale-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { AuthCard } from "./auth-card";
@@ -20,6 +21,7 @@ import { PasswordInput } from "./password-input";
 
 export function LoginForm() {
   const { loginSchema } = useSchemas();
+  const req = requiredFields(loginSchema);
   const t = useT();
   const router = useRouter();
   const params = useSearchParams();
@@ -65,7 +67,7 @@ export function LoginForm() {
           type="email"
           autoComplete="username"
           inputMode="email"
-          required
+          required={req.loginEmail}
           error={errors.loginEmail?.message}
           {...form.register("loginEmail")}
         />
@@ -73,7 +75,7 @@ export function LoginForm() {
           id="password"
           label={t.auth.password}
           autoComplete="current-password"
-          required
+          required={req.password}
           error={errors.password?.message}
           {...form.register("password")}
         />

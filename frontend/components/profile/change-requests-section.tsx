@@ -21,6 +21,7 @@ import { designationsApi, profileApi, queryKeys } from "@/lib/endpoints";
 
 import { type LoginEmailRequestValues } from "@/lib/schemas";
 import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import type {
   ChangeRequest,
   ChangeRequestType,
@@ -31,13 +32,16 @@ import { useFormat, useNames, useT } from "@/providers/locale-provider";
 
 /** Login-email and designation change requests (admin approval) + my request history. */
 export function ChangeRequestsSection({ profile }: { profile: Profile }) {
-  const { loginEmailRequestSchema } = useSchemas();
+  const { loginEmailRequestSchema, designationRequestSchema } = useSchemas();
+  const req = requiredFields(loginEmailRequestSchema);
+  const reqDesignation = requiredFields(designationRequestSchema);
   const t = useT();
   const names = useNames();
   const { formatDateTime } = useFormat();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [designationId, setDesignationId] = useState("");
+  const designationChosen = designationRequestSchema.safeParse({ designationId }).success;
   const [cancelling, setCancelling] = useState<ChangeRequest | null>(null);
 
   const requests = useQuery({
@@ -108,6 +112,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
               id="request-login-email"
               type="email"
               label={t.profile.loginEmailRequest}
+              required={req.loginEmail}
               hint={t.profile.loginEmailNote}
               disabled={pending("LOGIN_EMAIL")}
               error={emailForm.formState.errors.loginEmail?.message}
@@ -132,7 +137,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
             className="space-y-3 rounded-lg border border-slate-200 p-4"
             onSubmit={(e) => {
               e.preventDefault();
-              if (designationId) create.mutate({ type: "DESIGNATION", designationId });
+              if (designationChosen) create.mutate({ type: "DESIGNATION", designationId });
             }}
           >
             <p className="text-sm text-slate-700">
@@ -144,6 +149,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
             <Select
               id="request-designation"
               label={t.profile.designationRequest}
+              required={reqDesignation.designationId}
               hint={t.profile.designationNote}
               placeholder={t.profile.designationChoose}
               options={designationChoices}
@@ -155,7 +161,7 @@ export function ChangeRequestsSection({ profile }: { profile: Profile }) {
             {create.isError && lastType === "DESIGNATION" && <ErrorAlert error={create.error} />}
             <Button
               type="submit"
-              disabled={!designationId || pending("DESIGNATION")}
+              disabled={!designationChosen || pending("DESIGNATION")}
               loading={create.isPending && lastType === "DESIGNATION"}
               loadingText={t.common.working}
             >

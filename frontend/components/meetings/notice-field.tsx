@@ -5,6 +5,7 @@ import { useId, useRef, useState } from "react";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { FieldLabel } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { noticesApi } from "@/lib/endpoints";
 import { invalidateMeetingData } from "@/lib/invalidate";
@@ -82,9 +83,7 @@ export function NoticeField({
 
   return (
     <div data-testid="notice-field">
-      <label htmlFor={inputId} className="block text-sm font-medium text-slate-800">
-        {t.notice.label}
-      </label>
+      <FieldLabel htmlFor={inputId}>{t.notice.label}</FieldLabel>
       <p id={hintId} className="mt-1 text-sm text-slate-600">
         {t.notice.hint}
       </p>

@@ -18,6 +18,7 @@ import { invalidateMeetingData } from "@/lib/invalidate";
 import { fromIso, toIso } from "@/lib/meeting-time";
 import { type MeetingFormValues } from "@/lib/schemas";
 import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import type { Clash, MeetingDetail } from "@/lib/types";
 import { useNames, useT } from "@/providers/locale-provider";
 import { useCurrentUser } from "@/providers/auth-provider";
@@ -75,6 +76,7 @@ function initialValues(meeting?: MeetingDetail, slot?: Props["initialSlot"]): Me
 /** One form for /meetings/new and /meetings/[id]/edit. */
 export function MeetingForm({ meeting, initialSlot }: Props) {
   const { meetingFormSchema } = useSchemas();
+  const req = requiredFields(meetingFormSchema);
   const t = useT();
   const names = useNames();
   const me = useCurrentUser();
@@ -250,7 +252,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
               <Input
                 id="title"
                 label={t.meetingForm.title}
-                required
+                required={req.title}
                 error={errors.title?.message}
                 {...form.register("title")}
               />
@@ -267,7 +269,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                   id="date"
                   type="date"
                   label={t.meetingForm.date}
-                  required
+                  required={req.date}
                   error={errors.date?.message}
                   {...form.register("date")}
                 />
@@ -276,7 +278,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                   type="time"
                   step={300}
                   label={t.meetingForm.startTime}
-                  required
+                  required={req.startTime}
                   error={errors.startTime?.message}
                   {...form.register("startTime")}
                 />
@@ -285,7 +287,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                   type="time"
                   step={300}
                   label={t.meetingForm.endTime}
-                  required
+                  required={req.endTime}
                   error={errors.endTime?.message}
                   {...form.register("endTime")}
                 />
@@ -294,7 +296,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                 <Input
                   id="room"
                   label={t.meetingForm.room}
-                  required
+                  required={req.room}
                   placeholder={t.meetingForm.roomPlaceholder}
                   error={errors.room?.message}
                   {...form.register("room")}

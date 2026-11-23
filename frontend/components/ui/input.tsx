@@ -26,6 +26,7 @@ export function Input({
         <input
           id={id}
           required={required}
+          aria-required={required || undefined}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy(id, error, hint)}
           className={controlClass(

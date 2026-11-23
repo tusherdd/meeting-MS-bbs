@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { authApi } from "@/lib/endpoints";
 import { type NewPasswordForm as Values } from "@/lib/schemas";
 import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import { useT } from "@/providers/locale-provider";
 import { AuthCard } from "./auth-card";
 import { PasswordInput } from "./password-input";
@@ -21,6 +22,7 @@ import { PasswordRules } from "./password-rules";
  */
 export function NewPasswordForm({ mode }: { mode: "reset" | "set" }) {
   const { newPasswordSchema } = useSchemas();
+  const req = requiredFields(newPasswordSchema);
   const t = useT();
   const token = useSearchParams().get("token")?.trim() ?? "";
   const form = useForm<Values>({
@@ -90,7 +92,7 @@ export function NewPasswordForm({ mode }: { mode: "reset" | "set" }) {
           id="newPassword"
           label={t.auth.newPassword}
           autoComplete="new-password"
-          required
+          required={req.newPassword}
           error={errors.newPassword?.message}
           {...form.register("newPassword")}
         />
@@ -99,7 +101,7 @@ export function NewPasswordForm({ mode }: { mode: "reset" | "set" }) {
           id="confirmPassword"
           label={t.auth.confirmPassword}
           autoComplete="new-password"
-          required
+          required={req.confirmPassword}
           error={errors.confirmPassword?.message}
           {...form.register("confirmPassword")}
         />

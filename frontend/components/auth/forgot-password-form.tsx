@@ -10,11 +10,13 @@ import { Input } from "@/components/ui/input";
 import { authApi } from "@/lib/endpoints";
 import { type ForgotPasswordForm as Values } from "@/lib/schemas";
 import { useSchemas } from "@/lib/hooks/use-schemas";
+import { requiredFields } from "@/lib/required-fields";
 import { useT } from "@/providers/locale-provider";
 import { AuthCard } from "./auth-card";
 
 export function ForgotPasswordForm() {
   const { forgotPasswordSchema } = useSchemas();
+  const req = requiredFields(forgotPasswordSchema);
   const t = useT();
   const form = useForm<Values>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -48,7 +50,7 @@ export function ForgotPasswordForm() {
             type="email"
             autoComplete="username"
             inputMode="email"
-            required
+            required={req.loginEmail}
             error={form.formState.errors.loginEmail?.message}
             {...form.register("loginEmail")}
           />

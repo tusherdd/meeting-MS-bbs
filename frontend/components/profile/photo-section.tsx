@@ -6,6 +6,7 @@ import { Alert, ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { FieldLabel } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { profileApi, queryKeys } from "@/lib/endpoints";
 import type { Messages } from "@/messages";
@@ -124,9 +125,7 @@ export function PhotoSection({ profile }: { profile: Profile }) {
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="photo-file" className="block text-sm font-medium text-slate-800">
-            {t.profile.photoChoose}
-          </label>
+          <FieldLabel htmlFor="photo-file">{t.profile.photoChoose}</FieldLabel>
           <input
             ref={inputRef}
             id="photo-file"
