@@ -452,6 +452,22 @@ const bnMessages = {
       `সভা তৈরি হয়েছে, কিন্তু সভার নোটিশ Upload করা যায়নি: ${reason} সভা সম্পাদনা পাতা থেকে আবার Upload করুন।`,
     opening: "খোলা হচ্ছে…",
   },
+  /** v1.17: other attachments "অন্যান্য সংযুক্তি" (SPEC.md §6.11, §13.6). */
+  attachments: {
+    label: "অন্যান্য সংযুক্তি",
+    hint: "PDF, DOCX, JPG বা PNG; প্রতিটি সর্বোচ্চ ১০ MB",
+    nameLabel: "ফাইলের নাম",
+    fileLabel: "ফাইল",
+    add: "যোগ করুন",
+    adding: "যোগ হচ্ছে…",
+    remove: "বাদ দিন",
+    added: "সংযুক্তি যোগ হয়েছে।",
+    removed: "সংযুক্তি বাদ দেওয়া হয়েছে।",
+    limit: "সর্বোচ্চ ৫টি সংযুক্তি যোগ করা যায়।",
+    nameTooLong: "ফাইলের নাম সর্বোচ্চ ১৫০ অক্ষরের হতে পারে।",
+    createFailed: (reason: string) =>
+      `সভা তৈরি হয়েছে, কিন্তু সব সংযুক্তি যোগ করা যায়নি: ${reason} সভা সম্পাদনা পাতা থেকে আবার যোগ করুন।`,
+  },
   meetingsList: {
     title: "সভা",
     from: "শুরুর তারিখ",
@@ -955,6 +971,8 @@ const bnMessages = {
       MEETING_NOTICE_UPLOADED: "সভার নোটিশ Upload",
       MEETING_NOTICE_REPLACED: "সভার নোটিশ পরিবর্তন",
       MEETING_NOTICE_REMOVED: "সভার নোটিশ মুছে ফেলা",
+      MEETING_ATTACHMENT_ADDED: "সংযুক্তি যোগ",
+      MEETING_ATTACHMENT_REMOVED: "সংযুক্তি বাদ",
       OFFICE_REPORT_EXPORTED: "অফিস রিপোর্ট PDF Download",
       MEETING_DECISION_UPLOADED: "সভা কার্যবিবরণী Upload",
       MEETING_DECISION_DELETED: "সভা কার্যবিবরণী ফাইল মুছে ফেলা",

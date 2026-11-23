@@ -925,6 +925,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/meetings/{id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the other attachments of a meeting
+         * @description The meeting's people, admins and office report viewers in scope (like the notice), also for cancelled meetings. `canManage` = I may add / remove (the organizer, not cancelled).
+         */
+        get: operations["AttachmentsController_list"];
+        put?: never;
+        /**
+         * Add an attachment (organizer only)
+         * @description Multipart fields `name` (label, required, max 150) and `file`. PDF, DOCX (no macros), JPEG or PNG, checked by the bytes; max 10 MB; image metadata removed; at most 5 per meeting. Only the organizer (not the chair, not admins); not for cancelled meetings. Audited (MEETING_ATTACHMENT_ADDED).
+         */
+        post: operations["AttachmentsController_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meetings/{id}/attachments/{attachmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download or show one attachment (PDF / image inline, DOCX attachment)
+         * @description Same viewers as the list. The type decides the disposition: PDF and images inline (file viewer panel), a DOCX always an attachment. Sent with nosniff, no-store and a safe Content-Disposition.
+         */
+        get: operations["AttachmentsController_download"];
+        put?: never;
+        post?: never;
+        /**
+         * Remove an attachment (organizer only)
+         * @description Not for cancelled meetings. Audited (MEETING_ATTACHMENT_REMOVED).
+         */
+        delete: operations["AttachmentsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/me": {
         parameters: {
             query?: never;
@@ -1074,7 +1122,7 @@ export interface components {
              * @example MEETING_CREATE
              * @enum {string}
              */
-            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_ATTACHMENT_ADDED" | "MEETING_ATTACHMENT_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
             /** @example meeting */
             entityType: string;
             entityId: string | null;
@@ -2502,6 +2550,58 @@ export interface components {
              */
             file: string;
         };
+        AttachmentDto: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description The label typed by the organizer ("ফাইলের নাম")
+             * @example বাজেট প্রস্তাব
+             */
+            name: string;
+            /**
+             * @description Sanitized original file name; the extension follows the detected type
+             * @example budget-2026.pdf
+             */
+            originalName: string;
+            /**
+             * @description Detected from the bytes: application/pdf, the DOCX type, image/jpeg or image/png
+             * @example application/pdf
+             */
+            mime: string;
+            /**
+             * @description Size in bytes
+             * @example 182044
+             */
+            size: number;
+            /** Format: date-time */
+            uploadedAt: string;
+        };
+        AttachmentListDto: {
+            /** @description Oldest first */
+            items: components["schemas"]["AttachmentDto"][];
+            /**
+             * @description I may add and remove attachments (the organizer; not for cancelled meetings)
+             * @example true
+             */
+            canManage: boolean;
+            /**
+             * @description At most this many per meeting
+             * @example 5
+             */
+            max: number;
+        };
+        AttachmentUploadDto: {
+            /**
+             * @description The label shown for the file ("ফাইলের নাম"), required, max 150 characters
+             * @example বাজেট প্রস্তাব
+             */
+            name: string;
+            /**
+             * Format: binary
+             * @description One PDF, DOCX (no macros), JPEG or PNG file, max 10 MB
+             */
+            file: string;
+        };
         PeriodDto: {
             /**
              * @description `custom` = a date range chosen with from / to (v1.15)
@@ -2907,7 +3007,7 @@ export interface operations {
                 limit?: number;
                 /** @description Who did it */
                 actorId?: string;
-                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_ATTACHMENT_ADDED" | "MEETING_ATTACHMENT_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
                 /** @description user, meeting, designation, change_request, … */
                 entityType?: string;
                 /** @description Id of the changed record */
@@ -5294,6 +5394,195 @@ export interface operations {
                 content?: never;
             };
             /** @description Meeting not found or it has no notice */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting cancelled */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AttachmentsController_list: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentListDto"];
+                };
+            };
+            /** @description Not one of the meeting’s people / not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AttachmentsController_upload: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AttachmentUploadDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentDto"];
+                };
+            };
+            /** @description No name or file, wrong type, macro-enabled Word file, unreadable */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not the organizer */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting cancelled, or already 5 attachments */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description File larger than 10 MB */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AttachmentsController_download: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
+                    "image/jpeg": string;
+                    "image/png": string;
+                };
+            };
+            /** @description Not one of the meeting’s people / not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting or attachment not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AttachmentsController_remove: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path: {
+                id: string;
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not the organizer */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Meeting or attachment not found */
             404: {
                 headers: {
                     [name: string]: unknown;

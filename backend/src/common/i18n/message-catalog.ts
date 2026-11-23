@@ -573,6 +573,38 @@ export const MESSAGE_CATALOG = {
     bn: 'এই সভার কোনো নোটিশ ফাইল নেই।',
     en: 'This meeting has no notice file.',
   },
+  ATTACHMENT_FORBIDDEN: {
+    bn: 'শুধু সভার সংশ্লিষ্ট কর্মকর্তা অথবা প্রশাসক এই সভার সংযুক্তি দেখতে পারেন।',
+    en: 'Only the officers of this meeting or an administrator can see its attachments.',
+  },
+  ATTACHMENT_CHANGE_FORBIDDEN: {
+    bn: 'শুধু সভার আয়োজক সংযুক্তি যোগ করতে বা বাদ দিতে পারেন।',
+    en: 'Only the organizer of the meeting can add or remove attachments.',
+  },
+  ATTACHMENT_CANCELLED: {
+    bn: 'বাতিল সভায় সংযুক্তি যোগ করা বা বাদ দেওয়া যাবে না।',
+    en: 'Attachments of a cancelled meeting cannot be added or removed.',
+  },
+  ATTACHMENT_FILE_TOO_LARGE: {
+    bn: 'প্রতিটি সংযুক্তি সর্বোচ্চ ১০ MB হতে পারে।',
+    en: 'Each attachment can be at most 10 MB.',
+  },
+  ATTACHMENT_TOO_MANY: {
+    bn: 'সর্বোচ্চ ৫টি সংযুক্তি যোগ করা যায়।',
+    en: 'You can add up to 5 attachments.',
+  },
+  ATTACHMENT_NOT_FOUND: {
+    bn: 'সংযুক্তিটি পাওয়া যায়নি।',
+    en: 'The attachment was not found.',
+  },
+  ATTACHMENT_NAME_REQUIRED: {
+    bn: 'ফাইলের নাম লিখুন।',
+    en: 'Enter a file name.',
+  },
+  ATTACHMENT_NAME_TOO_LONG: {
+    bn: 'ফাইলের নাম সর্বোচ্চ ১৫০ অক্ষরের হতে পারে।',
+    en: 'The file name can be at most 150 characters.',
+  },
   DECISION_STATUS_INVALID: {
     bn: 'status PENDING অথবা COMPLETE হতে হবে।',
     en: 'status must be PENDING or COMPLETE.',

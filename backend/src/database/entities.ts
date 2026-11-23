@@ -2,6 +2,7 @@
  * Every TypeORM entity, registered explicitly (no file globs) so the app, the migration CLI
  * and tests always load exactly the same set. Add new entities here.
  */
+import { MeetingAttachment } from '../modules/attachments/entities/meeting-attachment.entity';
 import { AuditLog } from '../modules/audit/entities/audit-log.entity';
 import { PasswordResetToken } from '../modules/auth/entities/password-reset-token.entity';
 import { RefreshToken } from '../modules/auth/entities/refresh-token.entity';
@@ -33,6 +34,7 @@ export const ENTITIES = [
   MeetingGuest,
   MeetingDecisionFile,
   MeetingNoticeFile,
+  MeetingAttachment,
   Notification,
   EmailOutbox,
   AuditLog,

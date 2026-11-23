@@ -12,6 +12,8 @@ import type {
   DecisionStatus,
   DecisionSummary,
   NoticeFile,
+  MeetingAttachment,
+  AttachmentList,
   AppNotification,
   AuditAction,
   AuditLogItem,
@@ -101,6 +103,8 @@ export const queryKeys = {
   decisionList: (as: "lead" | "member", status: DecisionStatus, page: number) =>
     ["decisions", "list", as, status, page] as const,
   decision: (id: string) => ["decisions", "detail", id] as const,
+  /** v1.17: under "meetings", so invalidateMeetingData() refreshes it too. */
+  attachments: (id: string) => ["meetings", "attachments", id] as const,
   directory: (query: DirectoryQuery) => ["directory", query] as const,
   wings: ["wings", "active"] as const,
   profile: ["profile", "me"] as const,
@@ -238,6 +242,27 @@ export const noticesApi = {
   download: (id: string) =>
     apiDownload(`${meetingPath(id)}/notice`, { fallbackName: "meeting-notice" }),
   remove: (id: string) => api<void>(`${meetingPath(id)}/notice`, { method: "DELETE" }),
+};
+
+// Other attachments "অন্যান্য সংযুক্তি" (v1.17) ---------------------------------------------------
+export const attachmentsApi = {
+  list: (id: string) => api<AttachmentList>(`${meetingPath(id)}/attachments`),
+  /** Organizer only; fields `name` (label) and `file`. */
+  upload: (id: string, name: string, file: File, onProgress?: (fraction: number) => void) => {
+    const form = new FormData();
+    form.append("name", name);
+    form.append("file", file, file.name);
+    return apiUpload<MeetingAttachment>(`${meetingPath(id)}/attachments`, form, { onProgress });
+  },
+  /** PDF / images inline, DOCX attachment (the type decides on the backend). */
+  download: (id: string, attachmentId: string) =>
+    apiDownload(`${meetingPath(id)}/attachments/${encodeURIComponent(attachmentId)}`, {
+      fallbackName: "meeting-attachment",
+    }),
+  remove: (id: string, attachmentId: string) =>
+    api<void>(`${meetingPath(id)}/attachments/${encodeURIComponent(attachmentId)}`, {
+      method: "DELETE",
+    }),
 };
 
 // Meeting minutes (v1.11, code name "decisions") ---------------------------------------------------------------------

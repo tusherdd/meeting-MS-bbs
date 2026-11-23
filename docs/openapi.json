@@ -85,6 +85,8 @@
                 "MEETING_NOTICE_UPLOADED",
                 "MEETING_NOTICE_REPLACED",
                 "MEETING_NOTICE_REMOVED",
+                "MEETING_ATTACHMENT_ADDED",
+                "MEETING_ATTACHMENT_REMOVED",
                 "MEETING_DECISION_UPLOADED",
                 "MEETING_DECISION_DELETED",
                 "OFFICE_REPORT_EXPORTED",
@@ -4253,6 +4255,280 @@
         ]
       }
     },
+    "/api/v1/meetings/{id}/attachments": {
+      "get": {
+        "description": "The meeting's people, admins and office report viewers in scope (like the notice), also for cancelled meetings. `canManage` = I may add / remove (the organizer, not cancelled).",
+        "operationId": "AttachmentsController_list",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentListDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not one of the meeting’s people / not an admin"
+          },
+          "404": {
+            "description": "Meeting not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the other attachments of a meeting",
+        "tags": [
+          "Meeting attachments"
+        ]
+      },
+      "post": {
+        "description": "Multipart fields `name` (label, required, max 150) and `file`. PDF, DOCX (no macros), JPEG or PNG, checked by the bytes; max 10 MB; image metadata removed; at most 5 per meeting. Only the organizer (not the chair, not admins); not for cancelled meetings. Audited (MEETING_ATTACHMENT_ADDED).",
+        "operationId": "AttachmentsController_upload",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachmentUploadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No name or file, wrong type, macro-enabled Word file, unreadable"
+          },
+          "403": {
+            "description": "Not the organizer"
+          },
+          "404": {
+            "description": "Meeting not found"
+          },
+          "409": {
+            "description": "Meeting cancelled, or already 5 attachments"
+          },
+          "413": {
+            "description": "File larger than 10 MB"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an attachment (organizer only)",
+        "tags": [
+          "Meeting attachments"
+        ]
+      }
+    },
+    "/api/v1/meetings/{id}/attachments/{attachmentId}": {
+      "get": {
+        "description": "Same viewers as the list. The type decides the disposition: PDF and images inline (file viewer panel), a DOCX always an attachment. Sent with nosniff, no-store and a safe Content-Disposition.",
+        "operationId": "AttachmentsController_download",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attachmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not one of the meeting’s people / not an admin"
+          },
+          "404": {
+            "description": "Meeting or attachment not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download or show one attachment (PDF / image inline, DOCX attachment)",
+        "tags": [
+          "Meeting attachments"
+        ]
+      },
+      "delete": {
+        "description": "Not for cancelled meetings. Audited (MEETING_ATTACHMENT_REMOVED).",
+        "operationId": "AttachmentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attachmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "403": {
+            "description": "Not the organizer"
+          },
+          "404": {
+            "description": "Meeting or attachment not found"
+          },
+          "409": {
+            "description": "Meeting cancelled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove an attachment (organizer only)",
+        "tags": [
+          "Meeting attachments"
+        ]
+      }
+    },
     "/api/v1/reports/me": {
       "get": {
         "description": "Meetings where I am organizer, chair or participant and that START in the period (Asia/Dhaka). Example: `?period=month&date=2026-12-01`, or a custom range (v1.15) `?from=2026-11-01&to=2026-12-15` (both days inclusive, at most 2 years; 400 when the end is before the start).",
@@ -5037,6 +5313,8 @@
               "MEETING_NOTICE_UPLOADED",
               "MEETING_NOTICE_REPLACED",
               "MEETING_NOTICE_REMOVED",
+              "MEETING_ATTACHMENT_ADDED",
+              "MEETING_ATTACHMENT_REMOVED",
               "MEETING_DECISION_UPLOADED",
               "MEETING_DECISION_DELETED",
               "OFFICE_REPORT_EXPORTED",
@@ -8278,6 +8556,94 @@
           }
         },
         "required": [
+          "file"
+        ]
+      },
+      "AttachmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "বাজেট প্রস্তাব",
+            "description": "The label typed by the organizer (\"ফাইলের নাম\")"
+          },
+          "originalName": {
+            "type": "string",
+            "example": "budget-2026.pdf",
+            "description": "Sanitized original file name; the extension follows the detected type"
+          },
+          "mime": {
+            "type": "string",
+            "example": "application/pdf",
+            "description": "Detected from the bytes: application/pdf, the DOCX type, image/jpeg or image/png"
+          },
+          "size": {
+            "type": "number",
+            "example": 182044,
+            "description": "Size in bytes"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "originalName",
+          "mime",
+          "size",
+          "uploadedAt"
+        ]
+      },
+      "AttachmentListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Oldest first",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentDto"
+            }
+          },
+          "canManage": {
+            "type": "boolean",
+            "example": true,
+            "description": "I may add and remove attachments (the organizer; not for cancelled meetings)"
+          },
+          "max": {
+            "type": "number",
+            "example": 5,
+            "description": "At most this many per meeting"
+          }
+        },
+        "required": [
+          "items",
+          "canManage",
+          "max"
+        ]
+      },
+      "AttachmentUploadDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "বাজেট প্রস্তাব",
+            "maxLength": 150,
+            "description": "The label shown for the file (\"ফাইলের নাম\"), required, max 150 characters"
+          },
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "One PDF, DOCX (no macros), JPEG or PNG file, max 10 MB"
+          }
+        },
+        "required": [
+          "name",
           "file"
         ]
       },

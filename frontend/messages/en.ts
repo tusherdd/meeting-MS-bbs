@@ -453,6 +453,22 @@ export const en: Messages = {
       `The meeting was created, but the meeting notice could not be uploaded: ${reason} Upload it again from the edit page.`,
     opening: "Opening…",
   },
+  /** v1.17: other attachments (SPEC.md §6.11, §13.6). */
+  attachments: {
+    label: "Other attachments",
+    hint: "PDF, DOCX, JPG or PNG; at most 10 MB each",
+    nameLabel: "File name",
+    fileLabel: "File",
+    add: "Add",
+    adding: "Adding…",
+    remove: "Remove",
+    added: "Attachment added.",
+    removed: "Attachment removed.",
+    limit: "You can add up to 5 attachments.",
+    nameTooLong: "The file name can be at most 150 characters.",
+    createFailed: (reason: string) =>
+      `The meeting was created, but not every attachment could be added: ${reason} Add them again from the edit page.`,
+  },
   meetingsList: {
     title: "Meetings",
     from: "From date",
@@ -959,6 +975,8 @@ export const en: Messages = {
       MEETING_NOTICE_UPLOADED: "Meeting notice uploaded",
       MEETING_NOTICE_REPLACED: "Meeting notice replaced",
       MEETING_NOTICE_REMOVED: "Meeting notice removed",
+      MEETING_ATTACHMENT_ADDED: "Attachment added",
+      MEETING_ATTACHMENT_REMOVED: "Attachment removed",
       OFFICE_REPORT_EXPORTED: "Office report PDF downloaded",
       MEETING_DECISION_UPLOADED: "Meeting minutes uploaded",
       MEETING_DECISION_DELETED: "Meeting minutes file deleted",

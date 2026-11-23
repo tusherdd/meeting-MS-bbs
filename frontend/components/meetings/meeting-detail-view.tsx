@@ -4,14 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ConflictBadge, RoleBadge, StatusBadge } from "@/components/dashboard/meeting-badges";
-import { FileViewButton } from "@/components/files/file-viewer-panel";
+import { FileViewButton, type ViewerFile } from "@/components/files/file-viewer-panel";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { LoadingBlock } from "@/components/ui/spinner";
 import { isApiError } from "@/lib/api";
-import { meetingsApi, noticesApi, queryKeys } from "@/lib/endpoints";
+import { attachmentsApi, decisionsApi, meetingsApi, noticesApi, queryKeys } from "@/lib/endpoints";
 
 import type { MeetingConflict, MeetingDetail } from "@/lib/types";
 import { useFormat, useNames, useT } from "@/providers/locale-provider";
@@ -83,6 +83,91 @@ function ConflictList({ title, items }: { title: string; items: MeetingConflict[
         ))}
       </ul>
     </div>
+  );
+}
+
+/** One file of a detail-page file list: its name, then View (panel) or Download (DOCX). */
+function FileLine({
+  label,
+  fileName,
+  file,
+}: {
+  label: string;
+  fileName?: string;
+  file: ViewerFile;
+}) {
+  const t = useT();
+  return (
+    <li className="flex flex-wrap items-center gap-2">
+      <span className="min-w-0 break-words">
+        <span className="font-medium">{label}</span>
+        {fileName && <span className="block text-sm break-all text-slate-600">{fileName}</span>}
+      </span>
+      <FileViewButton
+        file={file}
+        viewLabel={t.fileViewer.view}
+        downloadLabel={t.fileViewer.download}
+      />
+    </li>
+  );
+}
+
+/**
+ * v1.17 part 2 (SPEC.md §6.11, §13.22): under the notice, the other attachments (by name) and the
+ * minutes files. Each list is loaded separately and only shown when the backend lets me see it
+ * (403 → hidden) and it is not empty.
+ */
+function MeetingFiles({ meetingId }: { meetingId: string }) {
+  const t = useT();
+  const attachments = useQuery({
+    queryKey: queryKeys.attachments(meetingId),
+    queryFn: () => attachmentsApi.list(meetingId),
+  });
+  const minutes = useQuery({
+    queryKey: queryKeys.decision(meetingId),
+    queryFn: () => decisionsApi.detail(meetingId),
+  });
+  const attachmentItems = attachments.data?.items ?? [];
+  const minuteFiles = minutes.data?.files ?? [];
+  return (
+    <>
+      {attachmentItems.length > 0 && (
+        <Row label={t.attachments.label}>
+          <ul className="space-y-2" data-testid="meeting-attachments">
+            {attachmentItems.map((a) => (
+              <FileLine
+                key={a.id}
+                label={a.name}
+                file={{
+                  id: a.id,
+                  name: a.originalName,
+                  mime: a.mime,
+                  load: () => attachmentsApi.download(meetingId, a.id),
+                }}
+              />
+            ))}
+          </ul>
+        </Row>
+      )}
+      {minuteFiles.length > 0 && (
+        <Row label={t.decisions.title}>
+          <ul className="space-y-2" data-testid="meeting-minutes">
+            {minuteFiles.map((f) => (
+              <FileLine
+                key={f.id}
+                label={f.originalName}
+                file={{
+                  id: f.id,
+                  name: f.originalName,
+                  mime: f.mime,
+                  load: () => decisionsApi.download(meetingId, f.id),
+                }}
+              />
+            ))}
+          </ul>
+        </Row>
+      )}
+    </>
   );
 }
 
@@ -168,6 +253,7 @@ function Detail({ meeting }: { meeting: MeetingDetail }) {
                     </div>
                   </Row>
                 )}
+                <MeetingFiles meetingId={meeting.id} />
               </dl>
             </CardBody>
           </Card>

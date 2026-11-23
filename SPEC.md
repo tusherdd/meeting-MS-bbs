@@ -78,6 +78,7 @@ backend/
 │       ├── meetings/            includes the conflict engine (conflict-engine.service.ts + meeting-rules.ts)
 │       ├── decisions/           meeting minutes "সভা কার্যবিবরণী" (v1.11 as "decisions", renamed v1.13, §6.9)
 │       ├── notices/             uploaded meeting notice "সভার নোটিশ" (v1.13, §6.8)
+│       ├── attachments/         other attachments "অন্যান্য সংযুক্তি" (v1.17, §6.11)
 │       ├── notifications/       NotificationsService.notify + channels (in-app, e-mail)
 │       ├── mail/                outbox entity, worker, templates, admin outbox API
 │       ├── reports/             summaries + PDF (Puppeteer)
@@ -485,6 +486,29 @@ One page and one route (`/office-report`) for everyone who may see it; layout as
   `test/office-report.e2e-spec.ts`, `test/reports-admin.e2e-spec.ts`; frontend `tests/unit/office-nav.test.ts`,
   `row-actions.test.ts`, `e2e/office-report.spec.ts`, `e2e/no-icons.spec.ts`.
 
+### 6.11 Other attachments "অন্যান্য সংযুক্তি" (v1.17 part 2, owner decision 2026-11-23)
+Besides the notice, the organizer can add up to five more files to a meeting, each with a label. Module
+`modules/attachments/`: pure rules in `attachment-rules.ts`, `attachments.service.ts`, `attachments.controller.ts`.
+- **Table** `meeting_attachments` (§7, migration `MeetingAttachments1795300000000`): `meetingId` (CASCADE, indexed), `name`
+  (the label "ফাইলের নাম" / "File name": required, trimmed, inner whitespace collapsed, `normalizeBangla`, max 150),
+  `originalName` (sanitized), `storedName` (random), `mime`, `size`, `sha256`, `uploadedById` (RESTRICT), timestamps.
+- **Storage:** `DECISION_UPLOAD_DIR/attachments/<meetingId>/<random uuid>.<ext>` (folders 0700, files 0600), never served
+  statically; a hard delete of the meeting removes the folder.
+- **Files:** exactly the notice rules (§6.8): PDF, DOCX (no macros, legacy `.doc` refused), JPEG / PNG (re-encoded without
+  EXIF), decided by the bytes; max **10 MB** each; at most **5 per meeting** (the 6th → 409 `ATTACHMENT_TOO_MANY`
+  "সর্বোচ্চ ৫টি সংযুক্তি যোগ করা যায়।", counted under a lock of the meeting row). Same upload rate limit (30 per user per hour).
+- **Permissions:** add and remove — **only the organizer** (not the chair, not admins unless they organize it): 403
+  `ATTACHMENT_CHANGE_FORBIDDEN`; never on a **cancelled** meeting: 409 `ATTACHMENT_CANCELLED`. List and download — the same
+  people as the notice (its people, admins, office report viewers in scope; others 403 `ATTACHMENT_FORBIDDEN`, unknown
+  meeting 404), also for cancelled meetings. Unknown attachment → 404 `ATTACHMENT_NOT_FOUND`.
+- **Download:** `GET /meetings/:id/attachments/:attachmentId` — PDF / images `inline`, a DOCX always an `attachment`
+  (`fileDisposition()`, fallback name `meeting-attachment.<ext>`), `nosniff`, `Cache-Control: private, no-store`.
+- **Audit:** `MEETING_ATTACHMENT_ADDED` (after: label, file name, type, size, hash) and `MEETING_ATTACHMENT_REMOVED` (before).
+- **UI:** the form section below the notice field (§13.6) and the list on the meeting detail page (§13.22). Not in the
+  "⋮" row menu.
+- Tests: `attachment-rules.spec.ts`, `attachments.service.spec.ts`, `test/attachments.e2e-spec.ts`; frontend
+  `tests/unit/attachments.test.ts`, `e2e/v117-attachments.spec.ts`.
+
 ## 7. Data model (TypeORM entities)
 
 All tables have `id` (uuid), `createdAt`, `updatedAt`.
@@ -513,6 +537,8 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
   originalName (sanitized), storedName (random), mime (varchar 100 since v1.13), size, sha256 — §6.9
 - **meeting_notice_files** (v1.13): meetingId (→ meetings, CASCADE, **unique**), uploadedById (→ users, RESTRICT),
   originalName (sanitized), storedName (random), mime, size, sha256 — §6.8
+- **meeting_attachments** (v1.17): meetingId (→ meetings, CASCADE, indexed), name (label, max 150), originalName (sanitized),
+  storedName (random), mime, size, sha256, uploadedById (→ users, RESTRICT) — at most 5 per meeting, §6.11
 - **meeting_conflicts**: higherMeetingId, lowerMeetingId, userId (shared officer), status
   (`PENDING` | `RESOLVED`), resolvedAt
 - **notifications**: userId, type, title, body, link, readAt
@@ -599,6 +625,10 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | POST | `/meetings/:id/notice` | 👤 | Upload or replace the meeting notice (multipart `file`; organizer only; not cancelled), §6.8 |
 | GET | `/meetings/:id/notice` | 👤 | The notice: PDF / images inline, DOCX attachment (v1.17); its people and admins, also cancelled |
 | DELETE | `/meetings/:id/notice` | 👤 | Remove the notice (organizer only; not cancelled) |
+| GET | `/meetings/:id/attachments` | 👤 | Other attachments (v1.17, §6.11): `items`, `canManage`, `max`; notice viewers |
+| POST | `/meetings/:id/attachments` | 👤 | Add one (multipart `name` + `file`; organizer only; not cancelled; max 5) |
+| GET | `/meetings/:id/attachments/:attachmentId` | 👤 | One attachment: PDF / images inline, DOCX attachment |
+| DELETE | `/meetings/:id/attachments/:attachmentId` | 👤 | Remove one (organizer only; not cancelled) |
 | POST | `/meetings/:id/complete` | 👤 | Mark completed, save notes/minutes |
 | DELETE | `/meetings/:id` | 🛡 | Hard delete (admin only) |
 
@@ -671,9 +701,9 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
    required everywhere and must meet the password rule; it is allowed in production (owner decision
    2026-11-09), where startup logs one warning line "Default officer password is enabled" (never the value).
 9. Uploads: size limit, mime + magic-byte check, random file names, stored outside `src/`, served read-only.
-   Meeting minutes files (v1.11, §6.9) and the meeting notice (v1.13, §6.8): magic bytes only (DOCX: ZIP structure
+   Meeting minutes files (v1.11, §6.9), the meeting notice (v1.13, §6.8) and the other attachments (v1.17, §6.11): magic bytes only (DOCX: ZIP structure
    checked, macro-enabled files and legacy .doc refused), image metadata stripped, private folder
-   (`DECISION_UPLOAD_DIR`, notices in `notices/`, never static), only through the authenticated download with
+   (`DECISION_UPLOAD_DIR`, notices in `notices/`, other attachments in `attachments/` (v1.17, §6.11), never static), only through the authenticated download with
    `nosniff`; DOCX always as an attachment; PDF / images inline (v1.17), shown only through a Blob URL of the
    session-fetched bytes (§13.22).
 10. Authorization checked in services (organizer, internal chair or admin for meeting edit/cancel; organizer/admin
@@ -682,7 +712,8 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 12. All tokens in links (reset, verify) are random 32 bytes, stored hashed, single-use, expiring.
 13. Audit log for: login, user create/update/role/status, change-request decisions, meeting create/update/cancel/delete,
     meeting notice upload / replace / remove (`MEETING_NOTICE_UPLOADED` / `_REPLACED` / `_REMOVED`, v1.13; the v1.10
-    `MEETING_NOTICE_EXPORTED` stays for old rows), minutes file upload / delete
+    `MEETING_NOTICE_EXPORTED` stays for old rows), other attachments add / remove (`MEETING_ATTACHMENT_ADDED` /
+    `_REMOVED`, v1.17), minutes file upload / delete
     (`MEETING_DECISION_UPLOADED` / `_DELETED`, v1.11), designation priority changes.
 14. Swagger enabled only when `SWAGGER_ENABLED=true` (off by default); in production only behind HTTP basic auth
     (`SWAGGER_USER`, `SWAGGER_PASSWORD`).
@@ -809,6 +840,8 @@ Release **v1.16** (2026-11-20, tag `v1.16`; progress in `docs/progress/v1.16.md`
 
 Release **v1.17** (2026-11-23, part 1 of 3): the shared file viewer side panel (§13.22) for the report PDFs ("PDF দেখুন"),
 the meeting notice and the minutes files; PDF / images inline, DOCX attachment; `noticeMime` in the list APIs (§6.8).
+Part 2 of 3: the other attachments "অন্যান্য সংযুক্তি" (§6.11, §13.6; migration `MeetingAttachments1795300000000`) and,
+on the meeting detail page, the attachments and the minutes files with View / Download (§13.22).
 
 ## 13. Frontend (`frontend/`)
 
@@ -925,6 +958,13 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   uploaded right after the meeting is saved; if that fails the meeting stays saved, a red toast explains why and the
   edit page opens to retry. Edit: the current file (name, size) with "Replace" (upload at once) and "Remove"
   (confirmation), independent of "Save Changes". Client pre-check of extension and size; the backend decides.
+- **Other attachments (v1.17, §6.11)** `components/meetings/attachments-field.tsx`, directly **below** the notice field,
+  only for the organizer (create, and edit while `canManage`; the chair and admins never see it): "অন্যান্য সংযুক্তি" /
+  "Other attachments", a "ফাইলের নাম" / "File name" input, a file picker and "যোগ করুন" / "Add" — enabled only when both
+  are valid (`lib/attachments.ts`). The list shows name, file name and "বাদ দিন" / "Remove". At 5 files Add is disabled
+  with "সর্বোচ্চ ৫টি সংযুক্তি যোগ করা যায়।" / "You can add up to 5 attachments." No "ঐচ্ছিক" / "optional". Create: the
+  list is kept in the form and uploaded right after the meeting (and its notice) is saved, one request each; a failure
+  keeps the meeting, shows a red toast and opens the edit page. Edit: Add and Remove are immediate (no confirmation).
 - After create/edit/cancel/complete/delete, every cached "meetings", "conflicts", "notifications" and "reports"
   query is refreshed (`lib/invalidate.ts`).
 
@@ -1418,7 +1458,12 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
 ### 13.22 File viewer side panel (v1.17, owner decision 2026-11-23)
 ONE shared component, `components/files/file-viewer-panel.tsx` (`FileViewerPanel`, `FileViewButton`); rules in
 `lib/file-viewer.ts` (unit-tested). Used by the report PDFs (আমার রিপোর্ট, অফিস রিপোর্ট: "PDF দেখুন"), the row menu
-(notice, minutes), the meeting detail page (notice row) and the minutes page file list.
+(notice, minutes), the meeting detail page (notice row; v1.17 part 2: the other attachments and the minutes files) and
+the minutes page file list.
+- **Meeting detail page (v1.17 part 2):** under the notice, "অন্যান্য সংযুক্তি" lists the attachments by name (file name
+  below) and then "সভা কার্যবিবরণী" lists the minutes files, each with "দেখুন" / "View" (the panel) or, for a DOCX,
+  "ডাউনলোড" / "Download". Each list comes from its own endpoint (`GET /meetings/:id/attachments`,
+  `GET /meetings/:id/decision`) and is shown only when allowed (403 → hidden) and not empty. Not in the "⋮" menu.
 - **Layout:** a native modal `<dialog>` (`role=dialog`, named by the file name) that slides in from the right: half the
   width from 768 px up, full screen below. The page behind stays mounted and keeps its state (filters, scroll, forms).
   The slide (200 ms, `@starting-style`, off with reduced motion) is the one exception to "no animation" (§13.16).

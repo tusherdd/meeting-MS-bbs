@@ -13,7 +13,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import { isApiError } from "@/lib/api";
-import { meetingsApi, noticesApi } from "@/lib/endpoints";
+import { attachmentsApi, meetingsApi, noticesApi } from "@/lib/endpoints";
 import { invalidateMeetingData } from "@/lib/invalidate";
 import { fromIso, toIso } from "@/lib/meeting-time";
 import { type MeetingFormValues } from "@/lib/schemas";
@@ -28,6 +28,7 @@ import {
   guestChairValue,
   type GuestEntry,
 } from "./guest-officers";
+import { AttachmentsField, type PendingAttachment } from "./attachments-field";
 import { NoticeField } from "./notice-field";
 import { ParticipantPicker } from "./participant-picker";
 import { fromParticipant, type SelectedPerson } from "./people";
@@ -85,6 +86,8 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
   // v1.13: only the organizer sees the notice field (not the chair, not an admin editing).
   const isOrganizer = organizer.id === me.id;
   const [noticeFile, setNoticeFile] = useState<File | null>(null);
+  // v1.17: "অন্যান্য সংযুক্তি" chosen on create, uploaded right after the meeting is saved.
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
 
   const form = useForm<MeetingFormValues>({
     resolver: zodResolver(meetingFormSchema),
@@ -164,10 +167,24 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
           noticeFailed = err;
         }
       }
+      // v1.17: then the other attachments, one request each; a failure keeps the meeting too.
+      let attachmentFailed: unknown = null;
+      if (!isEdit) {
+        for (const a of pendingAttachments) {
+          try {
+            await attachmentsApi.upload(saved.id, a.name, a.file);
+          } catch (err) {
+            attachmentFailed ??= err;
+          }
+        }
+      }
       await invalidateMeetingData(queryClient);
-      if (noticeFailed !== null) {
-        const reason = noticeFailed instanceof Error ? noticeFailed.message : "";
-        toast.show(t.notice.createFailed(reason), "error");
+      if (noticeFailed !== null || attachmentFailed !== null) {
+        const reasonOf = (err: unknown) => (err instanceof Error ? err.message : "");
+        if (noticeFailed !== null)
+          toast.show(t.notice.createFailed(reasonOf(noticeFailed)), "error");
+        if (attachmentFailed !== null)
+          toast.show(t.attachments.createFailed(reasonOf(attachmentFailed)), "error");
         router.push(`/meetings/${saved.id}/edit`);
         return;
       }
@@ -298,6 +315,13 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                   meetingId={meeting?.id}
                   current={meeting?.notice ?? null}
                   onSelect={setNoticeFile}
+                />
+              )}
+              {isOrganizer && !cannotOrganize && (
+                <AttachmentsField
+                  meetingId={meeting?.id}
+                  pending={pendingAttachments}
+                  onPendingChange={setPendingAttachments}
                 />
               )}
             </CardBody>

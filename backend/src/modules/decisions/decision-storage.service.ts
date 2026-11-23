@@ -12,10 +12,14 @@ const STORED_NAME = /^[0-9a-f-]{36}\.(pdf|docx|jpg|png)$/;
 
 /**
  * Which kind of file: minutes "সভা কার্যবিবরণী" live in <root>/<meetingId>/, the meeting notice
- * "সভার নোটিশ" (v1.13) in its own subfolder <root>/notices/<meetingId>/.
+ * "সভার নোটিশ" (v1.13) in its own subfolder <root>/notices/<meetingId>/ and the other attachments
+ * "অন্যান্য সংযুক্তি" (v1.17) in <root>/attachments/<meetingId>/.
  */
-export type FileArea = 'decisions' | 'notices';
-const NOTICES_FOLDER = 'notices';
+export type FileArea = 'decisions' | 'notices' | 'attachments';
+const AREA_FOLDER: Record<Exclude<FileArea, 'decisions'>, string> = {
+  notices: 'notices',
+  attachments: 'attachments',
+};
 
 /** True when `inner` is `outer` or lies inside it. */
 export function isInside(outer: string, inner: string): boolean {
@@ -26,7 +30,8 @@ export function isInside(outer: string, inner: string): boolean {
 /**
  * Private storage for meeting minutes files (v1.11, SPEC.md §6.9):
  * DECISION_UPLOAD_DIR/<meetingId>/<random uuid>.<ext>, and since v1.13 the meeting notice (§6.8):
- * DECISION_UPLOAD_DIR/notices/<meetingId>/<random uuid>.<ext>. Never served statically: the folder
+ * DECISION_UPLOAD_DIR/notices/<meetingId>/<random uuid>.<ext>, and since v1.17 the other attachments:
+ * DECISION_UPLOAD_DIR/attachments/<meetingId>/<random uuid>.<ext>. Never served statically: the folder
  * must not lie inside (or contain) the public UPLOAD_DIR, which is served at /uploads. Folders
  * are created 0700 and files 0600 (only the app user). Names are random; no user input is ever
  * part of a path.
@@ -54,7 +59,9 @@ export class DecisionStorageService {
   /** Folder of one meeting, relative to the root (never user input). */
   private relDir(meetingId: string, area: FileArea): string {
     if (!UUID.test(meetingId)) throw new Error('Invalid meeting id');
-    return area === 'notices' ? join(NOTICES_FOLDER, meetingId) : meetingId;
+    return area === 'decisions'
+      ? meetingId
+      : join(AREA_FOLDER[area], meetingId);
   }
 
   private path(meetingId: string, storedName: string, area: FileArea): string {
@@ -109,9 +116,9 @@ export class DecisionStorageService {
     }
   }
 
-  /** Deletes the meeting's folders (minutes and notice) after a hard delete of the meeting. */
+  /** Deletes the meeting's folders (minutes, notice, attachments) after a hard delete of the meeting. */
   async removeMeeting(meetingId: string): Promise<void> {
-    for (const area of ['decisions', 'notices'] as const) {
+    for (const area of ['decisions', 'notices', 'attachments'] as const) {
       try {
         await rm(join(this.root, this.relDir(meetingId, area)), {
           recursive: true,

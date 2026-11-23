@@ -104,6 +104,9 @@ export type DecisionDetail = S["DecisionDetailDto"];
 export type DecisionFile = S["DecisionFileDto"];
 /** v1.13: the uploaded meeting notice "সভার নোটিশ" (SPEC.md §6.8). */
 export type NoticeFile = S["NoticeFileDto"];
+/** v1.17: the other attachments "অন্যান্য সংযুক্তি" (SPEC.md §6.11). */
+export type MeetingAttachment = S["AttachmentDto"];
+export type AttachmentList = S["AttachmentListDto"];
 export type BlockedRole = S["BlockedRole"];
 export type DecisionSummary = S["DecisionSummaryDto"];
 export type DayCount = S["DayCountDto"];

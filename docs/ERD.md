@@ -30,8 +30,10 @@ erDiagram
     meetings ||--o{ meeting_guests : "guest officers (CASCADE)"
     meetings ||--o{ meeting_decision_files : "minutes files (CASCADE)"
     meetings ||--o| meeting_notice_files : "notice file, at most one (CASCADE)"
+    meetings ||--o{ meeting_attachments : "other attachments, at most 5 (CASCADE)"
     users ||--o{ meeting_decision_files : "uploads (RESTRICT)"
     users ||--o{ meeting_notice_files : "uploads notice (RESTRICT)"
+    users ||--o{ meeting_attachments : "uploads attachment (RESTRICT)"
     users ||--o{ meeting_participants : "attends (RESTRICT)"
 
     meetings ||--o{ meeting_conflicts : "higher (CASCADE)"
@@ -159,6 +161,16 @@ erDiagram
         int size "bytes"
         char sha256 "hex"
     }
+    meeting_attachments {
+        uuid meetingId FK "indexed; at most 5 per meeting (v1.17)"
+        varchar name "label typed by the organizer, trimmed, normalizeBangla, max 150"
+        varchar originalName "sanitized, max 200"
+        varchar storedName "random uuid + extension"
+        varchar mime "PDF | DOCX | JPEG | PNG"
+        int size "bytes"
+        char sha256 "hex"
+        uuid uploadedById FK "the organizer"
+    }
     meeting_conflicts {
         uuid higherMeetingId FK "indexed"
         uuid lowerMeetingId FK "indexed"
@@ -214,6 +226,7 @@ erDiagram
 | meetings + meeting_guests | `TRG_meeting_single_chair_meetings` / `_guests` (deferred constraint triggers) | a meeting never has an officer chair (`meetings.chairId`) and a guest chair at once |
 | meeting_decision_files | `IDX_meeting_decision_files_meetingId` | minutes files "সভা কার্যবিবরণী" of a meeting; status (v1.11) |
 | meeting_notice_files | `UQ_meeting_notice_files_meetingId` (unique) | one uploaded notice "সভার নোটিশ" per meeting (v1.13) |
+| meeting_attachments | `IDX_meeting_attachments_meetingId` | other attachments "অন্যান্য সংযুক্তি" of a meeting (v1.17) |
 | meeting_conflicts | `IDX_meeting_conflicts_higherMeetingId`, `IDX_meeting_conflicts_lowerMeetingId` | conflicts of a meeting (detail page, auto-resolve) |
 | meeting_conflicts | `IDX_meeting_conflicts_userId_status` | "my pending conflicts" |
 | notifications | `IDX_notifications_userId_readAt` | bell list and unread count |
@@ -227,9 +240,9 @@ erDiagram
   `RESTRICT` (organizer, participant, shared officer, change-request owner, audit actor);
   optional references use `SET NULL` (chair, reviewer, replaced token).
 - Data owned by a user goes with the user: additional charges, tokens, notifications (`CASCADE`).
-- Data owned by a meeting goes with the meeting: participants, guest officers, conflicts, minutes files, the notice file
-  (`CASCADE`; v1.11: the files on disk are removed by the API after a hard delete). The uploader of a decision
-  file is `RESTRICT` (users are never hard-deleted).
+- Data owned by a meeting goes with the meeting: participants, guest officers, conflicts, minutes files, the notice file,
+  the other attachments (`CASCADE`; v1.11: the files on disk are removed by the API after a hard delete). The uploader
+  of a decision file, a notice or an attachment is `RESTRICT` (users are never hard-deleted).
 - A designation or wing cannot be deleted while any user uses it (`RESTRICT`).
 
 ## Migrations (in order)
@@ -249,6 +262,7 @@ erDiagram
 | `1795000000000-MeetingNoticeFiles` | `meeting_notice_files` (uploaded meeting notice, one per meeting, v1.13); minutes `mime` widened to 100 |
 | `1795100000000-DesignationOfficeReportScope` | `designations.officeReportScope` (enum `office_report_scope_enum`, default `NONE`, v1.15 office report); backfill: সচিব and মহাপরিচালক → `OFFICE`, পরিচালক → `WING` |
 | `1795200000000-StructuredAdditionalCharges` | `user_additional_charges.description` → `note`; `designationId`, `wingId` (RESTRICT), `needsReview`, check "designation unless needs review"; old rows matched safely (whole-word names), the rest need review (v1.16) |
+| `1795300000000-MeetingAttachments` | `meeting_attachments` (other attachments "অন্যান্য সংযুক্তি", at most 5 per meeting, v1.17), index on `meetingId` |
 
 Schema changes are made only through migrations (`synchronize` is always `false`):
 `npm run migration:generate -- src/database/migrations/<Name>`, then `npm run migration:run`.
