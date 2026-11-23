@@ -1,9 +1,9 @@
 /**
- * v1.12 e2e (SPEC.md §6.4): duplicate meetings warn, they do not block.
+ * v1.12 e2e (SPEC.md §6.4): concurrent meetings warn, they do not block.
  * - The ONLY blocking rule: the organizer is, at an overlapping time, the organizer or the
  *   internal chair of another SCHEDULED meeting (409, Bangla / English message).
  * - Every other overlap (shared officers, the organizer as a member elsewhere) is saved with a
- *   PENDING duplicate-meeting record, whatever the priorities.
+ *   PENDING concurrent-meeting record, whatever the priorities.
  * - Notices: the shared officers and the lower meeting's organizer (both organizers on equal
  *   priority), once per person.
  * Each scenario uses its own future day so scenarios never overlap.
@@ -55,7 +55,7 @@ interface ErrorBody {
   blocking: Array<{ meetingId: string }>;
 }
 
-describe('v1.12: duplicate meetings warn, only the organizer rule blocks (e2e)', () => {
+describe('v1.12: concurrent meetings warn, only the organizer rule blocks (e2e)', () => {
   let app: INestApplication<App>;
   let ds: DataSource;
   const ids = {} as Record<Who, string>;
@@ -336,7 +336,7 @@ describe('v1.12: duplicate meetings warn, only the organizer rule blocks (e2e)',
         ...(await conflictNotices('shared2', second)),
       ];
       expect(toShared).toHaveLength(1);
-      // Both organizers see the record on their duplicate-meeting page.
+      // Both organizers see the record on their concurrent-meeting page.
       for (const who of ['dd1', 'dd2'] as const) {
         const mine = await http()
           .get(`${API}/conflicts/mine`)

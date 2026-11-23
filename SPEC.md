@@ -118,7 +118,7 @@ Controllers stay thin; business rules live in services. Every endpoint has Swagg
 - Roles such as "Focal Point Officer" are additional charges, not designations.
 - **Priority numbers are never shown (v1.5, owner decision 2026-11-16)** in the UI, mails, bell
   notifications or PDFs — not on the profile, in designation selects (profile change request, admin
-  user form, admin change requests), the meeting form / detail, the ডুপ্লিকেট সভা pages and panels or
+  user form, admin change requests), the meeting form / detail, the কনকারেন্ট সভা pages and panels or
   the office report. The ONLY place a priority is shown and edited is Admin → "পদবি ও অগ্রাধিকার".
   The API still returns priorities (the logic is unchanged). Test: `e2e/priority-hidden.spec.ts`.
 
@@ -247,7 +247,7 @@ meeting **E** that shares at least one officer (v1.12, owner decision 2026-11-19
   [পদবি] = designation of N's internal chair, else N's organizer. A shared officer reads "আপনার" (or
   "আপনার ও [নাম]-এর") and, when not E's organizer, "… সভাটি বাতিলের জন্য আয়োজককে বলতে পারেন …". N's title
   appears as "আরেকটি সভা (“…”)" only for people invited to N. The conflict stays PENDING until it
-  resolves by itself; cancel / reschedule stay on the ডুপ্লিকেট সভা page. Guest officers are never part of
+  resolves by itself; cancel / reschedule stay on the কনকারেন্ট সভা page. Guest officers are never part of
   the check and never get this notice.
 - `POST /meetings/check-conflicts` runs the same logic without saving (used by the form to warn live).
   Response (v1.12): `{ allowed, blocking, warnings }` — `blocking` = lead-rule clashes (saving gives 409; each with
@@ -397,7 +397,7 @@ pure rules in `notice-rules.ts`, `notices.service.ts`, `notices.controller.ts`.
 - **Audit:** `MEETING_NOTICE_UPLOADED`, `MEETING_NOTICE_REPLACED` (before/after: name, type, size, hash),
   `MEETING_NOTICE_REMOVED`.
 - **API fields:** `hasNotice` and (v1.17) `noticeMime` (the notice's type or null; `notices/notice-mime.ts`, one query
-  per list) on meeting summaries, report rows, office report rows and duplicate-meeting refs; `notice`
+  per list) on meeting summaries, report rows, office report rows and concurrent-meeting refs; `notice`
   (`{ originalName, mime, size, uploadedAt, uploadedBy, canManage }` or null) on `GET /meetings/:id`.
 - **UI:** the meeting form field, the row menu item (§13.6, §13.18) and (v1.17) the "সভার নোটিশ" row of the meeting
   detail page with "দেখুন" / "View" (file viewer panel) or, for a DOCX, "ডাউনলোড" / "Download" (§13.22).
@@ -809,7 +809,7 @@ readiness (accessibility, error pages, CSP, standalone build, deployment guide).
 **Status: F1, F2 and F3 are complete. The whole system is finished (tag `v1.0`).**
 
 Release **v1.5** (2026-11-16, tag `v1.5`): (1) dashboard card for conflicts on my meetings removed;
-(2) wording "সময় কনফ্লিক্ট" / "ডুপ্লিকেট সভা" (§13.12); (3) priority numbers hidden (§6.1); (4) priority from
+(2) wording "সময় কনফ্লিক্ট" / the term for overlapping meetings (§13.12; "কনকারেন্ট সভা" since v1.18); (3) priority numbers hidden (§6.1); (4) priority from
 the chair (§6.3); (5) informational conflict notice (§6.4); (6–7) meeting form without the priority box,
 the green heading and the duration buttons (§13.6); (8) WebKit Bangla font (§13.10); (9) guest officers (§6.7).
 
@@ -822,7 +822,7 @@ office report page shows the organizer as the wing (§13.17), e2e test for compl
 
 Release **v1.11** (2026-11-17, tag `v1.11`, part 3 of 3): meeting decisions (§6.9, §13.19; renamed in v1.13).
 
-Release **v1.12** (2026-11-19, tag `v1.12`, part A): duplicate meetings warn; only the organizer rule blocks (§6.4).
+Release **v1.12** (2026-11-19, tag `v1.12`, part A): duplicate (since v1.18: concurrent) meetings warn; only the organizer rule blocks (§6.4).
 
 Release **v1.13** (2026-11-19, tag `v1.13`, part B of 3): (A) the generated notice PDF removed; (B) the uploaded meeting
 notice "সভার নোটিশ" (§6.8, §13.6, §13.18); (C) "সভা সিদ্ধান্ত" → "সভা কার্যবিবরণী" / "Meeting minutes", minutes accept DOCX
@@ -844,6 +844,9 @@ Part 2 of 3: the other attachments "অন্যান্য সংযুক্�
 on the meeting detail page, the attachments and the minutes files with View / Download (§13.22); one minutes item in
 every row menu by status — Upload while Pending, View / Download when Complete — and the panel link "ফাইল যোগ / মুছুন" (§13.18).
 Part 3 of 3: one required-field mark for every form (§13.6a) — no "ঐচ্ছিক" / "optional" text anywhere.
+
+Release **v1.18** (2026-11-23): (1) "কনকারেন্ট সভা" / "Concurrent meetings" replaces the v1.5 term everywhere
+(§13.12, §13.14); (2) default meeting duration 45 minutes, the end time follows the start time (§13.6).
 
 ## 13. Frontend (`frontend/`)
 
@@ -940,9 +943,17 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
 
 ### 13.6 Meeting form and live conflict check (F2)
 - One form for create and edit; Dhaka date + start/end time (both typed; end after start, Asia/Dhaka logic
-  unchanged; the quick-duration buttons and the time-zone hint were removed in v1.5), venue ("স্থান", required
-  since v1.9), https link,
+  unchanged; the quick-duration buttons and the time-zone hint were removed in v1.5 and stay removed — no duration
+  text either), venue ("স্থান", required since v1.9), https link,
   participants from `GET /users/directory` (search, wing filter, "add the whole wing" with a count).
+- **Default duration 45 minutes (v1.18, owner decision 2026-11-23).** Create: the end time is filled as start + 45
+  minutes (the default slot is the next half hour + 45 min; `/meetings/new?start=` without a valid `end` also gets
+  + 45 min). The user may change the end time by hand. Whenever the start time changes later, the end time moves
+  with it and keeps the current duration (45 min, or what the user set; an invalid or empty end falls back to the
+  last known duration). Edit: loading never changes the stored end time; changing the start time moves the end and
+  keeps the meeting's duration. The end is capped at 23:59 of the same day; the usual validation (end after start,
+  at most 12 h) still decides. Helpers `DEFAULT_MEETING_MINUTES`, `durationMinutes`, `moveEndWithStart` in
+  `lib/meeting-time.ts` (test `tests/unit/meeting-time.test.ts`; e2e `e2e/v118.spec.ts`).
 - v1.5: no priority box. Directly above the chair select, the section "অতিথি কর্মকর্তা"
   (`guest-officers.tsx`): নাম, পদবি, Email and "যোগ করুন" (enabled once all three are filled and the email is
   valid and new; Enter adds instead of submitting; fields clear after adding; inline errors for an invalid or
@@ -1128,7 +1139,7 @@ Some Bangla translations sounded unnatural. Words that office staff normally say
 English (Latin script); everything else stays Bangla.
 
 - **English:** the words in the list below, as labels, buttons, tabs, menu items, badges and column titles.
-- **Bangla:** সভা, সভাপতি, আয়োজক, আলোচ্যসূচি, স্থান (v1.9, was কক্ষ), কার্যবিবরণী, অগ্রাধিকার, পদবি, উইং, ডুপ্লিকেট সভা, কর্মকর্তা, অতিথি কর্মকর্তা, and all full
+- **Bangla:** সভা, সভাপতি, আয়োজক, আলোচ্যসূচি, স্থান (v1.9, was কক্ষ), কার্যবিবরণী, অগ্রাধিকার, পদবি, উইং, কনকারেন্ট সভা, কর্মকর্তা, অতিথি কর্মকর্তা, and all full
   sentences, help texts, confirmations and error messages. Inside such a sentence the listed nouns are still
   written in English ("Password দিন।", "কোনো Notification নেই।"), with the Bangla ending after a hyphen
   ("Email-এর Link", "Session-এর মেয়াদ"). Verbs inside sentences stay Bangla ("সংরক্ষণ করা যাবে না").
@@ -1137,7 +1148,7 @@ English (Latin script); everything else stays Bangla.
   "Remove Admin", "Reset to Default Password", "Send Request", "Cancel Request", "Upload Photo", "Change Password",
   "Send Reset Link", "Send Verification Link", "Request New Link", "Go to Dashboard", "Back to Login".
   Bangla buttons stay Bangla: "সভা বাতিল করুন", "সম্পন্ন করুন", "সভা তৈরি করুন", "ফিরে যান", "আবার চেষ্টা করুন", "বন্ধ করুন".
-- **Mixed labels and titles:** only the listed word changes ("Pending ডুপ্লিকেট সভা", "আজকের Summary", "নাম দিয়ে Search করুন",
+- **Mixed labels and titles:** only the listed word changes ("Pending কনকারেন্ট সভা", "আজকের Summary", "নাম দিয়ে Search করুন",
   "Resolved: <date>"). Page titles of edit forms stay Bangla: "সভা সম্পাদনা", "কর্মকর্তা সম্পাদনা".
 - **Capitals:** labels of one or two words in Title Case ("Save", "Email Queue", "Change Request"); longer action
   phrases start with one capital ("Mark all as read").
@@ -1161,15 +1172,23 @@ English (Latin script); everything else stays Bangla.
   (`meetingDetail.notesLabel`) and the detail-page card (`meetingDetail.notes`).
 - **Bangla navigation (v1.3): sidebar menu, page headings, profile, login and logout are Bangla; other buttons
   and statuses stay as in v1.2.**
-  - Main menu (same order): ড্যাশবোর্ড, সভা, ডুপ্লিকেট সভা, সভা কার্যবিবরণী (v1.11, renamed v1.13; en "Meeting minutes"),
+  - Main menu (same order): ড্যাশবোর্ড, সভা, কনকারেন্ট সভা, সভা কার্যবিবরণী (v1.11, renamed v1.13; en "Meeting minutes"),
     রিপোর্ট, প্রোফাইল, অ্যাডমিন. The calendar "ক্যালেন্ডার" / "Calendar" was removed in v1.15 (page `/calendar`,
     `components/calendar/`, its texts, the `listAll` helper and the `useNow` hook; `/calendar` shows the 404 page).
-  - Admin menu: সারসংক্ষেপ, কর্মকর্তা, পদবি, উইং, পরিবর্তনের অনুরোধ, সকল সভা, সকল ডুপ্লিকেট সভা, অফিস রিপোর্ট, ইমেইল সারি, অডিট লগ.
+  - Admin menu: সারসংক্ষেপ, কর্মকর্তা, পদবি, উইং, পরিবর্তনের অনুরোধ, সকল সভা, সকল কনকারেন্ট সভা, অফিস রিপোর্ট, ইমেইল সারি, অডিট লগ.
 - **v1.5 (owner decision 2026-11-16):** the old Bangla word for "conflict" is gone everywhere (UI, mails,
   notifications, PDFs, backend messages, Swagger, tests). The time clash is "সময় কনফ্লিক্ট"; everything else
-  is "ডুপ্লিকেট সভা" ("Pending ডুপ্লিকেট সভা", "সকল ডুপ্লিকেট সভা", "ডুপ্লিকেট সভা যাচাই"), phrased so "সভা" is
+  is "কনকারেন্ট সভা" ("Pending কনকারেন্ট সভা", "সকল কনকারেন্ট সভা", "কনকারেন্ট সভা যাচাই"), phrased so "সভা" is
   never doubled. Guests are "অতিথি কর্মকর্তা". Guards: `backend/src/common/utils/wording.spec.ts` scans every
   git-tracked text file; the frontend ESLint config has a `no-restricted-syntax` rule for UI strings.
+- **v1.18 (owner decision 2026-11-23): "কনকারেন্ট সভা" / "Concurrent meetings".** The v1.5 Bangla term (the Bangla
+  word for "duplicate" + "সভা") and the English "Duplicate meeting(s)" are replaced in every user-visible text: sidebar,
+  page titles, admin menu "সকল কনকারেন্ট সভা" / "All concurrent meetings", form panel "কনকারেন্ট সভা যাচাই" /
+  "Concurrent meetings check", tabs, empty states, badges, notifications, Swagger. "সময় কনফ্লিক্ট" / "Time conflict"
+  is unchanged; "সভা" is never doubled. Code identifiers, routes (`/conflicts`) and DB names (`meeting_conflicts`)
+  stay. Guards: `wording.spec.ts` fails on the old Bangla term in any tracked file and on the old English term in
+  the message files, backend messages / controllers / DTOs, `docs/openapi.json`, `docs/API.md` and
+  `frontend/lib/api-schema.ts`; the frontend ESLint rule forbids both in UI strings.
   - Each page heading (and browser-tab title) uses the same word as its menu item. Menu names for screen readers:
     "প্রধান মেনু", "অ্যাডমিন মেনু"; the phone menu button "মেনু".
   - Header profile menu: "প্রোফাইল" and "লগআউট"; the profile page heading "প্রোফাইল".
@@ -1194,6 +1213,7 @@ Final word list:
 | অপঠিত | Unread |
 | সব পড়া হয়েছে | Mark all as read |
 | অমীমাংসিত / মীমাংসিত (conflicts) | Pending / Resolved |
+| v1.5 Bangla "duplicate" + সভা (v1.18) | কনকারেন্ট সভা (stays Bangla; en "Concurrent meetings") |
 | অপেক্ষমাণ / অনুমোদিত / প্রত্যাখ্যাত / বাতিল (change requests) | Pending / Approved / Rejected / Cancelled |
 | অপেক্ষমাণ / পাঠানো হয়েছে / ব্যর্থ (email queue) | Pending / Sent / Failed |
 | সক্রিয় / নিষ্ক্রিয় (status) | Active / Inactive |
@@ -1259,6 +1279,9 @@ Checked with fonttools, HarfBuzz and screenshots in Chromium and Firefox (the PD
   "President" ("Presided by" where a phrase is needed; "No president selected") and the agenda is "Description"
   (form label "Description of the meeting"; "No description given."). Bangla stays সভাপতি and আলোচ্যসূচি.
   v1.9: the room field is "Venue" ("No venue given"; Bangla "স্থান", "স্থান উল্লেখ নেই").
+  v1.18: overlapping meetings that share an officer are "Concurrent meetings" ("Concurrent meeting", "All
+  concurrent meetings", "Concurrent meetings check"); Bangla "কনকারেন্ট সভা". The time clash stays "Time conflict" /
+  "সময় কনফ্লিক্ট".
   Code, API fields, keys and enums keep their names (`chair`, `chairId`, `CHAIR`, `agenda`).
 - **Numbers and dates** still come only from `lib/format.ts`: Bangla digits and month names in Bangla (§13.11),
   Latin digits and English names in English; always on the Asia/Dhaka clock. User text is shown as typed.
@@ -1296,7 +1319,7 @@ Checked with fonttools, HarfBuzz and screenshots in Chromium and Firefox (the PD
   as their wing on user pages, §13.17): English UI → the English value if it has
   text, else the Bangla one; Bangla UI → the Bangla value. Used for the header (Welcome, user menu), dashboard,
   Admin officers list / detail / form and its filters, designations and wings pages, participant and chair pickers,
-  meeting list and detail, duplicate meetings pages, profile, change requests, audit log and the report pages.
+  meeting list and detail, concurrent meetings pages, profile, change requests, audit log and the report pages.
   Pages that edit names (designations and wings admin, officer form, profile) still show both values.
 - **Search** matches both names: `GET /users` and `GET /users/directory` search `nameBn` and `nameEn` (ILIKE).
 - **Always Bangla:** PDF reports, emails, bell notification texts and audit texts use the Bangla values
@@ -1362,8 +1385,8 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   instead of their name and designation (no snapshot: a wing change shows at once). Without a wing: their
   designation. The column / label text stays "আয়োজক" / "Organizer".
   - Frontend (`nameHelpers().organizer` / `organizerFrom` in `lib/display-name.ts`, unit-tested): dashboard
-    tables, my meetings list (`/meetings`), meeting detail (organizer row and the duplicate meetings listed there),
-    the duplicate meetings page (`/conflicts`), the live conflict panel in the meeting form and my report page.
+    tables, my meetings list (`/meetings`), meeting detail (organizer row and the concurrent meetings listed there),
+    the concurrent meetings page (`/conflicts`), the live conflict panel in the meeting form and my report page.
     English UI → the wing's English name (Bangla when empty); Bangla UI → the Bangla name.
   - Always Bangla (`organizerLabelBn()` in `backend/src/modules/meetings/meeting-format.ts`): report PDFs (personal
     and office), every meeting mail and bell notification ("আয়োজক: <উইং>"), guest officers' mails.
@@ -1397,7 +1420,7 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
 ### 13.18 Three-dot row menu (v1.10, owner decisions 2026-11-17)
 - Every meeting row ends with a "⋮" button (`components/meetings/meeting-row-menu.tsx`): dashboard and my
   meetings list (table and phone cards), `/admin/meetings`, the report pages (`/reports`, `/admin/reports`) and both
-  meetings of every duplicate meetings card (`/conflicts`, `/admin/conflicts`; no menu for a meeting whose title is
+  meetings of every concurrent meetings card (`/conflicts`, `/admin/conflicts`; no menu for a meeting whose title is
   hidden from the viewer).
 - The only symbol allowed outside the header (§13.5): the glyph is `aria-hidden` inside a button with
   `aria-label` "More actions" / "আরও অপশন", `aria-haspopup="menu"`, `aria-expanded`. Menu-button keyboard pattern
@@ -1409,7 +1432,7 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
   row, **only when an uploaded notice exists** (`hasNotice`), also for cancelled meetings) — v1.17, by `noticeMime`:
   PDF or image → "নোটিশ দেখুন" / "View notice" (file viewer panel, §13.22), DOCX → "নোটিশ ডাউনলোড" / "Download notice"
   (direct download; `rowActions().noticeAction`); "Edit" and "Cancel" **only for the organizer and the internal chair** (`myRole`
-  ORGANIZER / CHAIR, or `organizedByMe` / `chairedByMe` on duplicate meetings cards), with the usual status rules
+  ORGANIZER / CHAIR, or `organizedByMe` / `chairedByMe` on concurrent meetings cards), with the usual status rules
   (edit: scheduled and not ended; cancel: scheduled; Cancel opens the usual reason dialog). Admins keep their
   rights on the detail page.
 - **Minutes item (v1.17 part 2, owner decision 2026-11-23; replaces the v1.11 "Upload minutes" rule and the v1.15
@@ -1431,7 +1454,7 @@ toasts), no animation beyond short colour transitions on hover / focus, and no i
 - Tests: `tests/unit/row-actions.test.ts`, `e2e/v110.spec.ts`, `e2e/no-icons.spec.ts` (the glyph only inside its button).
 
 ### 13.19 Meeting minutes UI "সভা কার্যবিবরণী" (v1.11, renamed v1.13)
-- **Sidebar:** "সভা কার্যবিবরণী" / "Meeting minutes" between "ডুপ্লিকেট সভা" and "রিপোর্ট", with a small amber count of
+- **Sidebar:** "সভা কার্যবিবরণী" / "Meeting minutes" between "কনকারেন্ট সভা" and "রিপোর্ট", with a small amber count of
   Pending decisions of the meetings I organize or chair (`GET /decisions/summary`; Bangla digits in Bangla; hidden
   when 0; screen readers hear "৩টি Pending কার্যবিবরণী").
 - **`/decisions`** ("সভা কার্যবিবরণী"): tabs "Pending (n)" and "Complete (n)" with the meetings I organize or chair (meeting

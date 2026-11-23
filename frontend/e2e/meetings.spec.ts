@@ -99,7 +99,7 @@ test("create a meeting with the form; it shows on the dashboard and list", async
 });
 
 /** dd1's meeting saved despite the amber warning; the organizer-rule test clashes with it. */
-const warnedTitle = uniqueTitle("ডুপ্লিকেট");
+const warnedTitle = uniqueTitle("কনকারেন্ট");
 
 test("v1.12: equal priority clash only warns (amber); Save still works", async () => {
   const day = dhakaDate(2);

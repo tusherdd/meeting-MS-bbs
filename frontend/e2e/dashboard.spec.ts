@@ -43,7 +43,7 @@ test("dashboard lists today's meeting created through the API", async ({ browser
     await page.setViewportSize({ width: 390, height: 800 });
     await page.getByRole("button", { name: "মেনু", exact: true }).click();
     const drawer = page.getByRole("dialog", { name: "মেনু" });
-    await drawer.getByRole("link", { name: "ডুপ্লিকেট সভা" }).click();
+    await drawer.getByRole("link", { name: "কনকারেন্ট সভা" }).click();
     await expect(page).toHaveURL(/\/conflicts$/);
   } finally {
     await cancelMeetingAs(page, meeting.id);

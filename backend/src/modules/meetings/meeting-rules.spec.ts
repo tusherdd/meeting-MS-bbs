@@ -77,7 +77,7 @@ describe('conflict engine rule table (SPEC.md §6.4, v1.12: warn, do not block)'
     ['equal priority (6 vs 6)', 6, 6],
     ['N lower (7 vs 1)', 7, 1],
   ])(
-    'shared officer, %s → warning only, saved, duplicate-meeting row',
+    'shared officer, %s → warning only, saved, concurrent-meeting row',
     (_label, nPriority, ePriority) => {
       const result = decide(candidate({ priority: nPriority }), [
         existing({ priority: ePriority }),

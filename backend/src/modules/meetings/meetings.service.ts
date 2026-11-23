@@ -1075,7 +1075,7 @@ export class MeetingsService {
   }
 
   /**
-   * Duplicate-meeting records (SPEC.md §6.4, v1.12): one PENDING row per (meeting pair, shared
+   * Concurrent-meeting records (SPEC.md §6.4, v1.12): one PENDING row per (meeting pair, shared
    * officer), whatever the priorities; an existing PENDING row for the pair (either
    * orientation) is kept, never duplicated. The smaller priority number is "higher"; on equal
    * priority the existing meeting stays "higher". Newly affected shared officers and the

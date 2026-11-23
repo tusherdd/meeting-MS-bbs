@@ -114,7 +114,7 @@ for (const lang of ["en", "bn"] as const) {
       await dd1.goto(`/meetings/${meetingId}`);
       await save(dd1, "05-meeting-detail");
       await dd1.goto("/conflicts");
-      await save(dd1, "06-duplicate-meetings");
+      await save(dd1, "06-concurrent-meetings");
       await dd1.goto("/profile");
       await save(dd1, "07-profile");
       await dd1.context().close();

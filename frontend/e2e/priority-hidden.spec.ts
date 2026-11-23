@@ -14,7 +14,7 @@ import {
 /**
  * v1.5 (SPEC.md §6.1): designation / meeting priority numbers are never shown, except on the
  * admin page "পদবি ও অগ্রাধিকার". Pages with priorities behind them (profile, change request
- * select, meeting form and detail, duplicate meetings, notifications, reports) are checked for
+ * select, meeting form and detail, concurrent meetings, notifications, reports) are checked for
  * "অগ্রাধিকার" followed or preceded by a number, and for the removed priority box.
  */
 test.describe.configure({ mode: "serial" });
@@ -52,7 +52,7 @@ async function expectNoPriorityNumber(page: Page, path: string) {
   await expect(page.getByTestId("meeting-priority")).toHaveCount(0);
 }
 
-test("no priority number on officer pages, also with a duplicate meeting", async () => {
+test("no priority number on officer pages, also with a concurrent meeting", async () => {
   const day = dhakaDate(7);
   // so (7) organizes; dg (2) overrides it with so as a shared officer → a pending conflict.
   const low = await createMeetingAs(so, {

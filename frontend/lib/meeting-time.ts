@@ -44,10 +44,41 @@ export function addMinutesToTime(time: string, minutes: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-/** Default for a new meeting: the next full half hour in Dhaka, one hour long. */
+/** v1.18: a new meeting lasts 45 minutes unless the user sets another end time. */
+export const DEFAULT_MEETING_MINUTES = 45;
+
+/** Minutes from start to end on the same day, or null when a value is missing or end is not after start. */
+export function durationMinutes(start: string, end: string): number | null {
+  if (!isValidTime(start) || !isValidTime(end)) return null;
+  const toMin = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const d = toMin(end) - toMin(start);
+  return d > 0 ? d : null;
+}
+
+/**
+ * v1.18: the start time changed from `prevStart` to `newStart`. The end time moves with it and keeps
+ * the current duration (prevStart → end); when that duration is unknown (empty or invalid values)
+ * `fallbackMinutes` is used. `endTime` is null when the new start is incomplete (end stays as it is).
+ * Validation (end after start, max length) is unchanged; the end is capped at 23:59 of the same day.
+ */
+export function moveEndWithStart(
+  prevStart: string,
+  newStart: string,
+  end: string,
+  fallbackMinutes: number,
+): { endTime: string | null; minutes: number } {
+  const minutes = durationMinutes(prevStart, end) ?? fallbackMinutes;
+  if (!isValidTime(newStart)) return { endTime: null, minutes };
+  return { endTime: addMinutesToTime(newStart, minutes), minutes };
+}
+
+/** Default for a new meeting: the next full half hour in Dhaka, 45 minutes long (v1.18; was one hour). */
 export function defaultSlot(now = new Date()): { date: string; start: string; end: string } {
   const halfHour = 30 * 60_000;
   const start = new Date(Math.ceil((now.getTime() + 5 * 60_000) / halfHour) * halfHour);
   const s = fromIso(start);
-  return { date: s.date, start: s.time, end: addMinutesToTime(s.time, 60) };
+  return { date: s.date, start: s.time, end: addMinutesToTime(s.time, DEFAULT_MEETING_MINUTES) };
 }

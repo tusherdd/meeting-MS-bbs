@@ -677,7 +677,7 @@ export interface paths {
         put?: never;
         /**
          * Create a meeting (you are the organizer; priority = your designation priority now)
-         * @description Conflict rule (v1.12, extended in v1.13): the ONLY blocking clash is the lead rule: the meeting's organizer OR its internal chair is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (checked on create and on every edit that changes the time or the chair; priority plays no role; the message names the role: TIME_CONFLICT_BLOCKING for the organizer, TIME_CONFLICT_CHAIR_BLOCKING for the chair). Every other overlap that shares an officer (members, a lead who is only a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.
+         * @description Conflict rule (v1.12, extended in v1.13): the ONLY blocking clash is the lead rule: the meeting's organizer OR its internal chair is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (checked on create and on every edit that changes the time or the chair; priority plays no role; the message names the role: TIME_CONFLICT_BLOCKING for the organizer, TIME_CONFLICT_CHAIR_BLOCKING for the chair). Every other overlap that shares an officer (members, a lead who is only a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING concurrent-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.
          */
         post: operations["MeetingsController_create"];
         delete?: never;
@@ -697,7 +697,7 @@ export interface paths {
         put?: never;
         /**
          * Dry run of the conflict engine (nothing is saved)
-         * @description Conflict rule (v1.12, extended in v1.13): the ONLY blocking clash is the lead rule: the meeting's organizer OR its internal chair is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (checked on create and on every edit that changes the time or the chair; priority plays no role; the message names the role: TIME_CONFLICT_BLOCKING for the organizer, TIME_CONFLICT_CHAIR_BLOCKING for the chair). Every other overlap that shares an officer (members, a lead who is only a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash. When editing, send `meetingId`.
+         * @description Conflict rule (v1.12, extended in v1.13): the ONLY blocking clash is the lead rule: the meeting's organizer OR its internal chair is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (checked on create and on every edit that changes the time or the chair; priority plays no role; the message names the role: TIME_CONFLICT_BLOCKING for the organizer, TIME_CONFLICT_CHAIR_BLOCKING for the chair). Every other overlap that shares an officer (members, a lead who is only a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING concurrent-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash. When editing, send `meetingId`.
          */
         post: operations["MeetingsController_checkConflicts"];
         delete?: never;
@@ -723,7 +723,7 @@ export interface paths {
         head?: never;
         /**
          * Update (organizer, internal chair or ADMIN; not after the meeting ended)
-         * @description Re-runs the engine when time or people change. Conflict rule (v1.12, extended in v1.13): the ONLY blocking clash is the lead rule: the meeting's organizer OR its internal chair is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (checked on create and on every edit that changes the time or the chair; priority plays no role; the message names the role: TIME_CONFLICT_BLOCKING for the organizer, TIME_CONFLICT_CHAIR_BLOCKING for the chair). Every other overlap that shares an officer (members, a lead who is only a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.
+         * @description Re-runs the engine when time or people change. Conflict rule (v1.12, extended in v1.13): the ONLY blocking clash is the lead rule: the meeting's organizer OR its internal chair is, at an overlapping time, the organizer or the internal chair of another SCHEDULED meeting → 409 and nothing is saved (checked on create and on every edit that changes the time or the chair; priority plays no role; the message names the role: TIME_CONFLICT_BLOCKING for the organizer, TIME_CONFLICT_CHAIR_BLOCKING for the chair). Every other overlap that shares an officer (members, a lead who is only a member elsewhere) is a warning, whatever the priorities: the meeting is saved, a PENDING concurrent-meeting record is kept per shared officer, and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.
          */
         patch: operations["MeetingsController_update"];
         trace?: never;
@@ -2152,7 +2152,7 @@ export interface components {
             allowed: boolean;
             /** @description Blocking clashes (v1.12): the organizer is the organizer or internal chair of these overlapping meetings. Saving gives 409. */
             blocking: components["schemas"]["ClashDto"][];
-            /** @description Warnings (v1.12): overlapping meetings that share an officer, whatever the priorities. Saving works; duplicate-meeting records are kept and the people concerned are informed. */
+            /** @description Warnings (v1.12): overlapping meetings that share an officer, whatever the priorities. Saving works; concurrent-meeting records are kept and the people concerned are informed. */
             warnings: components["schemas"]["ClashDto"][];
         };
         PersonDto: {

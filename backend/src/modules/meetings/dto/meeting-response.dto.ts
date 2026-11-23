@@ -463,7 +463,7 @@ export class CheckConflictsResponseDto {
   @ApiProperty({
     type: [ClashDto],
     description:
-      'Warnings (v1.12): overlapping meetings that share an officer, whatever the priorities. Saving works; duplicate-meeting records are kept and the people concerned are informed.',
+      'Warnings (v1.12): overlapping meetings that share an officer, whatever the priorities. Saving works; concurrent-meeting records are kept and the people concerned are informed.',
   })
   warnings!: ClashDto[];
 }

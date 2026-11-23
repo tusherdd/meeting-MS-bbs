@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { type ChangeEvent, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Alert, ErrorAlert } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
@@ -15,7 +15,13 @@ import { useToast } from "@/components/ui/toast";
 import { isApiError } from "@/lib/api";
 import { attachmentsApi, meetingsApi, noticesApi } from "@/lib/endpoints";
 import { invalidateMeetingData } from "@/lib/invalidate";
-import { fromIso, toIso } from "@/lib/meeting-time";
+import {
+  DEFAULT_MEETING_MINUTES,
+  durationMinutes,
+  fromIso,
+  moveEndWithStart,
+  toIso,
+} from "@/lib/meeting-time";
 import { type MeetingFormValues } from "@/lib/schemas";
 import { useSchemas } from "@/lib/hooks/use-schemas";
 import { requiredFields } from "@/lib/required-fields";
@@ -91,10 +97,33 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
   // v1.17: "অন্যান্য সংযুক্তি" chosen on create, uploaded right after the meeting is saved.
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
 
+  const [defaults] = useState(() => initialValues(meeting, initialSlot));
   const form = useForm<MeetingFormValues>({
     resolver: zodResolver(meetingFormSchema),
-    defaultValues: initialValues(meeting, initialSlot),
+    defaultValues: defaults,
   });
+  // v1.18: the end time follows the start time and keeps the current duration (45 min by default on
+  // create, the stored duration on edit, or whatever the user set). Loading never changes the end time.
+  const [timing, setTiming] = useState(() => ({
+    prevStart: defaults.startTime,
+    minutes: durationMinutes(defaults.startTime, defaults.endTime) ?? DEFAULT_MEETING_MINUTES,
+  }));
+  const onStartTimeChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newStart = e.target.value;
+    const moved = moveEndWithStart(
+      timing.prevStart,
+      newStart,
+      form.getValues("endTime"),
+      timing.minutes,
+    );
+    setTiming({ prevStart: newStart, minutes: moved.minutes });
+    if (moved.endTime !== null && moved.endTime !== form.getValues("endTime")) {
+      form.setValue("endTime", moved.endTime, {
+        shouldDirty: true,
+        shouldValidate: form.formState.isSubmitted,
+      });
+    }
+  };
   const { errors } = form.formState;
   const [people, setPeople] = useState<SelectedPerson[]>(() =>
     (meeting?.participants ?? []).filter((p) => p.id !== organizer.id).map(fromParticipant),
@@ -280,7 +309,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                   label={t.meetingForm.startTime}
                   required={req.startTime}
                   error={errors.startTime?.message}
-                  {...form.register("startTime")}
+                  {...form.register("startTime", { onChange: onStartTimeChange })}
                 />
                 <Input
                   id="endTime"

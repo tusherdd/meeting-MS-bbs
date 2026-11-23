@@ -98,12 +98,12 @@ describe('toErrorBody', () => {
 
   it('keeps structured details of a 4xx (e.g. meeting 409 blocking list)', () => {
     const ex = new ConflictException({
-      message: 'ডুপ্লিকেট সভা',
+      message: 'কনকারেন্ট সভা',
       blocking: [{ meetingId: 'm1' }],
     });
     expect(toErrorBody(ex, true)).toEqual({
       statusCode: 409,
-      message: 'ডুপ্লিকেট সভা',
+      message: 'কনকারেন্ট সভা',
       error: 'Conflict',
       blocking: [{ meetingId: 'm1' }],
     });

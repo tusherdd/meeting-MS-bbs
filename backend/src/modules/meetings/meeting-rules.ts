@@ -162,7 +162,7 @@ export function blockedRoles(
 }
 
 export interface Classification<M extends ExistingMeeting> {
-  /** Never blocked, whatever the priorities: N is saved, a duplicate-meeting record is kept. */
+  /** Never blocked, whatever the priorities: N is saved, a concurrent-meeting record is kept. */
   warnings: Clash<M>[];
   /** The lead rule: N must not be saved (409). Each clash carries `blockedBy`. */
   blocking: Clash<M>[];
@@ -205,7 +205,7 @@ export function blockingRole(
 }
 
 /**
- * Orientation of a duplicate-meeting record (v1.12): the meeting with the smaller priority
+ * Orientation of a concurrent-meeting record (v1.12): the meeting with the smaller priority
  * number is "higher". On equal priority the existing meeting E stays "higher" and the new or
  * moved meeting N is "lower".
  */
@@ -224,7 +224,7 @@ export interface ConflictNoticeInput {
   candidateOrganizerId: string;
   existingPriority: number;
   existingOrganizerId: string;
-  /** Shared officers whose duplicate-meeting record is new (already-informed ones are skipped). */
+  /** Shared officers whose concurrent-meeting record is new (already-informed ones are skipped). */
   freshSharedIds: readonly string[];
 }
 

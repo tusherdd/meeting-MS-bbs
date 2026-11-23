@@ -54,7 +54,7 @@ const RULE =
   'nothing is saved (checked on create and on every edit that changes the time or the chair; priority plays no role; the ' +
   'message names the role: TIME_CONFLICT_BLOCKING for the organizer, TIME_CONFLICT_CHAIR_BLOCKING for the chair). ' +
   'Every other overlap that shares an officer (members, a lead who is only a member elsewhere) ' +
-  'is a warning, whatever the priorities: the meeting is saved, a PENDING duplicate-meeting record is kept per shared officer, ' +
+  'is a warning, whatever the priorities: the meeting is saved, a PENDING concurrent-meeting record is kept per shared officer, ' +
   'and the shared officers plus the lower-priority organizer (both organizers on equal priority) are informed. ' +
   'Guest officers are never checked. Touching times (11:00–12:00 after 10:00–11:00) do not clash.';
 
