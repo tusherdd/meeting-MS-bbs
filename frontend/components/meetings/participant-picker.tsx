@@ -7,14 +7,14 @@ import { ErrorAlert } from "@/components/ui/alert";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 
-import { peopleApi, queryKeys } from "@/lib/endpoints";
-import type { DirectoryEntry } from "@/lib/types";
+import { designationsApi, peopleApi, queryKeys } from "@/lib/endpoints";
+import { directoryDetail, groupCandidates, groupLabel, hasGroupFilter } from "@/lib/group-add";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { useFormat, useLocale, useNames, useT } from "@/providers/locale-provider";
-import { GroupAdd } from "./group-add";
 import { fromDirectory, groupByWing, type SelectedPerson } from "./people";
 
 const PAGE = 20;
@@ -30,8 +30,9 @@ interface Props {
 }
 
 /**
- * Search the officer directory (GET /users/directory) and add people as chips grouped by wing,
- * or add a group by wing and / or designation with checkboxes (v1.20, `GroupAdd`).
+ * Search the officer directory (GET /users/directory) by name, wing and designation (v1.20:
+ * designation incl. additional charges) and add people as chips grouped by wing, or add everyone
+ * of the current wing + designation filters after a confirmation that shows how many people it is.
  */
 export function ParticipantPicker({ selected, onChange, organizerId, clashingIds }: Props) {
   const t = useT();
@@ -40,7 +41,9 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
   const { formatNumber } = useFormat();
   const [search, setSearch] = useState("");
   const [wingId, setWingId] = useState("");
+  const [designationId, setDesignationId] = useState("");
   const [limit, setLimit] = useState(PAGE);
+  const [allModal, setAllModal] = useState(false);
   const q = useDebouncedValue(search.trim(), 300);
 
   const selectedIds = useMemo(() => new Set(selected.map((p) => p.id)), [selected]);
@@ -50,12 +53,43 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
     queryFn: peopleApi.wings,
     staleTime: 5 * 60_000,
   });
-  const directoryQuery = { q: q || undefined, wingId: wingId || undefined, page: 1, limit };
+  const designations = useQuery({
+    queryKey: queryKeys.designations(true),
+    queryFn: () => designationsApi.list(true),
+    staleTime: 5 * 60_000,
+  });
+  const directoryQuery = {
+    q: q || undefined,
+    wingId: wingId || undefined,
+    designationId: designationId || undefined,
+    page: 1,
+    limit,
+  };
   const results = useQuery({
     queryKey: queryKeys.directory(directoryQuery),
     queryFn: ({ signal }) => peopleApi.directory(directoryQuery, signal),
     placeholderData: keepPreviousData,
   });
+
+  // "Add everyone in this list": every match of the wing + designation filters (not the name search).
+  const groupActive = hasGroupFilter({ wingId, designationId });
+  const group = useQuery({
+    queryKey: queryKeys.directoryGroup(wingId, designationId),
+    queryFn: ({ signal }) =>
+      peopleApi.groupMembers(
+        { wingId: wingId || undefined, designationId: designationId || undefined },
+        signal,
+      ),
+    enabled: groupActive,
+  });
+  const toAdd = useMemo(
+    () => groupCandidates(group.data ?? [], organizerId, selectedIds),
+    [group.data, organizerId, selectedIds],
+  );
+  const groupName = groupLabel(
+    names.maybe(designations.data?.find((d) => d.id === designationId)),
+    names.maybe(wings.data?.find((w) => w.id === wingId)),
+  );
   const full = selected.length >= MAX_PEOPLE;
 
   function add(person: SelectedPerson) {
@@ -67,11 +101,11 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
     onChange(selected.filter((p) => p.id !== id));
   }
 
-  /** v1.20 group add: the checked officers, up to the people limit. */
-  function addGroup(people: DirectoryEntry[]) {
+  /** Everyone of the current wing + designation filters, up to the people limit. */
+  function addAll() {
     const next = [...selected];
     const ids = new Set(selectedIds);
-    for (const m of people) {
+    for (const m of toAdd) {
       // Only officers with a designation can attend (the super admin account has none).
       if (m.id === organizerId || ids.has(m.id) || !m.designation) continue;
       if (next.length >= MAX_PEOPLE) break;
@@ -79,6 +113,7 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
       ids.add(m.id);
     }
     onChange(next);
+    setAllModal(false);
   }
 
   return (
@@ -139,7 +174,7 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
 
       {/* Search */}
       <div className="rounded-lg border border-slate-200 p-3">
-        <div className="grid gap-3 sm:grid-cols-[1fr_14rem]">
+        <div className="grid gap-3 sm:grid-cols-[1fr_12rem_12rem]">
           <Input
             id="people-search"
             label={t.picker.search}
@@ -162,7 +197,34 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
             placeholder={t.picker.allWings}
             options={(wings.data ?? []).map((w) => ({ value: w.id, label: names.of(w) }))}
           />
+          <Select
+            id="people-designation"
+            label={t.picker.designation}
+            value={designationId}
+            onChange={(e) => {
+              setDesignationId(e.target.value);
+              setLimit(PAGE);
+            }}
+            placeholder={t.picker.allDesignations}
+            options={(designations.data ?? []).map((d) => ({ value: d.id, label: names.of(d) }))}
+          />
         </div>
+        {groupActive &&
+          (group.isError ? (
+            <ErrorAlert error={group.error} onRetry={() => void group.refetch()} className="mt-3" />
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-3"
+              onClick={() => setAllModal(true)}
+              disabled={full || group.isPending || toAdd.length === 0}
+            >
+              {group.isPending
+                ? t.picker.countingWing
+                : t.picker.addAll(formatNumber(toAdd.length))}
+            </Button>
+          ))}
 
         <div className="mt-3" aria-busy={results.isFetching}>
           {results.isPending ? (
@@ -191,9 +253,7 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
                             {names.of(e)}
                           </p>
                           <p className="truncate text-xs text-slate-500">
-                            {[names.maybe(e.designation), names.maybe(e.wing)]
-                              .filter(Boolean)
-                              .join(" · ")}
+                            {directoryDetail(e, names, t.profile.chargeSuffix)}
                           </p>
                         </div>
                         <Button
@@ -224,12 +284,23 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
         </div>
       </div>
 
-      <GroupAdd
-        organizerId={organizerId}
-        selectedIds={selectedIds}
-        onAdd={addGroup}
-        disabled={full}
-      />
+      <Modal
+        open={allModal}
+        onClose={() => setAllModal(false)}
+        title={t.picker.addAllTitle}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setAllModal(false)}>
+              {t.common.cancel}
+            </Button>
+            <Button onClick={addAll} disabled={toAdd.length === 0 || full}>
+              {t.picker.addAllConfirm}
+            </Button>
+          </>
+        }
+      >
+        <p>{t.picker.addAllBody(groupName, formatNumber(toAdd.length))}</p>
+      </Modal>
     </div>
   );
 }

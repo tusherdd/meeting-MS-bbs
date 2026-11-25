@@ -869,8 +869,10 @@ Release **v1.19** (2026-11-23): minutes required yes / no per meeting — `meeti
 `MeetingMinutesRequired1795400000000`), the form checkbox, the minutes status rules and the detail-page line (§6.9, §13.6,
 §13.19).
 
-Release **v1.20** (2026-11-25): group add of participants by wing and / or designation, including structured
-additional charges (§13.6; `GET /users/directory?designationId=`).
+Release **v1.20** (2026-11-25): participant picker designation filter next to the wing filter, including structured
+additional charges, and "add everyone in this list" for the current wing + designation (§13.6;
+`GET /users/directory?designationId=`). Reworked the same day: the separate group-add box was removed, the v1
+picker restored.
 
 ## 13. Frontend (`frontend/`)
 
@@ -969,25 +971,28 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
 - One form for create and edit; Dhaka date + start/end time (both typed; end after start, Asia/Dhaka logic
   unchanged; the quick-duration buttons and the time-zone hint were removed in v1.5 and stay removed — no duration
   text either), venue ("স্থান", required since v1.9), https link,
-  participants from `GET /users/directory` (search with a wing filter; group add by wing and / or designation, below).
-- **Group add by wing and / or designation (v1.20, owner decision 2026-11-25)** `components/meetings/group-add.tsx`
-  (rules in `lib/group-add.ts`), below the search box in the participant picker; it replaces the v1 "add the whole wing"
-  button and its count confirmation. Two selects: "উইং" / "Wing" ("সকল উইং" / "All wings" + every active wing) and
-  "পদবি" / "Designation" ("সকল পদবি" / "All designations" + every active designation; no priority, §6.1).
-  - Who matches (`GET /users/directory?wingId=&designationId=`, `directory-filter.ts`; one query with a correlated
-    `EXISTS` on `user_additional_charges`, no N+1): wing only → the officers of that wing (as before); designation only
-    → main designation OR a structured additional charge with that designation (`user_additional_charges.designationId`),
-    every wing; both → main designation in that wing, OR such a charge whose wing — the officer's own wing when the
-    charge has none — is that wing. Rows that match only through a charge carry `matchedCharge` (designation, wing;
-    one batch query per page). Never listed: inactive accounts and the SUPER_ADMIN (backend), officers without a
-    designation, the organizer and people already in the participant list (frontend).
-  - As soon as a filter is chosen, the matches appear below as a list with a native checkbox each, **all checked**:
-    "নাম — পদবি, উইং" (names by the §13.15 rule; a charge match shows "নাম — [পদবি] (অতিরিক্ত দায়িত্ব), [উইং]"). The
-    user may uncheck anyone. The button "নির্বাচিতদের যোগ করুন (N জন)" / "Add selected (N)" (N live, Bangla digits in
-    bn mode via `lib/format.ts`) adds the checked people, is disabled at N = 0 and while the 200-people limit is
-    reached (adding stops at the limit). No match: "কোনো কর্মকর্তা পাওয়া যায়নি।" / "No officers found." After adding,
-    both filters go back to "all" and the list clears. Added people are ordinary chips (removable one by one) and the
-    live conflict check runs for them as usual. No icons.
+  participants from `GET /users/directory` (name search + wing + designation filters, below).
+- **Participant picker: name + wing + designation (v1.20, reworked 2026-11-25, owner decision)**
+  `components/meetings/participant-picker.tsx` (helpers in `lib/group-add.ts`). The v1 behaviour stays: the name
+  search, the "উইং" / "Wing" filter ("সব উইং"), the officer list with a "যোগ করুন" button per row, "আরও দেখুন"
+  and the add-all button with its count confirmation. v1.20 adds a third filter **"পদবি" / "Designation"** ("সব পদবি"
+  / "All designations" + every active designation; no priority, §6.1) in the same top row, next to "উইং". The
+  separate v1.20 group-add box (two selects, checkbox list, "নির্বাচিতদের যোগ করুন") was removed and stays removed.
+  - The list shows the officers matching the name search AND wing AND designation together
+    (`GET /users/directory?q=&wingId=&designationId=`, `directory-filter.ts`; one query with a correlated `EXISTS`
+    on `user_additional_charges`, no N+1): designation only → main designation OR a structured additional charge
+    with that designation (`user_additional_charges.designationId`), every wing; wing + designation → main
+    designation in that wing, OR such a charge whose wing — the officer's own wing when the charge has none — is that
+    wing. Rows that match only through a charge carry `matchedCharge` (designation, wing; one batch query per page)
+    and the row's second line shows the charge: "[পদবি] (অতিরিক্ত দায়িত্ব) · [উইং]"; otherwise "পদবি · উইং".
+  - **Add-all:** shown when a wing or a designation is selected: "এই তালিকার সবাইকে যোগ করুন (N জন)" / "Add
+    everyone in this list (N)" (N live, Bangla digits in bn mode via `lib/format.ts`). It adds everyone matching the
+    current wing + designation filters (all pages; the name search does not narrow it). N and the addition skip
+    people already added, the organizer, officers without a designation (frontend) and inactive accounts and the
+    SUPER_ADMIN (backend). Disabled at N = 0 and while the 200-people limit is reached (adding stops at the limit).
+    The click opens the confirmation modal as before: "এই তালিকার সবাইকে যোগ করবেন?" / "[পদবি, উইং]-এর N জন Active
+    কর্মকর্তাকে অংশগ্রহণকারী হিসেবে যোগ করা হবে।" with "Cancel" and "সবাইকে যোগ করুন". Added people are ordinary chips
+    (removable one by one) and the live conflict check runs for them as usual. No icons.
   - Tests: backend `test/users.e2e-spec.ts` (v1.20 block); frontend `tests/unit/group-add.test.ts`, `e2e/v120.spec.ts`.
 - **Default duration 45 minutes (v1.18, owner decision 2026-11-23).** Create: the end time is filled as start + 45
   minutes (the default slot is the next half hour + 45 min; `/meetings/new?start=` without a valid `end` also gets
