@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { RoleBadge, StatusBadge } from "@/components/dashboard/meeting-badges";
 import { FileViewerPanel } from "@/components/files/file-viewer-panel";
 import { MeetingRowMenu } from "@/components/meetings/meeting-row-menu";
@@ -276,14 +276,19 @@ export function PdfViewButton({
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
+  // Focus goes back here on close (Safari does not focus a clicked button).
+  const viewButton = useRef<HTMLButtonElement>(null);
   return (
     <>
-      <Button onClick={() => setOpen(true)}>{t.common.viewPdf}</Button>
+      <Button ref={viewButton} onClick={() => setOpen(true)}>
+        {t.common.viewPdf}
+      </Button>
       <FileViewerPanel
         open={open}
         onClose={() => setOpen(false)}
         files={[{ id: "pdf", name, mime: "application/pdf", load }]}
         loadingText={t.reports.pdfLoading}
+        returnFocus={viewButton}
       />
     </>
   );

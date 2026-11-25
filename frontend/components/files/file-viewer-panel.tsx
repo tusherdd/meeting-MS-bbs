@@ -58,7 +58,10 @@ export function FileViewerPanel({
   initialId?: string;
   /** Optional text while loading (reports: "তৈরি হচ্ছে…"). */
   loadingText?: string;
-  /** Where focus goes on close when the opener was busy (disabled) while the panel opened. */
+  /**
+   * Where focus goes on close. Needed when the opener was busy (disabled) while the panel opened,
+   * and on Safari, which does not focus a button on a mouse click (document.activeElement = body).
+   */
   returnFocus?: RefObject<HTMLElement | null>;
   /** v1.17: a small link under the title (minutes: "ফাইল যোগ / মুছুন" → the minutes page). */
   headerLink?: { href: string; label: string };
@@ -302,6 +305,8 @@ export function FileViewButton({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const viewable = mayView(file);
+  // Focus goes back here on close (Safari does not focus a clicked button).
+  const viewButton = useRef<HTMLButtonElement>(null);
 
   async function onDownload() {
     setError(null);
@@ -315,7 +320,7 @@ export function FileViewButton({
   return (
     <>
       {viewable ? (
-        <Button variant="secondary" size={size} onClick={() => setOpen(true)}>
+        <Button ref={viewButton} variant="secondary" size={size} onClick={() => setOpen(true)}>
           {viewLabel}
         </Button>
       ) : (
@@ -329,6 +334,7 @@ export function FileViewButton({
           onClose={() => setOpen(false)}
           files={[file]}
           headerLink={headerLink}
+          returnFocus={viewButton}
         />
       )}
       {error !== null && <ErrorAlert error={error} />}

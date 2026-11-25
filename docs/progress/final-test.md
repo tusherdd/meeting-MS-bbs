@@ -8,7 +8,7 @@ Started 2026-11-25 on commit 8d5292d (v1.20 rework). No Playwright / browsers in
 | 2 Backend unit (typecheck, lint, unit) | done |
 | 3 Backend e2e | done |
 | 4 Builds + Playwright Chromium | done |
-| 5 Playwright WebKit + release | open |
+| 5 Playwright WebKit + release | done |
 
 ## Part 1: Frontend — done
 - `npm run typecheck`: pass
@@ -59,5 +59,21 @@ Started 2026-11-25 on commit 8d5292d (v1.20 rework). No Playwright / browsers in
   mode violation). Now the picker's select is taken by role `combobox`; no assertion changed.
 - Frontend typecheck, lint, unit (137 / 137) green after the fixes.
 
-## Next
-Part 5: Playwright WebKit, final re-runs, tag v1.20.
+## Part 5: Playwright WebKit + release — done
+- WebKit, `--workers=1`, same servers, whole suite in one go: before 68 passed / 2 failed / 2 skipped
+  → after 70 passed / 2 skipped (by design: `fonts.spec.ts` is Chromium-only, WebKit has its own Bangla font;
+  `webkit-font.spec.ts` engine-independent test runs once, on Chromium).
+- Fixed (CODE, real Safari bug): after closing the file viewer panel, focus did not return to "PDF দেখুন"
+  (reports, v117). Safari does not focus a button on a mouse click, so `document.activeElement` was `body`
+  and the panel had no opener; SPEC §13 a11y requires focus back on the opener. `PdfViewButton`,
+  `FileViewButton` and the minutes page "View" button now pass their button as `returnFocus` (the row
+  menu already did).
+- Note for later (not changed): other modals (`ConfirmModal` etc.) rely on the browser's own focus restore,
+  which has the same Safari gap; no test covers it.
+- Final re-run after all fixes: backend unit 635 / 635, frontend unit 137 / 137 (typecheck + lint green),
+  Playwright WebKit full 70 passed / 2 skipped, Chromium specs touched by fixes (office-report, v111, v117,
+  v117-attachments, v120, reports) 10 / 10.
+- Tagged `v1.20`. All servers and browsers stopped.
+
+## Final testing complete
+Stages A and B done on 2026-11-25. No test skipped beyond the by-design engine skips above.

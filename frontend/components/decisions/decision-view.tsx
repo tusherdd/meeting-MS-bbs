@@ -258,6 +258,8 @@ function FileList({ id, files }: { id: string; files: DecisionFile[] }) {
   // v1.17 (SPEC.md §13.22): PDF / images open in the shared file viewer panel, with every file
   // of the meeting listed for switching; a DOCX is a direct download.
   const [viewing, setViewing] = useState<string | null>(null);
+  // The clicked "View" button gets focus back on close (Safari does not focus a clicked button).
+  const viewOpener = useRef<HTMLElement | null>(null);
   const viewerFiles: ViewerFile[] = files.map((f) => ({
     id: f.id,
     name: f.originalName,
@@ -306,7 +308,14 @@ function FileList({ id, files }: { id: string; files: DecisionFile[] }) {
                   <div className="flex flex-wrap gap-2">
                     {/* v1.17: one button — View (panel) for PDF / images, Download for a DOCX. */}
                     {opensInPanel(f.mime) ? (
-                      <Button variant="secondary" size="sm" onClick={() => setViewing(f.id)}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={(e) => {
+                          viewOpener.current = e.currentTarget;
+                          setViewing(f.id);
+                        }}
+                      >
                         {t.fileViewer.view}
                       </Button>
                     ) : (
@@ -339,6 +348,7 @@ function FileList({ id, files }: { id: string; files: DecisionFile[] }) {
         onClose={() => setViewing(null)}
         files={viewerFiles}
         initialId={viewing ?? undefined}
+        returnFocus={viewOpener}
       />
       <ConfirmModal
         open={toDelete !== null}
