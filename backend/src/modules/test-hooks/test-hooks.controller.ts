@@ -44,7 +44,11 @@ export class TestHooksController {
       ),
     });
     if (!enabled) throw new NotFoundException();
+    // @nestjs/throttler 6.7 keeps every hit's expiry in a second (private) map and rebuilds the
+    // count from it on the next request, so clearing `storage` alone resets nothing. The public
+    // onApplicationShutdown() empties both maps and stops the sweep timer; the next increment()
+    // starts the timer again.
     if (this.storage instanceof ThrottlerStorageService)
-      this.storage.storage.clear();
+      this.storage.onApplicationShutdown();
   }
 }

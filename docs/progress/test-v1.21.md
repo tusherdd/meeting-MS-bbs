@@ -56,5 +56,11 @@ Started 2026-11-26 on commit 4934d01 (v1.21 part 3). No real Anthropic API calls
     modal's close only resets a status that is still "confirm" (`components/meetings/notice-fill.tsx`).
   - Fixed (TEST): `getByLabel("সভাপতি")` also matched the chair review box (a region named by its "সভাপতি" heading,
     correct a11y) → strict-mode violation. The select is now taken by role `combobox`; no assertion changed.
-- Frontend typecheck, lint, unit (153 / 153) green after the fix. Re-run of the spec: pending (the session was
-  killed for memory once — restart servers one by one).
+- Frontend typecheck, lint, unit (153 / 153) green after the fix; `v121-notice-fill.spec.ts` 2 / 2 on Chromium.
+- Second full Chromium run: 71 passed / 2 failed (auth "logout ends the session", language "failed login") — the
+  backend answered 429 on login after only ~4 logins since the throttle reset.
+  - Fixed (CODE, test-only module): `POST /test-hooks/reset-throttle` cleared only `storage`; @nestjs/throttler
+    6.7 keeps each hit's expiry in a second (private) map and rebuilds the count from it, so the reset did nothing
+    and the setup's own logins still counted. Now it calls the public `onApplicationShutdown()` (empties both maps).
+    The unit test `test-hooks.guard.spec.ts` now checks that the next hit after a reset counts as 1 and is not
+    blocked (it failed on the old code). Production limits are unchanged (the module is never loaded there).

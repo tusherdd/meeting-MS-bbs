@@ -81,10 +81,17 @@ describe('test-only throttle reset (v1.6)', () => {
       const storage = moduleRef.get<ThrottlerStorageService>(ThrottlerStorage, {
         strict: false,
       });
-      await storage.increment('k', 60_000, 5, 0, 'default');
-      expect(storage.storage.size).toBe(1);
+      for (let i = 0; i < 3; i++)
+        await storage.increment('k', 60_000, 3, 0, 'default');
+      expect(
+        (await storage.increment('k', 60_000, 3, 0, 'default')).isBlocked,
+      ).toBe(true);
       controller.resetThrottle();
       expect(storage.storage.size).toBe(0);
+      // The next request starts from zero again (not rebuilt from the old hits).
+      const next = await storage.increment('k', 60_000, 3, 0, 'default');
+      expect(next.isBlocked).toBe(false);
+      expect(next.totalHits).toBe(1);
       await moduleRef.close();
     });
   });
