@@ -7,8 +7,8 @@ Started 2026-11-26 on commit 4934d01 (v1.21 part 3). No real Anthropic API calls
 | 1 Frontend (typecheck, lint, unit) | done |
 | 2 Backend unit (typecheck, lint, unit) | done |
 | 3 Backend e2e | done |
-| 4 Builds + Playwright Chromium | in progress |
-| 5 Playwright WebKit + release | open |
+| 4 Builds + Playwright Chromium | done |
+| 5 Playwright WebKit + release | next |
 
 ## Part 1: Frontend — done
 - `npm run typecheck`: pass
@@ -44,7 +44,7 @@ Started 2026-11-26 on commit 4934d01 (v1.21 part 3). No real Anthropic API calls
 - `npm run test:e2e` (in band, whole suite): before 266 / 266, 18 suites → after 278 / 278, 19 suites.
 - Fixed: no app code needed. The nukta check caught a broken "পড়া" in this progress file (fixed).
 
-## Part 4: Builds + Playwright Chromium — in progress
+## Part 4: Builds + Playwright Chromium — done
 - `npm run build` backend (tsc) and frontend (Next.js standalone): pass. Dev DB already had `AppSettings` migrated.
 - Servers: built backend `node dist/main` (MAIL_DRY_RUN=true, E2E_TEST_HOOKS=true) + standalone frontend on :3000;
   global setup resets the rate limits (`POST /test-hooks/reset-throttle`).
@@ -64,3 +64,7 @@ Started 2026-11-26 on commit 4934d01 (v1.21 part 3). No real Anthropic API calls
     and the setup's own logins still counted. Now it calls the public `onApplicationShutdown()` (empties both maps).
     The unit test `test-hooks.guard.spec.ts` now checks that the next hit after a reset counts as 1 and is not
     blocked (it failed on the old code). Production limits are unchanged (the module is never loaded there).
+- Final Chromium run (rebuilt backend + frontend, `--workers=1`, split in two groups of 17 + 14 specs because the
+  editor session was killed twice during long runs): group A 52 passed, group B 21 passed / 1 skipped
+  → **73 passed / 1 skipped** (`webkit-font.spec.ts` WebKit-only test, by design). Before: 71 / 2 failed / 1 skipped.
+- Next: part 5 (WebKit + release).
