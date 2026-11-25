@@ -1161,7 +1161,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   button "নোটিশ থেকে পূরণ করুন" / "Fill from notice" appears; it is hidden for good when the endpoint answers 403 / 404
   (feature unavailable; the SUPER_ADMIN never sees the notice field). The click sends the file to
   `POST /meetings/notice-extract` (`noticeExtractApi`, XMLHttpRequest **without a client time limit** — the server and
-  nginx, 180 s, decide); meanwhile the button is disabled, "নোটিশ পড়া হচ্ছে…" / "Reading the notice…" and "বাতিল" /
+  nginx, 180 s, decide); meanwhile the button is disabled, "নোটিশ পড়া হচ্ছে…" / "Reading the notice…" and "বাতিল" /
   "Cancel" (aborts) are shown. If the form already holds the user's writing (title, agenda, venue, chair, participants
   or guests; always on edit — the default date / times of a new meeting do not count), an in-page confirmation comes
   first: "আগের লেখা বদলে নোটিশের তথ্য বসাবেন?" with "বসান" / "বাতিল".
@@ -1181,7 +1181,7 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
     reason) with "অতিথি হিসেবে যোগ করুন" (prefills the guest fields) or "বাদ দিন".
   - The concurrent-meeting check runs as usual after the fill. The file is still uploaded as the meeting's notice on
     save (create) or at once (edit), as before.
-  - **Errors:** 422 or an empty result → "নোটিশ থেকে পড়া যায়নি, হাতে পূরণ করুন।"; 429 → "আজকের সীমা শেষ, কাল আবার চেষ্টা
+  - **Errors:** 422 or an empty result → "নোটিশ থেকে পড়া যায়নি, হাতে পূরণ করুন।"; 429 → "আজকের সীমা শেষ, কাল আবার চেষ্টা
     করুন।"; other errors → the usual error box. No icons; all text in `messages/bn.ts` + `en.ts` (`noticeFill`).
 - **Other attachments (v1.17, §6.11)** `components/meetings/attachments-field.tsx`, lower in the form (below the minutes
   checkbox; v1.21 part 3 moved only the notice field to the top),
