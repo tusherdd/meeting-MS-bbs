@@ -61,6 +61,8 @@ export enum AuditAction {
   MEETING_ATTACHMENT_REMOVED = 'MEETING_ATTACHMENT_REMOVED',
   /** v1.21: a notice was read to fill the meeting form (method / success / duration only). */
   NOTICE_EXTRACTED = 'NOTICE_EXTRACTED',
+  /** v1.21 part 2: an app setting changed (key, old and new value; SPEC.md §6.13). */
+  SETTING_CHANGED = 'SETTING_CHANGED',
   /** v1.11: meeting decision files ("সভা কার্যবিবরণী"). */
   MEETING_DECISION_UPLOADED = 'MEETING_DECISION_UPLOADED',
   MEETING_DECISION_DELETED = 'MEETING_DECISION_DELETED',

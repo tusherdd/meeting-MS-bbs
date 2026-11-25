@@ -18,7 +18,7 @@ Paths are relative to `backend/`. Unit tests: `npm run test`. End-to-end tests: 
 | 10 | Authorization in services (organizer/admin for meetings, SUPER_ADMIN protected) | `users/user-policy.ts`, `meetings/meetings.service.ts#assertCanManage`, `change-requests.service.ts` (no self-approval), `RolesGuard` | `user-policy.spec.ts`; `users.e2e-spec.ts`, `meetings.e2e-spec.ts` (403/404 matrix) |
 | 11 | Only parameterised queries | TypeORM repositories / query builder with bound parameters; the few raw SQL statements (`conflict-engine.service.ts`, `meeting-scheduler.service.ts`, health) use `$1…` placeholders; LIKE input escaped (`common/utils/sql.ts`) | Code review (no `${…}` user values inside SQL); `sql.spec.ts` |
 | 12 | Link tokens: 32 random bytes, stored hashed, single use, expiring | `common/utils/token.ts`; reset / set-password (`password-tokens.ts`), notification-email verify (`profile.service.ts`) | `token.spec.ts`; e2e: single use, expiry, older links closed (`auth`, `profile`, `users` e2e) |
-| 13 | Audit log for login, user changes, change-request decisions, meeting changes, priority changes (+ more) | `audit/audit.service.ts`, called inside the same transactions; read API `GET /audit-logs` with redaction (`audit/redact.ts`) | Audit assertions in every e2e suite; `redact.spec.ts`; `reports-admin.e2e-spec.ts` (secrets / phones redacted); v1.21 `NOTICE_EXTRACTED` holds only method / success / duration — never notice text or names |
+| 13 | Audit log for login, user changes, change-request decisions, meeting changes, priority changes (+ more) | `audit/audit.service.ts`, called inside the same transactions; read API `GET /audit-logs` with redaction (`audit/redact.ts`) | Audit assertions in every e2e suite; `redact.spec.ts`; `reports-admin.e2e-spec.ts` (secrets / phones redacted); v1.21 `NOTICE_EXTRACTED` holds only method / success / duration (+ AI fallback, cache flag, latency, token counts, error class) — never notice text, names or the API key; v1.21 `SETTING_CHANGED` (key, old / new value) |
 | 14 | Swagger only when `SWAGGER_ENABLED=true`; in production only with basic auth | `src/app.setup.ts` (`basicAuth`), `productionProblems` | Manual check in step 1 (404 when disabled); `env.validation.spec.ts` |
 | 15 | Errors never leak stacks or SQL in production | `common/filters/all-exceptions.filter.ts` (uniform body + `requestId`), `common/logging/safe-typeorm-logger.ts` (never logs query parameters) | `all-exceptions.filter.spec.ts`, `safe-typeorm-logger.spec.ts` |
 | 16 | Personal seed files git-ignored | `.gitignore` (`backend/src/database/seeds/data/`, `officers*.csv`, `.env*`, `backend/tmp/`) | `git check-ignore` (step 3); seed output prints only `source_sl` numbers |
@@ -35,6 +35,14 @@ Paths are relative to `backend/`. Unit tests: `npm run test`. End-to-end tests: 
   - the font is embedded, and all values are HTML-escaped (`report-template.spec.ts`);
   - at most 2 renders run at once, with a 30 s timeout.
 - **Race safety:** advisory locks per officer in the conflict engine, and row locks on token rotation, change-request decisions and reset tokens. Tested with parallel requests (`meetings.e2e-spec.ts`).
+
+- **AI notice reading (v1.21 part 2, SPEC.md §6.12–6.13):**
+  - Off by default (setting `noticeExtractionMethod = OCR`: everything stays on our server). **When an admin turns AI on, the content of every notice read with "fill the form from the notice" is sent to Anthropic** (the PDF, the downscaled image or the DOCX text). The admin must have the **office's approval** before switching it on.
+  - Only the notice is sent — never the officer list, names from our database, e-mails or the user. Officer matching always runs on our server.
+  - `ANTHROPIC_API_KEY` lives **only in `backend/.env`** (never in git, the database, logs, audit rows, API responses or the UI). The API only says whether a key is set (`aiAvailable`). Without a key the AI option cannot be chosen (400) and the local OCR is used.
+  - Logs and audit hold only method, success, latency, token counts and the error class — never the content, the reply or the key. The SDK runs with logging off and no retries.
+  - Results are cached **in memory only** for 1 hour by the file's sha256 (at most 100 entries, gone on restart) so the same file is never sent twice. 20 extractions per user per day stay in force.
+  - On any AI problem (no key, timeout `NOTICE_AI_TIMEOUT_MS`, network, rate or spend limit, refusal, invalid JSON) the local OCR is used automatically; the reply is validated with zod and never trusted as instructions.
 
 ## Known open items
 

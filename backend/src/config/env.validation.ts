@@ -68,6 +68,16 @@ export interface EnvVars {
    * Never logged, printed or returned; allowed in production.
    */
   DEFAULT_OFFICER_PASSWORD: string;
+
+  /**
+   * v1.21 part 2 (SPEC.md §6.13): Anthropic API key for the AI notice extractor. Optional; empty =
+   * the AI option is unavailable. Secret: only in .env, never logged, printed or returned.
+   */
+  ANTHROPIC_API_KEY: string;
+  /** Model of the AI notice extractor. */
+  NOTICE_AI_MODEL: string;
+  /** One AI request may take at most this long (ms); then the local OCR is used. */
+  NOTICE_AI_TIMEOUT_MS: number;
 }
 
 const MIN_SECRET_LENGTH = 32;
@@ -213,6 +223,17 @@ export const envSchema = Joi.object<EnvVars>({
       'password.weak':
         '"DEFAULT_OFFICER_PASSWORD" does not meet the password rule (at least 8 characters with letters and digits)',
     }),
+
+  // v1.21 part 2: AI notice extractor (optional). The messages never contain the key.
+  ANTHROPIC_API_KEY: Joi.string().allow('').trim().default(''),
+  NOTICE_AI_MODEL: Joi.string()
+    .pattern(/^[a-z0-9][a-z0-9.-]{2,99}$/)
+    .default('claude-haiku-5-5'),
+  NOTICE_AI_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(5_000)
+    .max(120_000)
+    .default(30_000),
 });
 
 /**

@@ -108,6 +108,17 @@ and Ubuntu: **no** Homebrew / apt `tesseract` or `poppler` is needed.
 The file stays in memory and is dropped after the request; nothing is stored, no meeting is created.
 At most 20 extractions per user per day.
 
+### Reading notices with AI (optional, v1.21 part 2)
+
+Admins can switch the reading method in **অ্যাডমিন → সেটিংস → "নোটিশ পড়ার পদ্ধতি"**: "নিজস্ব OCR" (default, free,
+nothing leaves the office) or "AI" (Anthropic, `@anthropic-ai/sdk`, more accurate).
+- Needs `ANTHROPIC_API_KEY` in `backend/.env` (never in git). Without it the AI option is disabled ("API key সেট করা নেই।").
+- `NOTICE_AI_MODEL` (default `claude-haiku-5-5`), `NOTICE_AI_TIMEOUT_MS` (default `30000`).
+- With AI on, **the notice content is sent to Anthropic** — get the office's approval first (docs/SECURITY.md).
+  Only the notice is sent, never the officer list; matching stays on our server.
+- Any AI error (no key, timeout, network, rate / spend limit, invalid JSON) falls back to the local OCR automatically;
+  the form then shows "AI ব্যবহার করা যায়নি, নিজস্ব OCR দিয়ে পড়া হয়েছে।". The same file is not sent twice within an hour.
+
 First login: `admin@bbs.gov.bd` with `SEED_SUPER_ADMIN_PASSWORD`; the app then asks for a new password.
 Officers log in with their official email and the office default password (`DEFAULT_OFFICER_PASSWORD`).
 
@@ -195,6 +206,8 @@ cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
 | `SWAGGER_ENABLED` | `false` (or `true` with `SWAGGER_USER` / `SWAGGER_PASSWORD`) |
 | `SEED_SUPER_ADMIN_PASSWORD` | initial password of `admin@bbs.gov.bd` (only used by the seed) |
 | `DEFAULT_OFFICER_PASSWORD` | the office default officer password (letters + digits, ≥ 8). Never commit or mail it |
+| `ANTHROPIC_API_KEY` | optional (v1.21 part 2): only when the office approved AI notice reading; empty = AI unavailable. Never commit it |
+| `NOTICE_AI_MODEL`, `NOTICE_AI_TIMEOUT_MS` | defaults `claude-haiku-5-5` / `30000` |
 
 The API refuses to start with unsafe production settings (weak secrets, http URLs, localhost in CORS,
 `MAIL_DRY_RUN` not set, Swagger without basic auth).

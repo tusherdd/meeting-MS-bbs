@@ -46,6 +46,7 @@ There is no separate database project: TypeORM entities, migrations and seeds ar
 | Tests | Jest unit tests (mocks) + e2e tests on a separate database `DB_NAME_TEST` (`backend/.env.test`) |
 | PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly; fonts embedded from `backend/assets/fonts/`: **NikoshBAN** for Bangla, **Tinos** for English (no internet fonts, §13.10) |
 | OCR (v1.21) | `tesseract.js` (WASM, `ben`+`eng` traineddata in `backend/assets/tessdata/`, Apache-2.0), `pdfjs-dist` (legacy Node build), `@napi-rs/canvas` (render fallback), `mammoth` (DOCX text) — npm only, no system tools (§6.12) |
+| AI notice reading (v1.21 part 2, optional) | `@anthropic-ai/sdk` (structured output), `zod` (reply validation) — §6.12, §6.13 |
 | Frontend | Next.js (App Router), TypeScript, Tailwind CSS |
 | Timezone | Store `timestamptz` (UTC). Display and compute "today/week/month" in `Asia/Dhaka`. |
 
@@ -80,7 +81,8 @@ backend/
 │       ├── decisions/           meeting minutes "সভা কার্যবিবরণী" (v1.11 as "decisions", renamed v1.13, §6.9)
 │       ├── notices/             uploaded meeting notice "সভার নোটিশ" (v1.13, §6.8)
 │       ├── attachments/         other attachments "অন্যান্য সংযুক্তি" (v1.17, §6.11)
-│       ├── notice-extract/      fill the meeting form from the notice (v1.21, §6.12): extractors, OCR, parser, matching
+│       ├── notice-extract/      fill the meeting form from the notice (v1.21, §6.12): extractors (OCR / AI), OCR, parser, matching
+│       ├── settings/            app-wide settings, key-value table app_settings (v1.21 part 2, §6.13)
 │       ├── notifications/       NotificationsService.notify + channels (in-app, e-mail)
 │       ├── mail/                outbox entity, worker, templates, admin outbox API
 │       ├── reports/             summaries + PDF (Puppeteer)
@@ -528,10 +530,10 @@ Besides the notice, the organizer can add up to five more files to a meeting, ea
 - Tests: `attachment-rules.spec.ts`, `attachments.service.spec.ts`, `test/attachments.e2e-spec.ts`; frontend
   `tests/unit/attachments.test.ts`, `e2e/v117-attachments.spec.ts`.
 
-### 6.12 Fill the meeting form from the notice (v1.21 part 1 of 3, owner request 2026-11-25)
+### 6.12 Fill the meeting form from the notice (v1.21 parts 1–2 of 3, owner request 2026-11-25)
 The organizer uploads the notice to the **create or edit form**; the backend reads it and returns the form fields and
-the matched officers. Part 1 = backend only (the form UI comes in part 3, an AI extractor in part 2). Module
-`modules/notice-extract/`.
+the matched officers. Part 1 = backend with the local OCR, part 2 = the AI extractor + the admin switch (§6.13), part 3 =
+the form UI. Module `modules/notice-extract/`.
 - **Endpoint:** `POST /meetings/notice-extract` (multipart `file`) → 200 with the result. Used before the meeting exists.
   Every officer and admin, **not SUPER_ADMIN** (403, the "cannot organize" message). **Nothing is stored:** the file is
   checked and read in memory (multer memory storage, no temp file), dropped after the request; no meeting is created.
@@ -539,10 +541,29 @@ the matched officers. Part 1 = backend only (the form UI comes in part 3, an AI 
   JPEG / PNG (re-encoded without EXIF), decided by the bytes, max **10 MB**.
 - **Rate limit:** 20 per user per day (`@Throttle`, in-memory throttler store: a restart resets it).
 - **Audit:** `NOTICE_EXTRACTED` — `after: { method, success, durationMs }` only; never the text, the fields or the
-  file name. Logs only carry the error type.
-- **Pluggable extraction:** `extractors/notice-extractor.ts` (interface + token `NOTICE_EXTRACTOR`). Now `OcrExtractor`
-  (method `OCR`); part 2 adds an AI extractor. Officer matching is never part of an extractor: it always runs on our
-  server, the officer list is never sent anywhere.
+  file name. When the setting is AI (part 2) also `configuredMethod, fallback, cached, aiLatencyMs, inputTokens,
+  outputTokens, aiError` (error class only). Logs only carry the error type / these counts.
+- **Pluggable extraction:** `extractors/notice-extractor.ts` (interface). `OcrExtractor` (method `OCR`) and `AiExtractor`
+  (method `AI`, part 2); `extractors/notice-reader.ts` picks one per request from the admin setting
+  `noticeExtractionMethod` (§6.13). Officer matching is never part of an extractor: it always runs on our server, the
+  officer list is never sent anywhere.
+- **AI extractor** (v1.21 part 2, `extractors/ai-extractor.ts`, `ai/`): official SDK `@anthropic-ai/sdk`, model
+  `NOTICE_AI_MODEL` (default `claude-haiku-5-5`), timeout `NOTICE_AI_TIMEOUT_MS` (default 30 000 ms), no SDK retries, SDK
+  logging off. Sends **only the notice** (`ai/ai-input.ts`): PDF as a document block; JPEG / PNG downscaled so the long side
+  is ≤ 1600 px (JPEG); DOCX as its text (`mammoth`). The system prompt (`ai/notice-ai-schema.ts`) describes the one fixed
+  format with the same fields and rules as the parser (header, memo number, top-right date, signature block and
+  everything from "অনুলিপি" ignored; the same time rules) and asks for strict JSON through structured output: `title, date,
+  startTime, endTime, startTimeAssumedAfternoon, venue, agenda, chairText, distribution[{ name, designation, wingOrOffice,
+  isGroup }]`, null where not found (no guessing). The reply is validated with zod (`ai/ai-reply.ts`); a date / time in the
+  wrong format becomes null; `endTime` is always recomputed (start + 45 min); the same `*_NOT_FOUND` warnings as the parser.
+  Distribution lines are rebuilt as "name, designation, wing" and go through the **same officer matching**.
+  - **Fallback:** any AI error (no key, timeout, network, rate or spend limit, refusal / cut-off reply, invalid JSON or
+    shape) → the local OCR at once; the response then has `method: "OCR"` and the first warning `AI_FALLBACK`
+    "AI ব্যবহার করা যায়নি, নিজস্ব OCR দিয়ে পড়া হয়েছে।".
+  - **Cost:** in-memory LRU cache by model + sha256 of the file (`ai/extraction-cache.ts`, 1 hour, 100 entries, lost on
+    restart): the same file is never sent twice. The 20/day per-user limit applies to both methods.
+  - **Privacy:** with AI on, the notice content goes to Anthropic (SECURITY.md); the admin needs office approval. The key is
+    only in `.env`.
 - **Text (OcrExtractor):** DOCX → text (`mammoth`). PDF → the text layer (`pdfjs-dist`); when it has too little real
   Bangla Unicode (`text-quality.ts`: < 80 Bangla letters, < 40 % Bangla among letters, or no "সভা" — image-only scans,
   Bijoy/SutonnyMJ text) page 1 (and 2) are OCR'd: the page's largest embedded image (≥ 0.5 MP, from the operator list,
@@ -586,13 +607,28 @@ the matched officers. Part 1 = backend only (the form UI comes in part 3, an AI 
   - The same officer "sure" on two lines is kept once (warning `DUPLICATE_OFFICER`).
   - **Chair:** the same matching on the "সভাপতি" text → `sure` / `maybe` / `unmatched` (unmatched may become a guest chair).
 - **Response:** `{ method, fields: { title, date, startTime, endTime, venue, agenda }, chair, participants: { sure, maybe,
-  unmatched }, warnings: [{ code, message }] }` (`dto/notice-extract.dto.ts`; warning messages in Bangla,
+  unmatched }, warnings: [{ code, message }] }` (`method`: `OCR` or `AI`, the one that actually read the notice;
+  `dto/notice-extract.dto.ts`; warning messages in Bangla,
   `parse/notice-warnings.ts`). A file that cannot be read at all → 422 `NOTICE_EXTRACT_FAILED`.
 - **Time and memory notes:** a text-layer PDF or DOCX takes well under a second; a scanned page about 5–20 s on a laptop
   (first job + ~2 s to load the language data). nginx gives this route `proxy_read_timeout 180s` (README §4.7).
 - Tests (unit): `notice-parser.spec.ts` (the real notice's OCR text, anonymized), `notice-time.spec.ts`,
   `ocr-fixes.spec.ts`, `officer-matcher.spec.ts` (sure / maybe / unmatched / group / comma name / no-name lines / chair /
   duplicates), `text-quality.spec.ts`, `ocr-engine.service.spec.ts` (lazy, reuse, idle, 60 s timeout, shutdown).
+  Part 2 (SDK mocked): `ai-extractor.spec.ts` (success, invalid JSON / wrong shape / refusal throw, no key, cache hit, failed
+  reply not cached), `notice-reader.spec.ts` (OCR setting, AI success, fallback on invalid JSON / timeout / no key / rate
+  limit), `ai-reply.spec.ts`, `extraction-cache.spec.ts`, `settings.service.spec.ts` (default OCR, no key → AI unavailable).
+
+### 6.13 App settings "সেটিংস" (v1.21 part 2, owner request 2026-11-25)
+- Table `app_settings` (key-value, §7), module `modules/settings/`. A missing row = the default.
+- Only key now: **`noticeExtractionMethod`** = `OCR` (default) | `AI` — how §6.12 reads a notice.
+- `GET /admin/settings` → `{ noticeExtractionMethod, aiAvailable }` (`aiAvailable` = `ANTHROPIC_API_KEY` is set; the key is
+  never returned). `PATCH /admin/settings` `{ noticeExtractionMethod }`; `AI` without a key → 400 "API key সেট করা নেই।".
+  ADMIN / SUPER_ADMIN only. Read on every extraction (a change applies at once).
+- Audit `SETTING_CHANGED`: `before / after: { key, value }` (only when the value changes).
+- UI: admin menu item "সেটিংস" / "Settings" → `/admin/settings`: radio group "নোটিশ পড়ার পদ্ধতি" with
+  "নিজস্ব OCR (ফ্রি, অফিসের বাইরে যায় না)" and "AI (আরও নির্ভুল)" + "Save". The AI option is disabled with the note
+  "API key সেট করা নেই।" while no key is set.
 
 ## 7. Data model (TypeORM entities)
 
@@ -630,6 +666,7 @@ All tables have `id` (uuid), `createdAt`, `updatedAt`.
 - **email_outbox**: to, subject, html (nullable, purged after sending), text (plain-text version, purged too),
   status (`PENDING` | `SENT` | `FAILED`), attempts, lastError, nextAttemptAt, sentAt
 - **audit_logs**: actorId, action, entityType, entityId, before (json), after (json), ip, createdAt
+- **app_settings** (v1.21 part 2, §6.13): key (unique, max 100), value (max 500), updatedById (→ users, SET NULL) — never secrets
 
 Indexes: meetings(startAt, endAt, status); meeting_participants(userId); notifications(userId, readAt).
 
@@ -754,6 +791,8 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/admin/stats` | 🛡 | Counts: users, meetings today/week, pending conflicts, pending change requests, failed mails |
+| GET | `/admin/settings` | 🛡 | App settings: `noticeExtractionMethod`, `aiAvailable` (v1.21 part 2, §6.13) |
+| PATCH | `/admin/settings` | 🛡 | Change `noticeExtractionMethod` (OCR / AI; AI only with a key); audited `SETTING_CHANGED` |
 | GET | `/audit-logs` | 🛡 | Audit trail (filter by actor, action, entity, date) |
 | GET | `/admin/email-outbox` | 🛡 | Mail queue status, retry failed |
 | POST | `/admin/email-outbox/:id/retry` | 🛡 | Retry one failed mail |
@@ -800,13 +839,17 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 13. Audit log for: login, user create/update/role/status, change-request decisions, meeting create/update/cancel/delete,
     meeting notice upload / replace / remove (`MEETING_NOTICE_UPLOADED` / `_REPLACED` / `_REMOVED`, v1.13; the v1.10
     `MEETING_NOTICE_EXPORTED` stays for old rows), other attachments add / remove (`MEETING_ATTACHMENT_ADDED` /
-    `_REMOVED`, v1.17), notice extraction (`NOTICE_EXTRACTED`: method / success / duration only, v1.21), minutes file upload / delete
+    `_REMOVED`, v1.17), notice extraction (`NOTICE_EXTRACTED`: method / success / duration only, v1.21; + AI counts, part 2), app settings
+    (`SETTING_CHANGED`, v1.21 part 2), minutes file upload / delete
     (`MEETING_DECISION_UPLOADED` / `_DELETED`, v1.11), designation priority changes.
 14. Swagger enabled only when `SWAGGER_ENABLED=true` (off by default); in production only behind HTTP basic auth
     (`SWAGGER_USER`, `SWAGGER_PASSWORD`).
 15. Errors never leak stack traces or SQL in production. Every response has an `X-Request-Id` (also in error bodies
     and error logs). Logs never contain query parameters, request bodies, passwords or tokens.
 16. Personal data seed files (officer list) are git-ignored.
+17. AI notice reading (v1.21 part 2, §6.12–6.13): off by default; when on, only the notice content goes to Anthropic (office
+    approval required), never the officer list. `ANTHROPIC_API_KEY` only in `.env`, never logged, printed, stored or
+    returned; logs / audit only method, success, latency, token counts.
 
 ## 10. Environment variables (`backend/.env.example`)
 
@@ -854,6 +897,10 @@ THROTTLE_USER_LIMIT=300         # per minute per logged-in user (counted by user
 SEED_SUPER_ADMIN_EMAIL=admin@bbs.gov.bd
 SEED_SUPER_ADMIN_PASSWORD=
 DEFAULT_OFFICER_PASSWORD=        # required: the one default officer password (letters + digits, ≥ 8); never commit it
+
+ANTHROPIC_API_KEY=               # v1.21 part 2, optional: AI notice reading; empty = AI unavailable; secret, never commit it
+NOTICE_AI_MODEL=claude-haiku-5-5 # model of the AI notice extractor
+NOTICE_AI_TIMEOUT_MS=30000       # one AI request at most this long (5000–120000), then the local OCR
 ```
 
 e2e tests additionally read `backend/.env.test` (copy of the committed `.env.test.example`):
@@ -947,6 +994,10 @@ picker restored.
 Release **v1.21** part 1 of 3 (2026-11-25, no tag): "fill the meeting form from the notice" — backend only:
 `POST /meetings/notice-extract` with local OCR (tesseract.js, traineddata in `backend/assets/tessdata/`), the fixed-format
 parser and officer matching (§6.12). No migration. Part 2: an AI extractor; part 3: the form UI.
+Part 2 of 3 (2026-11-25, no tag): the optional AI extractor (`@anthropic-ai/sdk`, structured JSON validated with zod, OCR
+fallback, 1-hour sha256 cache) and the admin page "সেটিংস" with the setting `noticeExtractionMethod` (§6.12, §6.13).
+Migration `AppSettings1795500000000` (table `app_settings`). New env: `ANTHROPIC_API_KEY`, `NOTICE_AI_MODEL`,
+`NOTICE_AI_TIMEOUT_MS`.
 
 ## 13. Frontend (`frontend/`)
 
@@ -993,6 +1044,7 @@ frontend/
 | `/decisions`, `/meetings/:id/decision` (meeting minutes "সভা কার্যবিবরণী") | app | v1.11 |
 | `/profile` | app | F3 |
 | `/admin`, `/admin/users` (+ `/new`, `/:id`), `/admin/designations`, `/admin/wings`, `/admin/change-requests`, `/admin/meetings`, `/admin/conflicts`, `/admin/email-outbox`, `/admin/audit-logs` | app, ADMIN/SUPER_ADMIN only (others see the 404 page) | F3 |
+| `/admin/settings` (app settings "সেটিংস": notice reading method, §6.13) | app, ADMIN/SUPER_ADMIN only | v1.21 part 2 |
 
 Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page with "আবার চেষ্টা করুন".
 

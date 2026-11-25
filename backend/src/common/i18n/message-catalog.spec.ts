@@ -10,6 +10,7 @@ import { DESIGNATION_MESSAGES } from '../../modules/designations/designations.me
 import { MEETING_MESSAGES } from '../../modules/meetings/meetings.messages';
 import { NOTICE_EXTRACT_MESSAGES } from '../../modules/notice-extract/notice-extract.messages';
 import { PROFILE_MESSAGES } from '../../modules/profile/profile.messages';
+import { SETTINGS_MESSAGES } from '../../modules/settings/settings.messages';
 import { USER_MESSAGES } from '../../modules/users/users.messages';
 import { WING_MESSAGES } from '../../modules/wings/wings.messages';
 import { MESSAGE_CATALOG, PARAM_TRANSLATIONS } from './message-catalog';
@@ -98,6 +99,7 @@ describe('API message catalog (v1.6)', () => {
       MEETING_MESSAGES,
       NOTICE_EXTRACT_MESSAGES,
       PROFILE_MESSAGES,
+      SETTINGS_MESSAGES,
       USER_MESSAGES,
       WING_MESSAGES,
     };

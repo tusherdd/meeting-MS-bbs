@@ -88,6 +88,7 @@
                 "MEETING_ATTACHMENT_ADDED",
                 "MEETING_ATTACHMENT_REMOVED",
                 "NOTICE_EXTRACTED",
+                "SETTING_CHANGED",
                 "MEETING_DECISION_UPLOADED",
                 "MEETING_DECISION_DELETED",
                 "OFFICE_REPORT_EXPORTED",
@@ -4269,7 +4270,7 @@
     },
     "/api/v1/meetings/notice-extract": {
       "post": {
-        "description": "For the create and edit forms. Same file rules as the notice upload (PDF, DOCX without macros, JPEG, PNG; checked by the bytes; max 10 MB). The file is processed in memory and dropped; no meeting is created. PDF: the text layer, or OCR of page 1 (and 2) when it holds no real Bangla text (scans, Bijoy fonts); images: OCR (local tesseract.js, ben+eng). Officers are matched on the server (active officers only, never SUPER_ADMIN). Fields not found are null. Every officer and admin, not SUPER_ADMIN. 20 per user per day. Audited (NOTICE_EXTRACTED: method, success, duration).",
+        "description": "For the create and edit forms. Same file rules as the notice upload (PDF, DOCX without macros, JPEG, PNG; checked by the bytes; max 10 MB). The file is processed in memory and dropped; no meeting is created. PDF: the text layer, or OCR of page 1 (and 2) when it holds no real Bangla text (scans, Bijoy fonts); images: OCR (local tesseract.js, ben+eng). When the admin setting noticeExtractionMethod is AI (v1.21 part 2), ONLY the notice is sent to Anthropic (strict JSON); on any AI error the local OCR is used and warnings contain AI_FALLBACK; `method` says which one read it. The same file is not sent twice within an hour (cache by sha256). Officers are matched on the server (active officers only, never SUPER_ADMIN; the officer list is never sent anywhere). Fields not found are null. Every officer and admin, not SUPER_ADMIN. 20 per user per day. Audited (NOTICE_EXTRACTED: method, success, duration, AI latency and token counts).",
         "operationId": "NoticeExtractController_extract",
         "parameters": [
           {
@@ -4333,6 +4334,111 @@
         "tags": [
           "Meeting notice"
         ]
+      }
+    },
+    "/api/v1/admin/settings": {
+      "get": {
+        "description": "noticeExtractionMethod (OCR | AI) and whether the AI option is available (ANTHROPIC_API_KEY set; the key is never returned).",
+        "operationId": "SettingsController_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppSettingsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "App settings (ADMIN)",
+        "tags": [
+          "Admin"
+        ],
+        "x-access": "ADMIN"
+      },
+      "patch": {
+        "description": "Sets noticeExtractionMethod. AI is refused (400) while ANTHROPIC_API_KEY is not set. Audited (SETTING_CHANGED).",
+        "operationId": "SettingsController_update",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAppSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid value, or AI without an API key"
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change app settings (ADMIN)",
+        "tags": [
+          "Admin"
+        ],
+        "x-access": "ADMIN"
       }
     },
     "/api/v1/meetings/{id}/attachments": {
@@ -5396,6 +5502,7 @@
               "MEETING_ATTACHMENT_ADDED",
               "MEETING_ATTACHMENT_REMOVED",
               "NOTICE_EXTRACTED",
+              "SETTING_CHANGED",
               "MEETING_DECISION_UPLOADED",
               "MEETING_DECISION_DELETED",
               "OFFICE_REPORT_EXPORTED",
@@ -9119,6 +9226,45 @@
           "chair",
           "participants",
           "warnings"
+        ]
+      },
+      "AppSettingsDto": {
+        "type": "object",
+        "properties": {
+          "noticeExtractionMethod": {
+            "type": "string",
+            "enum": [
+              "OCR",
+              "AI"
+            ],
+            "example": "OCR",
+            "description": "How \"fill the meeting form from the notice\" reads the notice: OCR (local, default) or AI (Anthropic)."
+          },
+          "aiAvailable": {
+            "type": "boolean",
+            "example": false,
+            "description": "true when ANTHROPIC_API_KEY is set on the server (the AI option can be chosen). The key itself is never returned."
+          }
+        },
+        "required": [
+          "noticeExtractionMethod",
+          "aiAvailable"
+        ]
+      },
+      "UpdateAppSettingsDto": {
+        "type": "object",
+        "properties": {
+          "noticeExtractionMethod": {
+            "type": "string",
+            "enum": [
+              "OCR",
+              "AI"
+            ],
+            "example": "AI"
+          }
+        },
+        "required": [
+          "noticeExtractionMethod"
         ]
       },
       "AttachmentDto": {

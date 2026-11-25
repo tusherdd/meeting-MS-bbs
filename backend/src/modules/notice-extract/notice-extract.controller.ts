@@ -57,9 +57,13 @@ export class NoticeExtractController {
       'For the create and edit forms. Same file rules as the notice upload (PDF, DOCX without macros, ' +
       'JPEG, PNG; checked by the bytes; max 10 MB). The file is processed in memory and dropped; no ' +
       'meeting is created. PDF: the text layer, or OCR of page 1 (and 2) when it holds no real Bangla text ' +
-      '(scans, Bijoy fonts); images: OCR (local tesseract.js, ben+eng). Officers are matched on the server ' +
-      '(active officers only, never SUPER_ADMIN). Fields not found are null. Every officer and admin, not ' +
-      'SUPER_ADMIN. 20 per user per day. Audited (NOTICE_EXTRACTED: method, success, duration).',
+      '(scans, Bijoy fonts); images: OCR (local tesseract.js, ben+eng). When the admin setting ' +
+      'noticeExtractionMethod is AI (v1.21 part 2), ONLY the notice is sent to Anthropic (strict JSON); on any AI ' +
+      'error the local OCR is used and warnings contain AI_FALLBACK; `method` says which one read it. The same ' +
+      'file is not sent twice within an hour (cache by sha256). Officers are matched on the server ' +
+      '(active officers only, never SUPER_ADMIN; the officer list is never sent anywhere). Fields not found are ' +
+      'null. Every officer and admin, not SUPER_ADMIN. 20 per user per day. Audited (NOTICE_EXTRACTED: method, ' +
+      'success, duration, AI latency and token counts).',
   })
   @ApiOkResponse({ type: NoticeExtractResponseDto })
   @ApiBadRequestResponse({

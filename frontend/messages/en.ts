@@ -749,6 +749,7 @@ export const en: Messages = {
       reports: "Office report",
       emailOutbox: "Email queue",
       auditLogs: "Audit log",
+      settings: "Settings",
     },
     overviewTitle: "Overview",
     stats: {
@@ -911,6 +912,17 @@ export const en: Messages = {
     meetingsTitle: "All meetings",
     conflictsTitle: "All concurrent meetings",
     reportsTitle: "Office report",
+    /** v1.21 part 2 (SPEC.md §6.13): /admin/settings. */
+    settings: {
+      title: "Settings",
+      noticeMethod: "Notice reading method",
+      methods: {
+        OCR: "Own OCR (free, stays inside the office)",
+        AI: "AI (more accurate)",
+      },
+      aiNoKey: "The API key is not set.",
+      saved: "Settings saved.",
+    },
     outboxTitle: "Email queue",
     outboxStatus: {
       PENDING: "Pending",
@@ -992,6 +1004,7 @@ export const en: Messages = {
       MEETING_ATTACHMENT_ADDED: "Attachment added",
       MEETING_ATTACHMENT_REMOVED: "Attachment removed",
       NOTICE_EXTRACTED: "Form filled from notice",
+      SETTING_CHANGED: "Settings changed",
       OFFICE_REPORT_EXPORTED: "Office report PDF downloaded",
       MEETING_DECISION_UPLOADED: "Meeting minutes uploaded",
       MEETING_DECISION_DELETED: "Meeting minutes file deleted",

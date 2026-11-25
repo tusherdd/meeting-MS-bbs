@@ -16,6 +16,7 @@ import { MeetingParticipant } from '../modules/meetings/entities/meeting-partici
 import { Meeting } from '../modules/meetings/entities/meeting.entity';
 import { MeetingNoticeFile } from '../modules/notices/entities/meeting-notice-file.entity';
 import { Notification } from '../modules/notifications/entities/notification.entity';
+import { AppSetting } from '../modules/settings/entities/app-setting.entity';
 import { UserAdditionalCharge } from '../modules/users/entities/user-additional-charge.entity';
 import { User } from '../modules/users/entities/user.entity';
 import { Wing } from '../modules/wings/entities/wing.entity';
@@ -38,4 +39,5 @@ export const ENTITIES = [
   Notification,
   EmailOutbox,
   AuditLog,
+  AppSetting,
 ];

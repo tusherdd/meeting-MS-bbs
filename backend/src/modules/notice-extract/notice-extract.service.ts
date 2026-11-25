@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ForbiddenException,
-  Inject,
   Injectable,
   Logger,
   PayloadTooLargeException,
@@ -25,10 +24,7 @@ import { UserAdditionalCharge } from '../users/entities/user-additional-charge.e
 import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
 import type { NoticeExtractResponseDto } from './dto/notice-extract.dto';
-import {
-  NOTICE_EXTRACTOR,
-  type NoticeExtractor,
-} from './extractors/notice-extractor';
+import { NoticeReader, type NoticeReadMeta } from './extractors/notice-reader';
 import { buildExtractResponse } from './match/notice-matching';
 import type { OfficerRecord } from './match/officer-matcher';
 import { NOTICE_EXTRACT_MESSAGES as MSG } from './notice-extract.messages';
@@ -44,14 +40,15 @@ export interface IncomingExtractFile {
  * "Fill the meeting form from the notice" (v1.21, SPEC.md §6.12): reads an uploaded notice in
  * memory, returns the form fields and the matched officers. Nothing is stored, no meeting is
  * created; the file bytes are dropped when the request ends. The officer list never leaves the
- * server. Audit: NOTICE_EXTRACTED with method / success / duration only (never the content).
+ * server. Audit: NOTICE_EXTRACTED with method / success / duration (+ AI fallback, cache, latency
+ * and token counts, v1.21 part 2) only — never the content.
  */
 @Injectable()
 export class NoticeExtractService {
   private readonly logger = new Logger(NoticeExtractService.name);
 
   constructor(
-    @Inject(NOTICE_EXTRACTOR) private readonly extractor: NoticeExtractor,
+    private readonly reader: NoticeReader,
     private readonly dataSource: DataSource,
     private readonly audit: AuditService,
   ) {}
@@ -89,23 +86,27 @@ export class NoticeExtractService {
     }
 
     const started = Date.now();
+    let meta: NoticeReadMeta | null = null;
     try {
-      const extraction = await this.extractor.extract({
+      const result = await this.reader.read({
         type: file.type,
         content: file.content,
       });
+      meta = result.meta;
       const response = buildExtractResponse(
-        extraction,
+        result.extraction,
         await this.loadOfficers(),
       );
-      await this.logAudit(actor, ip, true, started);
+      await this.logAudit(actor, ip, true, started, meta);
       return response;
     } catch (err) {
       // Never the content or the file name: only the error type.
       this.logger.warn(
         `Notice extraction failed: ${err instanceof Error ? err.name : 'unknown'}`,
       );
-      await this.logAudit(actor, ip, false, started).catch(() => undefined);
+      await this.logAudit(actor, ip, false, started, meta).catch(
+        () => undefined,
+      );
       throw new UnprocessableEntityException(MSG.failed);
     }
   }
@@ -115,16 +116,29 @@ export class NoticeExtractService {
     ip: string | null,
     success: boolean,
     started: number,
+    meta: NoticeReadMeta | null,
   ): Promise<void> {
     return this.audit.log({
       actorId: actor.id,
       action: AuditAction.NOTICE_EXTRACTED,
       entityType: 'meeting',
       entityId: null,
+      // Counts and flags only (SPEC.md §6.12): never the text, the fields, the file name or the key.
       after: {
-        method: this.extractor.method,
+        method: meta?.method ?? 'OCR',
         success,
         durationMs: Date.now() - started,
+        ...(meta && meta.configuredMethod === 'AI'
+          ? {
+              configuredMethod: meta.configuredMethod,
+              fallback: meta.fallback,
+              cached: meta.cached,
+              aiLatencyMs: meta.aiLatencyMs,
+              inputTokens: meta.inputTokens,
+              outputTokens: meta.outputTokens,
+              aiError: meta.aiError,
+            }
+          : {}),
       },
       ip,
     });

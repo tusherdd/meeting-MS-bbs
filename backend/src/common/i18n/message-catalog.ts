@@ -577,6 +577,14 @@ export const MESSAGE_CATALOG = {
     bn: 'এই সভার কোনো নোটিশ ফাইল নেই।',
     en: 'This meeting has no notice file.',
   },
+  SETTINGS_METHOD_INVALID: {
+    bn: 'নোটিশ পড়ার পদ্ধতি OCR অথবা AI হতে হবে।',
+    en: 'The notice reading method must be OCR or AI.',
+  },
+  SETTINGS_AI_UNAVAILABLE: {
+    bn: 'API key সেট করা নেই।',
+    en: 'The API key is not set.',
+  },
   NOTICE_EXTRACT_FAILED: {
     bn: 'নোটিশ থেকে তথ্য পড়া যায়নি। ফাইলটি পরীক্ষা করুন অথবা তথ্যগুলো নিজে লিখুন।',
     en: 'The notice could not be read. Check the file or enter the details yourself.',

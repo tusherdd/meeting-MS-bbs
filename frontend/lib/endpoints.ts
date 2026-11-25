@@ -8,6 +8,8 @@ import { type ReportWhen, whenFileKey, whenKey, whenQuery } from "./report-range
 import { api, apiDownload, apiUpload } from "./api";
 import type {
   AdminStats,
+  AppSettings,
+  UpdateAppSettingsInput,
   DecisionDetail,
   DecisionStatus,
   DecisionSummary,
@@ -121,6 +123,7 @@ export const queryKeys = {
   changeRequests: (status: ChangeRequestStatus, page: number) =>
     ["change-requests", status, page] as const,
   adminStats: ["admin", "stats"] as const,
+  adminSettings: ["admin", "settings"] as const,
   emailOutbox: (status: EmailStatus | undefined, page: number) =>
     ["admin", "email-outbox", status ?? "ALL", page] as const,
   auditLogs: (query: AuditLogQuery) => ["admin", "audit-logs", query] as const,
@@ -415,6 +418,9 @@ export const changeRequestsApi = {
 // Admin ------------------------------------------------------------------------------------------
 export const adminApi = {
   stats: () => api<AdminStats>("/admin/stats"),
+  settings: () => api<AppSettings>("/admin/settings"),
+  updateSettings: (input: UpdateAppSettingsInput) =>
+    api<AppSettings>("/admin/settings", { method: "PATCH", body: input }),
   emailOutbox: (status: EmailStatus | undefined, page: number) =>
     api<Paginated<EmailOutboxItem>>("/admin/email-outbox", { query: { status, page, limit: 20 } }),
   retryEmail: (mailId: string) =>

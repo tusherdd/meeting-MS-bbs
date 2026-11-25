@@ -3,7 +3,7 @@
  * Pure data: no Nest, no database.
  */
 
-/** How the text was obtained. 'AI' comes in v1.21 part 2. */
+/** How the notice was read: the local OCR extractor or the AI extractor (v1.21 part 2). */
 export type ExtractionMethod = 'OCR' | 'AI';
 
 /** A warning for the form; `code` is stable (clients may translate it), `message` is Bangla. */

@@ -35,6 +35,7 @@
     "migration:show:prod": "typeorm -d dist/database/data-source.js migration:show"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.14.0",
     "@napi-rs/canvas": "^1.2.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
@@ -63,7 +64,8 @@
     "rxjs": "^7.8.1",
     "sharp": "^0.35.5",
     "tesseract.js": "^7.0.0",
-    "typeorm": "^0.3.31"
+    "typeorm": "^0.3.31",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

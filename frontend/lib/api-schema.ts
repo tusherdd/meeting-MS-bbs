@@ -936,13 +936,37 @@ export interface paths {
         put?: never;
         /**
          * Read a meeting notice and return the form fields (nothing is stored)
-         * @description For the create and edit forms. Same file rules as the notice upload (PDF, DOCX without macros, JPEG, PNG; checked by the bytes; max 10 MB). The file is processed in memory and dropped; no meeting is created. PDF: the text layer, or OCR of page 1 (and 2) when it holds no real Bangla text (scans, Bijoy fonts); images: OCR (local tesseract.js, ben+eng). Officers are matched on the server (active officers only, never SUPER_ADMIN). Fields not found are null. Every officer and admin, not SUPER_ADMIN. 20 per user per day. Audited (NOTICE_EXTRACTED: method, success, duration).
+         * @description For the create and edit forms. Same file rules as the notice upload (PDF, DOCX without macros, JPEG, PNG; checked by the bytes; max 10 MB). The file is processed in memory and dropped; no meeting is created. PDF: the text layer, or OCR of page 1 (and 2) when it holds no real Bangla text (scans, Bijoy fonts); images: OCR (local tesseract.js, ben+eng). When the admin setting noticeExtractionMethod is AI (v1.21 part 2), ONLY the notice is sent to Anthropic (strict JSON); on any AI error the local OCR is used and warnings contain AI_FALLBACK; `method` says which one read it. The same file is not sent twice within an hour (cache by sha256). Officers are matched on the server (active officers only, never SUPER_ADMIN; the officer list is never sent anywhere). Fields not found are null. Every officer and admin, not SUPER_ADMIN. 20 per user per day. Audited (NOTICE_EXTRACTED: method, success, duration, AI latency and token counts).
          */
         post: operations["NoticeExtractController_extract"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * App settings (ADMIN)
+         * @description noticeExtractionMethod (OCR | AI) and whether the AI option is available (ANTHROPIC_API_KEY set; the key is never returned).
+         */
+        get: operations["SettingsController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change app settings (ADMIN)
+         * @description Sets noticeExtractionMethod. AI is refused (400) while ANTHROPIC_API_KEY is not set. Audited (SETTING_CHANGED).
+         */
+        patch: operations["SettingsController_update"];
         trace?: never;
     };
     "/api/v1/meetings/{id}/attachments": {
@@ -1142,7 +1166,7 @@ export interface components {
              * @example MEETING_CREATE
              * @enum {string}
              */
-            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_ATTACHMENT_ADDED" | "MEETING_ATTACHMENT_REMOVED" | "NOTICE_EXTRACTED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_ATTACHMENT_ADDED" | "MEETING_ATTACHMENT_REMOVED" | "NOTICE_EXTRACTED" | "SETTING_CHANGED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
             /** @example meeting */
             entityType: string;
             entityId: string | null;
@@ -2747,6 +2771,26 @@ export interface components {
             participants: components["schemas"]["ExtractedParticipantsDto"];
             warnings: components["schemas"]["ExtractWarningDto"][];
         };
+        AppSettingsDto: {
+            /**
+             * @description How "fill the meeting form from the notice" reads the notice: OCR (local, default) or AI (Anthropic).
+             * @example OCR
+             * @enum {string}
+             */
+            noticeExtractionMethod: "OCR" | "AI";
+            /**
+             * @description true when ANTHROPIC_API_KEY is set on the server (the AI option can be chosen). The key itself is never returned.
+             * @example false
+             */
+            aiAvailable: boolean;
+        };
+        UpdateAppSettingsDto: {
+            /**
+             * @example AI
+             * @enum {string}
+             */
+            noticeExtractionMethod: "OCR" | "AI";
+        };
         AttachmentDto: {
             /** Format: uuid */
             id: string;
@@ -3214,7 +3258,7 @@ export interface operations {
                 limit?: number;
                 /** @description Who did it */
                 actorId?: string;
-                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_ATTACHMENT_ADDED" | "MEETING_ATTACHMENT_REMOVED" | "NOTICE_EXTRACTED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_ATTACHMENT_ADDED" | "MEETING_ATTACHMENT_REMOVED" | "NOTICE_EXTRACTED" | "SETTING_CHANGED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
                 /** @description user, meeting, designation, change_request, … */
                 entityType?: string;
                 /** @description Id of the changed record */
@@ -5673,6 +5717,75 @@ export interface operations {
             };
             /** @description More than 20 extractions today */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SettingsController_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettingsDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SettingsController_update: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAppSettingsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettingsDto"];
+                };
+            };
+            /** @description Invalid value, or AI without an API key */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not an admin */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

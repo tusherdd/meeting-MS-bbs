@@ -199,6 +199,24 @@ export function addMinutes(
   return end.hasSame(start, 'day') ? end.toFormat('HH:mm') : null;
 }
 
+/**
+ * The form's default end: start + 45 min (v1.18). With a date in Asia/Dhaka; without one plain
+ * clock arithmetic. Null when there is no start or the end would pass midnight.
+ */
+export function defaultEndTime(
+  date: string | null,
+  startTime: string | null,
+): string | null {
+  if (!startTime) return null;
+  if (date !== null)
+    return addMinutes(date, startTime, DEFAULT_DURATION_MINUTES);
+  const [h, m] = startTime.split(':').map(Number);
+  const total = h * 60 + m + DEFAULT_DURATION_MINUTES;
+  return total < 24 * 60
+    ? `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+    : null;
+}
+
 export interface NoticeDateTime {
   date: string | null;
   startTime: string | null;
@@ -211,21 +229,10 @@ export function parseNoticeDateTime(text: string): NoticeDateTime {
   const date = parseNoticeDate(text);
   const time = parseNoticeTime(text);
   const startTime = time?.time ?? null;
-  let endTime: string | null = null;
-  if (startTime) {
-    const [h, m] = startTime.split(':').map(Number);
-    const total = h * 60 + m + DEFAULT_DURATION_MINUTES;
-    endTime =
-      date !== null
-        ? addMinutes(date, startTime, DEFAULT_DURATION_MINUTES)
-        : total < 24 * 60
-          ? `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
-          : null;
-  }
   return {
     date,
     startTime,
-    endTime,
+    endTime: defaultEndTime(date, startTime),
     assumedAfternoon: time?.assumedAfternoon ?? false,
   };
 }

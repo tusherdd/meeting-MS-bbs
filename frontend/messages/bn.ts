@@ -742,6 +742,7 @@ const bnMessages = {
       reports: "অফিস রিপোর্ট",
       emailOutbox: "ইমেইল সারি",
       auditLogs: "অডিট লগ",
+      settings: "সেটিংস",
     },
     overviewTitle: "সারসংক্ষেপ",
     stats: {
@@ -904,6 +905,17 @@ const bnMessages = {
     meetingsTitle: "সকল সভা",
     conflictsTitle: "সকল কনকারেন্ট সভা",
     reportsTitle: "অফিস রিপোর্ট",
+    /** v1.21 part 2 (SPEC.md §6.13): /admin/settings. */
+    settings: {
+      title: "সেটিংস",
+      noticeMethod: "নোটিশ পড়ার পদ্ধতি",
+      methods: {
+        OCR: "নিজস্ব OCR (ফ্রি, অফিসের বাইরে যায় না)",
+        AI: "AI (আরও নির্ভুল)",
+      },
+      aiNoKey: "API key সেট করা নেই।",
+      saved: "সেটিংস সংরক্ষণ করা হয়েছে।",
+    },
     outboxTitle: "ইমেইল সারি",
     outboxStatus: {
       PENDING: "Pending",
@@ -985,6 +997,7 @@ const bnMessages = {
       MEETING_ATTACHMENT_ADDED: "সংযুক্তি যোগ",
       MEETING_ATTACHMENT_REMOVED: "সংযুক্তি বাদ",
       NOTICE_EXTRACTED: "নোটিশ থেকে ফর্ম পূরণ",
+      SETTING_CHANGED: "সেটিংস পরিবর্তন",
       OFFICE_REPORT_EXPORTED: "অফিস রিপোর্ট PDF Download",
       MEETING_DECISION_UPLOADED: "সভা কার্যবিবরণী Upload",
       MEETING_DECISION_DELETED: "সভা কার্যবিবরণী ফাইল মুছে ফেলা",
