@@ -100,8 +100,23 @@ export class DirectoryQueryDto extends PaginationQueryDto {
   @MaxLength(100, { message: 'খোঁজার শব্দ খুব দীর্ঘ।' })
   q?: string | null;
 
-  @ApiPropertyOptional({ format: 'uuid' })
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Officers of this wing. With designationId (v1.20): main designation in this wing, or an additional ' +
+      "charge with this designation whose wing (the officer's wing when the charge has none) is this wing",
+  })
   @IsOptional()
   @IsUUID('4', { message: 'অবৈধ উইং আইডি।' })
   wingId?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'v1.20 group add: officers whose main designation is this one OR who hold it as a structured ' +
+      'additional charge (user_additional_charges.designationId); officers without a designation are left out',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: 'অবৈধ পদবি আইডি।' })
+  designationId?: string;
 }

@@ -64,9 +64,11 @@ export class UsersController {
   @Get('directory')
   @ApiOperation({
     summary:
-      'Active officer directory for the participant picker (any logged-in user)',
+      'Active officer directory for the participant picker; v1.20 group add by wing and / or designation (any logged-in user)',
     description:
-      'Only id, names, designation (name + priority), wing and photo. No email, phone or role.',
+      'Only id, names, designation (name + priority), wing and photo. No email, phone or role. ' +
+      'v1.20: `designationId` also matches structured additional charges (with `wingId`: the charge wing, ' +
+      "else the officer's wing); such rows carry `matchedCharge`.",
   })
   @ApiPaginatedResponse(DirectoryEntryDto)
   directory(

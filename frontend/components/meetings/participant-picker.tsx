@@ -7,13 +7,14 @@ import { ErrorAlert } from "@/components/ui/alert";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 
 import { peopleApi, queryKeys } from "@/lib/endpoints";
+import type { DirectoryEntry } from "@/lib/types";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { useFormat, useLocale, useNames, useT } from "@/providers/locale-provider";
+import { GroupAdd } from "./group-add";
 import { fromDirectory, groupByWing, type SelectedPerson } from "./people";
 
 const PAGE = 20;
@@ -29,8 +30,8 @@ interface Props {
 }
 
 /**
- * Search the officer directory (GET /users/directory), add people as chips grouped by wing,
- * or add a whole wing after a confirmation that shows how many people it has.
+ * Search the officer directory (GET /users/directory) and add people as chips grouped by wing,
+ * or add a group by wing and / or designation with checkboxes (v1.20, `GroupAdd`).
  */
 export function ParticipantPicker({ selected, onChange, organizerId, clashingIds }: Props) {
   const t = useT();
@@ -40,9 +41,6 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
   const [search, setSearch] = useState("");
   const [wingId, setWingId] = useState("");
   const [limit, setLimit] = useState(PAGE);
-  const [wingModal, setWingModal] = useState(false);
-  const [addingWing, setAddingWing] = useState(false);
-  const [wingError, setWingError] = useState<unknown>(null);
   const q = useDebouncedValue(search.trim(), 300);
 
   const selectedIds = useMemo(() => new Set(selected.map((p) => p.id)), [selected]);
@@ -58,13 +56,6 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
     queryFn: ({ signal }) => peopleApi.directory(directoryQuery, signal),
     placeholderData: keepPreviousData,
   });
-  const wingCount = useQuery({
-    queryKey: queryKeys.directory({ wingId, page: 1, limit: 1 }),
-    queryFn: () => peopleApi.directory({ wingId, page: 1, limit: 1 }),
-    enabled: wingModal && !!wingId,
-  });
-
-  const wingName = names.maybe(wings.data?.find((w) => w.id === wingId)) ?? "";
   const full = selected.length >= MAX_PEOPLE;
 
   function add(person: SelectedPerson) {
@@ -76,27 +67,18 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
     onChange(selected.filter((p) => p.id !== id));
   }
 
-  async function addWholeWing() {
-    setAddingWing(true);
-    setWingError(null);
-    try {
-      const members = await peopleApi.wingMembers(wingId);
-      const next = [...selected];
-      const ids = new Set(selectedIds);
-      for (const m of members) {
-        // Only officers with a designation can attend (the super admin account has none).
-        if (m.id === organizerId || ids.has(m.id) || !m.designation) continue;
-        if (next.length >= MAX_PEOPLE) break;
-        next.push(fromDirectory(m));
-        ids.add(m.id);
-      }
-      onChange(next);
-      setWingModal(false);
-    } catch (err) {
-      setWingError(err);
-    } finally {
-      setAddingWing(false);
+  /** v1.20 group add: the checked officers, up to the people limit. */
+  function addGroup(people: DirectoryEntry[]) {
+    const next = [...selected];
+    const ids = new Set(selectedIds);
+    for (const m of people) {
+      // Only officers with a designation can attend (the super admin account has none).
+      if (m.id === organizerId || ids.has(m.id) || !m.designation) continue;
+      if (next.length >= MAX_PEOPLE) break;
+      next.push(fromDirectory(m));
+      ids.add(m.id);
     }
+    onChange(next);
   }
 
   return (
@@ -181,17 +163,6 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
             options={(wings.data ?? []).map((w) => ({ value: w.id, label: names.of(w) }))}
           />
         </div>
-        {wingId && (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="mt-3"
-            onClick={() => setWingModal(true)}
-            disabled={full}
-          >
-            {t.picker.addWing}
-          </Button>
-        )}
 
         <div className="mt-3" aria-busy={results.isFetching}>
           {results.isPending ? (
@@ -253,32 +224,12 @@ export function ParticipantPicker({ selected, onChange, organizerId, clashingIds
         </div>
       </div>
 
-      <Modal
-        open={wingModal}
-        onClose={() => setWingModal(false)}
-        title={t.picker.addWingTitle}
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setWingModal(false)}>
-              {t.common.cancel}
-            </Button>
-            <Button onClick={addWholeWing} loading={addingWing} disabled={!wingCount.data}>
-              {t.picker.addWingConfirm}
-            </Button>
-          </>
-        }
-      >
-        {wingError ? <ErrorAlert error={wingError} className="mb-3" /> : null}
-        {wingCount.data ? (
-          <p>{t.picker.addWingBody(wingName, formatNumber(wingCount.data.total))}</p>
-        ) : wingCount.isError ? (
-          <ErrorAlert error={wingCount.error} />
-        ) : (
-          <p className="flex items-center gap-2 text-slate-600">
-            <Spinner /> {t.picker.countingWing}
-          </p>
-        )}
-      </Modal>
+      <GroupAdd
+        organizerId={organizerId}
+        selectedIds={selectedIds}
+        onAdd={addGroup}
+        disabled={full}
+      />
     </div>
   );
 }

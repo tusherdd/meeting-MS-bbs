@@ -174,6 +174,15 @@ export class DirectoryDesignationDto {
   priority!: number;
 }
 
+/** v1.20: the additional charge through which an officer matched the designation filter. */
+export class DirectoryMatchedChargeDto {
+  @ApiProperty({ type: DirectoryDesignationDto })
+  designation!: DirectoryDesignationDto;
+
+  @ApiProperty({ type: WingRefDto, nullable: true })
+  wing!: WingRefDto | null;
+}
+
 /**
  * Participant picker entry (any logged-in user). Deliberately minimal: no email, phone, role
  * or status — officers must not be able to harvest contact data.
@@ -200,6 +209,15 @@ export class DirectoryEntryDto {
     description: 'Served from step 6 on',
   })
   photoPath!: string | null;
+
+  @ApiPropertyOptional({
+    type: DirectoryMatchedChargeDto,
+    nullable: true,
+    description:
+      'v1.20, only with designationId: set when the officer matches only through an additional charge ' +
+      '(not through the main designation and wing); null otherwise',
+  })
+  matchedCharge?: DirectoryMatchedChargeDto | null;
 }
 
 export class UserMessageResponseDto {

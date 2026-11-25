@@ -946,7 +946,7 @@
     },
     "/api/v1/users/directory": {
       "get": {
-        "description": "Only id, names, designation (name + priority), wing and photo. No email, phone or role.",
+        "description": "Only id, names, designation (name + priority), wing and photo. No email, phone or role. v1.20: `designationId` also matches structured additional charges (with `wingId`: the charge wing, else the officer's wing); such rows carry `matchedCharge`.",
         "operationId": "UsersController_directory",
         "parameters": [
           {
@@ -990,6 +990,17 @@
             "name": "wingId",
             "required": false,
             "in": "query",
+            "description": "Officers of this wing. With designationId (v1.20): main designation in this wing, or an additional charge with this designation whose wing (the officer's wing when the charge has none) is this wing",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "designationId",
+            "required": false,
+            "in": "query",
+            "description": "v1.20 group add: officers whose main designation is this one OR who hold it as a structured additional charge (user_additional_charges.designationId); officers without a designation are left out",
             "schema": {
               "format": "uuid",
               "type": "string"
@@ -1044,7 +1055,7 @@
             "bearer": []
           }
         ],
-        "summary": "Active officer directory for the participant picker (any logged-in user)",
+        "summary": "Active officer directory for the participant picker; v1.20 group add by wing and / or designation (any logged-in user)",
         "tags": [
           "Users"
         ]
@@ -5895,6 +5906,27 @@
           "nameEn"
         ]
       },
+      "DirectoryMatchedChargeDto": {
+        "type": "object",
+        "properties": {
+          "designation": {
+            "$ref": "#/components/schemas/DirectoryDesignationDto"
+          },
+          "wing": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WingRefDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "designation",
+          "wing"
+        ]
+      },
       "DirectoryEntryDto": {
         "type": "object",
         "properties": {
@@ -5932,6 +5964,16 @@
             "type": "string",
             "nullable": true,
             "description": "Served from step 6 on"
+          },
+          "matchedCharge": {
+            "nullable": true,
+            "description": "v1.20, only with designationId: set when the officer matches only through an additional charge (not through the main designation and wing); null otherwise",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DirectoryMatchedChargeDto"
+              }
+            ]
           }
         },
         "required": [

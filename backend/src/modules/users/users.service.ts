@@ -54,10 +54,13 @@ import {
 } from './dto/user-query.dto';
 import type {
   DirectoryEntryDto,
+  DirectoryMatchedChargeDto,
   UserDetailDto,
   UserSummaryDto,
 } from './dto/user-response.dto';
 import { defaultPasswordColumns } from './default-password';
+import { applyDirectoryGroupFilter } from './directory-filter';
+import { UserAdditionalCharge } from './entities/user-additional-charge.entity';
 import { User } from './entities/user.entity';
 import { UserRole } from './enums/user-role.enum';
 import {
@@ -233,8 +236,7 @@ export class UsersService {
         { like },
       );
     }
-    if (query.wingId)
-      qb.andWhere('u.wingId = :wingId', { wingId: query.wingId });
+    applyDirectoryGroupFilter(qb, query);
 
     qb.orderBy('d.priority', 'ASC', 'NULLS LAST')
       .addOrderBy('u.nameEn', 'ASC')
@@ -243,6 +245,7 @@ export class UsersService {
       .take(query.limit);
 
     const [rows, total] = await qb.getManyAndCount();
+    const charges = await this.matchedCharges(rows, query);
     return paginated(
       rows.map((u) => ({
         id: u.id,
@@ -259,10 +262,63 @@ export class UsersService {
           ? { id: u.wing.id, nameBn: u.wing.nameBn, nameEn: u.wing.nameEn }
           : null,
         photoPath: u.photoPath,
+        ...(query.designationId
+          ? { matchedCharge: charges.get(u.id) ?? null }
+          : {}),
       })),
       total,
       query,
     );
+  }
+
+  /**
+   * v1.20: for the officers of one directory page that match the designation filter only through
+   * an additional charge, that charge (designation + wing) — ONE batch query for the whole page.
+   */
+  private async matchedCharges(
+    rows: User[],
+    query: DirectoryQueryDto,
+  ): Promise<Map<string, DirectoryMatchedChargeDto>> {
+    const result = new Map<string, DirectoryMatchedChargeDto>();
+    const { designationId, wingId } = query;
+    if (!designationId) return result;
+    const viaCharge = rows.filter(
+      (u) =>
+        u.designation?.id !== designationId ||
+        (!!wingId && u.wing?.id !== wingId),
+    );
+    if (viaCharge.length === 0) return result;
+
+    const qb = this.dataSource
+      .getRepository(UserAdditionalCharge)
+      .createQueryBuilder('c')
+      .innerJoin('c.user', 'cu')
+      .innerJoin('c.designation', 'cd')
+      .leftJoin('c.wing', 'cw')
+      .select(['c.id', 'c.userId'])
+      .addSelect(['cd.id', 'cd.nameBn', 'cd.nameEn', 'cd.priority'])
+      .addSelect(['cw.id', 'cw.nameBn', 'cw.nameEn'])
+      .where('c.userId IN (:...ids)', { ids: viaCharge.map((u) => u.id) })
+      .andWhere('c.designationId = :designationId', { designationId })
+      .orderBy('c.createdAt', 'ASC')
+      .addOrderBy('c.id', 'ASC');
+    if (wingId)
+      qb.andWhere('COALESCE(c.wingId, cu.wingId) = :wingId', { wingId });
+
+    for (const c of await qb.getMany()) {
+      if (result.has(c.userId) || !c.designation) continue;
+      result.set(c.userId, {
+        designation: {
+          nameBn: c.designation.nameBn,
+          nameEn: c.designation.nameEn,
+          priority: c.designation.priority,
+        },
+        wing: c.wing
+          ? { id: c.wing.id, nameBn: c.wing.nameBn, nameEn: c.wing.nameEn }
+          : null,
+      });
+    }
+    return result;
   }
 
   async findOne(id: string): Promise<UserDetailDto> {

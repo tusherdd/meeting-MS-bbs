@@ -242,6 +242,159 @@ describe('Users, designations, wings (e2e)', () => {
     });
   });
 
+  // ------------------------------------------------------------------ v1.20 group add
+
+  describe('GET /users/directory?designationId (v1.20 group add)', () => {
+    let groupDesignation: string;
+    let otherDesignation: string;
+    let wingA: string;
+    let wingB: string;
+    const g = {} as Record<
+      'main' | 'mainB' | 'charge' | 'chargeB' | 'chargeNoWing' | 'off',
+      string
+    >;
+
+    type Item = {
+      nameEn: string;
+      matchedCharge?: {
+        designation: { nameEn: string };
+        wing: { nameEn: string } | null;
+      } | null;
+    };
+    async function list(query: Record<string, string>): Promise<Item[]> {
+      const res = await http()
+        .get(`${API}/users/directory`)
+        .query({ ...query, limit: 100 })
+        .set(as('officer'))
+        .expect(200);
+      return (res.body as { items: Item[] }).items;
+    }
+    const namesOf = (items: Item[]) => items.map((i) => i.nameEn).sort();
+
+    beforeAll(async () => {
+      const dRepo = ds.getRepository(Designation);
+      groupDesignation = (
+        await dRepo.insert({
+          nameBn: 'ই২ইইউ গ্রুপ পদবি',
+          nameEn: 'E2EU Group',
+          priority: 97,
+        })
+      ).identifiers[0].id as string;
+      otherDesignation = (
+        await dRepo.insert({
+          nameBn: 'ই২ইইউ অন্য পদবি',
+          nameEn: 'E2EU Other',
+          priority: 96,
+        })
+      ).identifiers[0].id as string;
+      const wRepo = ds.getRepository(Wing);
+      wingA = (
+        await wRepo.insert({ nameBn: 'ই২ইইউ উইং ক', nameEn: 'E2EU Wing A' })
+      ).identifiers[0].id as string;
+      wingB = (
+        await wRepo.insert({ nameBn: 'ই২ইইউ উইং খ', nameEn: 'E2EU Wing B' })
+      ).identifiers[0].id as string;
+
+      const passwordHash = await hashPassword(PASSWORD);
+      const rows: Array<[keyof typeof g, Partial<User>]> = [
+        ['main', { designationId: groupDesignation, wingId: wingA }],
+        ['mainB', { designationId: groupDesignation, wingId: wingB }],
+        ['charge', { designationId: otherDesignation, wingId: wingB }],
+        ['chargeB', { designationId: otherDesignation, wingId: wingA }],
+        ['chargeNoWing', { designationId: otherDesignation, wingId: wingA }],
+        [
+          'off',
+          { designationId: groupDesignation, wingId: wingA, isActive: false },
+        ],
+      ];
+      for (const [name, extra] of rows) {
+        g[name] = (
+          await ds.getRepository(User).insert({
+            loginEmail: email(`group-${name}`),
+            notificationEmail: email(`group-${name}`),
+            passwordHash,
+            nameBn: `ই২ইইউ গ্রুপ ${name}`,
+            nameEn: `E2EU group ${name}`,
+            role: UserRole.OFFICER,
+            mustChangePassword: false,
+            ...extra,
+          })
+        ).identifiers[0].id as string;
+      }
+      await ds.getRepository(UserAdditionalCharge).insert([
+        // Main wing B, but holds the group designation as a charge in wing A.
+        { userId: g.charge, designationId: groupDesignation, wingId: wingA },
+        // Main wing A, but the charge is in wing B.
+        { userId: g.chargeB, designationId: groupDesignation, wingId: wingB },
+        // Charge without a wing → the officer's own wing (A) counts.
+        {
+          userId: g.chargeNoWing,
+          designationId: groupDesignation,
+          wingId: null,
+        },
+      ]);
+    });
+
+    it('designation only: main designation and additional charges, every wing; inactive left out', async () => {
+      const items = await list({ designationId: groupDesignation });
+      expect(namesOf(items)).toEqual(
+        [
+          'E2EU group charge',
+          'E2EU group chargeB',
+          'E2EU group chargeNoWing',
+          'E2EU group main',
+          'E2EU group mainB',
+        ].sort(),
+      );
+      const byName = new Map(items.map((i) => [i.nameEn, i]));
+      expect(byName.get('E2EU group main')!.matchedCharge).toBeNull();
+      expect(byName.get('E2EU group charge')!.matchedCharge).toEqual({
+        designation: expect.objectContaining({
+          nameEn: 'E2EU Group',
+        }) as unknown,
+        wing: expect.objectContaining({ nameEn: 'E2EU Wing A' }) as unknown,
+      });
+      expect(
+        byName.get('E2EU group chargeNoWing')!.matchedCharge!.wing,
+      ).toBeNull();
+    });
+
+    it("wing + designation: main in that wing, or a charge in that wing (the charge's wing wins)", async () => {
+      expect(
+        namesOf(await list({ designationId: groupDesignation, wingId: wingA })),
+      ).toEqual(
+        [
+          'E2EU group charge',
+          'E2EU group chargeNoWing',
+          'E2EU group main',
+        ].sort(),
+      );
+      expect(
+        namesOf(await list({ designationId: groupDesignation, wingId: wingB })),
+      ).toEqual(['E2EU group chargeB', 'E2EU group mainB'].sort());
+    });
+
+    it('wing only is unchanged (main wing, no matchedCharge field)', async () => {
+      const items = await list({ wingId: wingA });
+      expect(namesOf(items)).toEqual(
+        [
+          'E2EU group chargeB',
+          'E2EU group chargeNoWing',
+          'E2EU group main',
+        ].sort(),
+      );
+      for (const i of items) expect(i).not.toHaveProperty('matchedCharge');
+    });
+
+    it('rejects an invalid designation id', async () => {
+      await http()
+        .get(`${API}/users/directory`)
+        .query({ designationId: 'x' })
+        .set(as('officer'))
+        .expect(400);
+    });
+  });
+
   // ------------------------------------------------------------------ admin list / detail
 
   describe('GET /users (admin)', () => {

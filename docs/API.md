@@ -55,7 +55,7 @@ when it is empty) and the Bangla value in Bangla mode. English values must be La
 
 | Method | Path | Access | Purpose | Main request fields | Responses |
 |---|---|---|---|---|---|
-| GET | `/users/directory` | 👤 | Active officer directory for the participant picker (any logged-in user) | `page` (query), `limit` (query), `q` (query), `wingId` (query) | 200 |
+| GET | `/users/directory` | 👤 | Active officer directory for the participant picker; v1.20 group add by wing and / or designation (any logged-in user) | `page` (query), `limit` (query), `q` (query), `wingId` (query), `designationId` (query) | 200 |
 | GET | `/users` | 🛡 | Search / filter / sort / paginate users (ADMIN) | `page` (query), `limit` (query), `q` (query), `wingId` (query), `designationId` (query), `role` (query), `isActive` (query), `passwordIsDefault` (query), `chargesNeedReview` (query), `sortBy` (query), `sortOrder` (query) | 200, 403 |
 | POST | `/users` | 🛡 | Create an officer (ADMIN) | `loginEmail`*, `notificationEmail`, `nameBn`*, `nameEn`*, `designationId`*, `designationRemark`, `wingId`, `mobile`, `mobileAlt`, `officePhone`, `fax`, `organizationBn`, `organizationEn`, `bcsBatch`, `additionalCharges` | 201, 400, 403, 409 |
 | GET | `/users/:id` | 🛡 | Full user (ADMIN) | — | 200, 403, 404 |

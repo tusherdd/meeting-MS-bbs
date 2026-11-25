@@ -279,8 +279,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Active officer directory for the participant picker (any logged-in user)
-         * @description Only id, names, designation (name + priority), wing and photo. No email, phone or role.
+         * Active officer directory for the participant picker; v1.20 group add by wing and / or designation (any logged-in user)
+         * @description Only id, names, designation (name + priority), wing and photo. No email, phone or role. v1.20: `designationId` also matches structured additional charges (with `wingId`: the charge wing, else the officer's wing); such rows carry `matchedCharge`.
          */
         get: operations["UsersController_directory"];
         put?: never;
@@ -1383,6 +1383,10 @@ export interface components {
             /** @example Computer Wing */
             nameEn: string;
         };
+        DirectoryMatchedChargeDto: {
+            designation: components["schemas"]["DirectoryDesignationDto"];
+            wing: components["schemas"]["WingRefDto"] | null;
+        };
         DirectoryEntryDto: {
             /** Format: uuid */
             id: string;
@@ -1394,6 +1398,8 @@ export interface components {
             wing: components["schemas"]["WingRefDto"] | null;
             /** @description Served from step 6 on */
             photoPath: string | null;
+            /** @description v1.20, only with designationId: set when the officer matches only through an additional charge (not through the main designation and wing); null otherwise */
+            matchedCharge?: components["schemas"]["DirectoryMatchedChargeDto"] | null;
         };
         Object: Record<string, never>;
         DesignationRefDto: {
@@ -3535,7 +3541,10 @@ export interface operations {
                 limit?: number;
                 /** @description Searches nameBn and nameEn only */
                 q?: components["schemas"]["Object"];
+                /** @description Officers of this wing. With designationId (v1.20): main designation in this wing, or an additional charge with this designation whose wing (the officer's wing when the charge has none) is this wing */
                 wingId?: string;
+                /** @description v1.20 group add: officers whose main designation is this one OR who hold it as a structured additional charge (user_additional_charges.designationId); officers without a designation are left out */
+                designationId?: string;
             };
             header?: {
                 /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */

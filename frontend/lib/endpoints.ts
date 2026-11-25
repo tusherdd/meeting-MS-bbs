@@ -74,6 +74,8 @@ export interface MeetingListQuery {
 export interface DirectoryQuery {
   q?: string;
   wingId?: string;
+  /** v1.20: main designation or a structured additional charge (SPEC.md §13.6). */
+  designationId?: string;
   page?: number;
   limit?: number;
 }
@@ -106,6 +108,9 @@ export const queryKeys = {
   /** v1.17: under "meetings", so invalidateMeetingData() refreshes it too. */
   attachments: (id: string) => ["meetings", "attachments", id] as const,
   directory: (query: DirectoryQuery) => ["directory", query] as const,
+  /** v1.20 group add: every match of a wing and / or designation filter. */
+  directoryGroup: (wingId: string, designationId: string) =>
+    ["directory", "group", wingId, designationId] as const,
   wings: ["wings", "active"] as const,
   profile: ["profile", "me"] as const,
   myChangeRequests: ["profile", "change-requests"] as const,
@@ -205,11 +210,14 @@ export const meetingsApi = {
 export const peopleApi = {
   directory: (query: DirectoryQuery, signal?: AbortSignal) =>
     api<Paginated<DirectoryEntry>>("/users/directory", { query: { ...query }, signal }),
-  /** Every active officer of a wing (all pages). */
-  async wingMembers(wingId: string): Promise<DirectoryEntry[]> {
+  /** v1.20: every active officer matching a wing and / or designation filter (all pages). */
+  async groupMembers(
+    filter: { wingId?: string; designationId?: string },
+    signal?: AbortSignal,
+  ): Promise<DirectoryEntry[]> {
     const items: DirectoryEntry[] = [];
     for (let page = 1; ; page++) {
-      const res = await peopleApi.directory({ wingId, page, limit: MAX_PAGE_SIZE });
+      const res = await peopleApi.directory({ ...filter, page, limit: MAX_PAGE_SIZE }, signal);
       items.push(...res.items);
       if (page >= res.totalPages) return items;
     }

@@ -601,7 +601,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 ### Users (admin)
 | Method | Path | Access | Purpose |
 |---|---|---|---|
-| GET | `/users/directory` | 👤 | Minimal active officer list (id, names, designation, wing, photo) for the participant picker |
+| GET | `/users/directory` | 👤 | Minimal active officer list (id, names, designation, wing, photo) for the participant picker (q, wingId; designationId v1.20 incl. additional charges, §13.6) |
 | GET | `/users` | 🛡 | Search/filter/paginate (q, wingId, designationId, role, isActive, passwordIsDefault, chargesNeedReview v1.16) |
 | GET | `/users/:id` | 🛡 | Full user |
 | POST | `/users` | 🛡 | Create officer with the default officer password (no forced change); the welcome mail never contains the password |
@@ -869,6 +869,9 @@ Release **v1.19** (2026-11-23): minutes required yes / no per meeting — `meeti
 `MeetingMinutesRequired1795400000000`), the form checkbox, the minutes status rules and the detail-page line (§6.9, §13.6,
 §13.19).
 
+Release **v1.20** (2026-11-25): group add of participants by wing and / or designation, including structured
+additional charges (§13.6; `GET /users/directory?designationId=`).
+
 ## 13. Frontend (`frontend/`)
 
 ### 13.1 Stack
@@ -966,7 +969,26 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
 - One form for create and edit; Dhaka date + start/end time (both typed; end after start, Asia/Dhaka logic
   unchanged; the quick-duration buttons and the time-zone hint were removed in v1.5 and stay removed — no duration
   text either), venue ("স্থান", required since v1.9), https link,
-  participants from `GET /users/directory` (search, wing filter, "add the whole wing" with a count).
+  participants from `GET /users/directory` (search with a wing filter; group add by wing and / or designation, below).
+- **Group add by wing and / or designation (v1.20, owner decision 2026-11-25)** `components/meetings/group-add.tsx`
+  (rules in `lib/group-add.ts`), below the search box in the participant picker; it replaces the v1 "add the whole wing"
+  button and its count confirmation. Two selects: "উইং" / "Wing" ("সকল উইং" / "All wings" + every active wing) and
+  "পদবি" / "Designation" ("সকল পদবি" / "All designations" + every active designation; no priority, §6.1).
+  - Who matches (`GET /users/directory?wingId=&designationId=`, `directory-filter.ts`; one query with a correlated
+    `EXISTS` on `user_additional_charges`, no N+1): wing only → the officers of that wing (as before); designation only
+    → main designation OR a structured additional charge with that designation (`user_additional_charges.designationId`),
+    every wing; both → main designation in that wing, OR such a charge whose wing — the officer's own wing when the
+    charge has none — is that wing. Rows that match only through a charge carry `matchedCharge` (designation, wing;
+    one batch query per page). Never listed: inactive accounts and the SUPER_ADMIN (backend), officers without a
+    designation, the organizer and people already in the participant list (frontend).
+  - As soon as a filter is chosen, the matches appear below as a list with a native checkbox each, **all checked**:
+    "নাম — পদবি, উইং" (names by the §13.15 rule; a charge match shows "নাম — [পদবি] (অতিরিক্ত দায়িত্ব), [উইং]"). The
+    user may uncheck anyone. The button "নির্বাচিতদের যোগ করুন (N জন)" / "Add selected (N)" (N live, Bangla digits in
+    bn mode via `lib/format.ts`) adds the checked people, is disabled at N = 0 and while the 200-people limit is
+    reached (adding stops at the limit). No match: "কোনো কর্মকর্তা পাওয়া যায়নি।" / "No officers found." After adding,
+    both filters go back to "all" and the list clears. Added people are ordinary chips (removable one by one) and the
+    live conflict check runs for them as usual. No icons.
+  - Tests: backend `test/users.e2e-spec.ts` (v1.20 block); frontend `tests/unit/group-add.test.ts`, `e2e/v120.spec.ts`.
 - **Default duration 45 minutes (v1.18, owner decision 2026-11-23).** Create: the end time is filled as start + 45
   minutes (the default slot is the next half hour + 45 min; `/meetings/new?start=` without a valid `end` also gets
   + 45 min). The user may change the end time by hand. Whenever the start time changes later, the end time moves
