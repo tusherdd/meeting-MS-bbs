@@ -1,4 +1,4 @@
-# Final testing — stage A (parts 1–3)
+# Final testing — stages A (parts 1–3) and B (parts 4–5)
 
 Started 2026-11-25 on commit 8d5292d (v1.20 rework). No Playwright / browsers in this stage.
 
@@ -7,6 +7,8 @@ Started 2026-11-25 on commit 8d5292d (v1.20 rework). No Playwright / browsers in
 | 1 Frontend (typecheck, lint, unit) | done |
 | 2 Backend unit (typecheck, lint, unit) | done |
 | 3 Backend e2e | done |
+| 4 Builds + Playwright Chromium | done |
+| 5 Playwright WebKit + release | open |
 
 ## Part 1: Frontend — done
 - `npm run typecheck`: pass
@@ -40,5 +42,22 @@ Started 2026-11-25 on commit 8d5292d (v1.20 rework). No Playwright / browsers in
   was changed.
 - After the fixes: backend typecheck, lint, unit (635 / 635) green again; nothing left running.
 
+## Part 4: Builds + Playwright Chromium — done
+- `npm run build` backend (tsc) and frontend (Next.js standalone): pass.
+- Servers: built backend `node dist/main` (MAIL_DRY_RUN=true, E2E_TEST_HOOKS=true) and the standalone
+  frontend `node .next/standalone/server.js` on :3000 (Playwright reuses it). Global setup resets the rate
+  limits through `POST /test-hooks/reset-throttle`. The whole suite ran in one go, no memory kill.
+- Chromium, `--workers=1`: before 62 passed / 6 failed / 3 did not run / 1 skipped
+  → after 71 passed / 1 skipped (`webkit-font.spec.ts` WebKit-only test, skipped by design).
+- Fixed (CODE, real bug): the office report note under "শীর্ষ ৫ অংশগ্রহণকারী" (`officeReport.topNote`, en + bn) had
+  been emptied in f9059f0; SPEC §13.21 requires it. Owner confirmed: restored the original texts.
+- Fixed (TEST setup): the Chromium project now uses `channel: "chromium"` (full Chromium, new headless). The
+  default headless shell has no PDF viewer (`navigator.pdfViewerEnabled === false`), so the file viewer
+  correctly showed its "can't show here" fallback (§13.22) and the iframe checks in v111 / v117 /
+  v117-attachments failed. The app logic was not changed.
+- Fixed (TEST): `v120.spec.ts` picked "পদবি" by label, which also matches the guest form's পদবি textbox (strict
+  mode violation). Now the picker's select is taken by role `combobox`; no assertion changed.
+- Frontend typecheck, lint, unit (137 / 137) green after the fixes.
+
 ## Next
-Stage A done. Not tagged (owner's instruction). Next stage: Playwright / browser tests.
+Part 5: Playwright WebKit, final re-runs, tag v1.20.

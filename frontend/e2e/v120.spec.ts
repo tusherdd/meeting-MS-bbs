@@ -20,7 +20,7 @@ test("designation filter in the top row, per-row add, add everyone with confirma
   try {
     await page.goto("/meetings/new");
     await expect(page.getByTestId("group-add")).toHaveCount(0);
-    const designation = page.getByLabel(p.designation, { exact: true });
+    const designation = page.getByRole("combobox", { name: p.designation, exact: true });
     await expect(designation).toHaveValue("");
     await expect(designation.locator("option").first()).toHaveText(p.allDesignations);
 
@@ -85,7 +85,7 @@ test("a row matched through an additional charge shows the charge label", async 
       }),
     );
     await page.goto("/meetings/new");
-    await page.getByLabel(p.designation, { exact: true }).selectOption({ index: 1 });
+    await page.getByRole("combobox", { name: p.designation, exact: true }).selectOption({ index: 1 });
     const results = page.getByTestId("people-results");
     await expect(
       results.getByText(`উপপরিচালক ${bn.profile.chargeSuffix} · দায়িত্বের উইং`),

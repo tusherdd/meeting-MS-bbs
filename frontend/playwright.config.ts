@@ -37,7 +37,10 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // channel "chromium" = the full Chromium in new headless mode. The default headless shell has
+    // no PDF viewer (navigator.pdfViewerEnabled === false), so the file viewer would rightly show
+    // its "can't show here" fallback (SPEC.md §13.22) instead of the PDF that desktop Chrome shows.
+    { name: "chromium", use: { ...devices["Desktop Chrome"], channel: "chromium" } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {

@@ -528,7 +528,7 @@ const bnMessages = {
     nameCol: "নাম",
     meetingsCol: "সভা",
     hourCol: "ঘণ্টা",
-    topNote: "",
+    topNote: "আয়োজক, সভাপতি ও সদস্য — সব ভূমিকার সভা গোনা হয়েছে।",
     busiestTitle: "সবচেয়ে ব্যস্ত ৫ দিন",
     dateCol: "তারিখ",
     listTitle: "সভার তালিকা",

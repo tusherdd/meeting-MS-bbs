@@ -531,7 +531,7 @@ export const en: Messages = {
     nameCol: "Name",
     meetingsCol: "Meetings",
     hourCol: "Hours",
-    topNote: "",
+    topNote: "Organizer, president and member: meetings in every role are counted.",
     busiestTitle: "Busiest 5 days",
     dateCol: "Date",
     listTitle: "Meetings",
