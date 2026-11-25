@@ -138,7 +138,10 @@ test("notice field on top; fill, markers and the sure / maybe / unmatched lists"
     const chips = org.getByTestId("selected-people");
     await expect(chips).toContainText(nameOf("dd2"));
     await expect(chips).toContainText(nameOf("director"));
-    await expect(org.getByLabel(bn.meetingForm.chair)).toHaveValue(o.director.id);
+    // The chair review box is also named "সভাপতি" (its heading): take the select by its role.
+    await expect(org.getByRole("combobox", { name: bn.meetingForm.chair })).toHaveValue(
+      o.director.id,
+    );
     await expect(org.getByTestId("notice-fill-chair")).toContainText(
       bn.noticeFill.chairSet(nameOf("director")),
     );

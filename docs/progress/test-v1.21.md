@@ -7,7 +7,7 @@ Started 2026-11-26 on commit 4934d01 (v1.21 part 3). No real Anthropic API calls
 | 1 Frontend (typecheck, lint, unit) | done |
 | 2 Backend unit (typecheck, lint, unit) | done |
 | 3 Backend e2e | done |
-| 4 Builds + Playwright Chromium | next |
+| 4 Builds + Playwright Chromium | in progress |
 | 5 Playwright WebKit + release | open |
 
 ## Part 1: Frontend — done
@@ -43,4 +43,18 @@ Started 2026-11-26 on commit 4934d01 (v1.21 part 3). No real Anthropic API calls
     `ANTHROPIC_API_KEY` is forced empty in the test: no AI call can happen.
 - `npm run test:e2e` (in band, whole suite): before 266 / 266, 18 suites → after 278 / 278, 19 suites.
 - Fixed: no app code needed. The nukta check caught a broken "পড়া" in this progress file (fixed).
-- Next: part 4 (builds + Playwright Chromium).
+
+## Part 4: Builds + Playwright Chromium — in progress
+- `npm run build` backend (tsc) and frontend (Next.js standalone): pass. Dev DB already had `AppSettings` migrated.
+- Servers: built backend `node dist/main` (MAIL_DRY_RUN=true, E2E_TEST_HOOKS=true) + standalone frontend on :3000;
+  global setup resets the rate limits (`POST /test-hooks/reset-throttle`).
+- Chromium full suite, `--workers=1`, first run: 71 passed / 2 failed / 1 skipped (`webkit-font.spec.ts`, by design).
+  Both failures in `v121-notice-fill.spec.ts`:
+  - Fixed (CODE, real bug): after "বসান" in the overwrite confirmation, the native dialog's `close` event called
+    `onClose` → status back to idle while the request was still running: "নোটিশ পড়া হচ্ছে…" and Cancel vanished
+    and the fill button was enabled again (a second read could start, counting twice against 20/day). Now the
+    modal's close only resets a status that is still "confirm" (`components/meetings/notice-fill.tsx`).
+  - Fixed (TEST): `getByLabel("সভাপতি")` also matched the chair review box (a region named by its "সভাপতি" heading,
+    correct a11y) → strict-mode violation. The select is now taken by role `combobox`; no assertion changed.
+- Frontend typecheck, lint, unit (153 / 153) green after the fix. Re-run of the spec: pending (the session was
+  killed for memory once — restart servers one by one).

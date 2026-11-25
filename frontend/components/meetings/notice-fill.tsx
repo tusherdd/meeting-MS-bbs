@@ -358,7 +358,9 @@ export function NoticeFill({
 
       <ConfirmModal
         open={status === "confirm"}
-        onClose={() => setStatus("idle")}
+        // The native dialog also fires "close" after "বসান" (run() already set "working"):
+        // only a close of the still-open confirmation returns to idle.
+        onClose={() => setStatus((s) => (s === "confirm" ? "idle" : s))}
         onConfirm={() => void run()}
         title={f.confirmTitle}
         confirmLabel={f.confirmOk}
