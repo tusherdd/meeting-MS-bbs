@@ -75,7 +75,7 @@ Started 2026-11-26 on commit 4934d01 (v1.21 part 3). No real Anthropic API calls
 - Final re-run after all fixes: Playwright specs touched by fixes (`v121-notice-fill`, `auth`, `language`) on
   Chromium + WebKit 28 / 28; backend typecheck + lint green, unit 733 / 733; frontend typecheck + lint green,
   unit 153 / 153.
-- Fixed (DOC): the nukta check found "পড়া" in the broken form in this progress file again (my notes); normalized.
+- Fixed (DOC): the nukta check found "পড়া" in the broken form in this progress file again (my notes); normalized.
 - Tagged `v1.21`. All servers and browsers stopped.
 - Not committed on purpose: `backend/package-lock.json` (an npm-added `"peer": true` on zod, present before testing).
 
