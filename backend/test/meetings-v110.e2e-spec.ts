@@ -232,7 +232,7 @@ describe('v1.10: chair may edit/cancel (e2e)', () => {
         .post(`${API}/meetings/check-conflicts`)
         .set(as('chair'))
         .send({
-          title: 'সংঘাত যাচাই',
+          title: 'কনকারেন্ট সভা যাচাই',
           meetingId: id,
           startAt: slot(82, '14:00'),
           endAt: slot(82, '15:00'),
