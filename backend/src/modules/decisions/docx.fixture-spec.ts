@@ -86,6 +86,30 @@ export function docx(): Buffer {
   ]);
 }
 
+const xmlEscape = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** A valid DOCX with one paragraph per line (v1.21: a notice in the fixed format). */
+export function docxFromLines(lines: string[]): Buffer {
+  const body = lines
+    .map(
+      (l) =>
+        `<w:p><w:r><w:t xml:space="preserve">${xmlEscape(l)}</w:t></w:r></w:p>`,
+    )
+    .join('');
+  const document =
+    '<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+    `<w:body>${body}</w:body></w:document>`;
+  return buildZip([
+    {
+      name: '[Content_Types].xml',
+      content: contentTypes(DOCX_MAIN),
+      deflate: true,
+    },
+    { name: 'word/document.xml', content: document, deflate: true },
+  ]);
+}
+
 /** A macro-enabled Word file (DOCM: macroEnabled main type + vbaProject.bin). */
 export function docm(): Buffer {
   return buildZip([
