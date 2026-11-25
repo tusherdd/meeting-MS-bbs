@@ -8,7 +8,7 @@ Started 2026-11-26 on commit 4934d01 (v1.21 part 3). No real Anthropic API calls
 | 2 Backend unit (typecheck, lint, unit) | done |
 | 3 Backend e2e | done |
 | 4 Builds + Playwright Chromium | done |
-| 5 Playwright WebKit + release | next |
+| 5 Playwright WebKit + release | done |
 
 ## Part 1: Frontend — done
 - `npm run typecheck`: pass
@@ -42,7 +42,7 @@ Started 2026-11-26 on commit 4934d01 (v1.21 part 3). No real Anthropic API calls
     with the same limits and tracker as `app.module.ts` minus the skip (the app code is unchanged).
     `ANTHROPIC_API_KEY` is forced empty in the test: no AI call can happen.
 - `npm run test:e2e` (in band, whole suite): before 266 / 266, 18 suites → after 278 / 278, 19 suites.
-- Fixed: no app code needed. The nukta check caught a broken "পড়া" in this progress file (fixed).
+- Fixed: no app code needed. The nukta check caught a broken "পড়া" in this progress file (fixed).
 
 ## Part 4: Builds + Playwright Chromium — done
 - `npm run build` backend (tsc) and frontend (Next.js standalone): pass. Dev DB already had `AppSettings` migrated.
@@ -51,7 +51,7 @@ Started 2026-11-26 on commit 4934d01 (v1.21 part 3). No real Anthropic API calls
 - Chromium full suite, `--workers=1`, first run: 71 passed / 2 failed / 1 skipped (`webkit-font.spec.ts`, by design).
   Both failures in `v121-notice-fill.spec.ts`:
   - Fixed (CODE, real bug): after "বসান" in the overwrite confirmation, the native dialog's `close` event called
-    `onClose` → status back to idle while the request was still running: "নোটিশ পড়া হচ্ছে…" and Cancel vanished
+    `onClose` → status back to idle while the request was still running: "নোটিশ পড়া হচ্ছে…" and Cancel vanished
     and the fill button was enabled again (a second read could start, counting twice against 20/day). Now the
     modal's close only resets a status that is still "confirm" (`components/meetings/notice-fill.tsx`).
   - Fixed (TEST): `getByLabel("সভাপতি")` also matched the chair review box (a region named by its "সভাপতি" heading,
@@ -67,4 +67,18 @@ Started 2026-11-26 on commit 4934d01 (v1.21 part 3). No real Anthropic API calls
 - Final Chromium run (rebuilt backend + frontend, `--workers=1`, split in two groups of 17 + 14 specs because the
   editor session was killed twice during long runs): group A 52 passed, group B 21 passed / 1 skipped
   → **73 passed / 1 skipped** (`webkit-font.spec.ts` WebKit-only test, by design). Before: 71 / 2 failed / 1 skipped.
-- Next: part 5 (WebKit + release).
+
+## Part 5: Playwright WebKit + release — done
+- WebKit, `--workers=1`, same servers, two groups: group A 51 passed / 1 skipped, group B 21 passed / 1 skipped
+  → **72 passed / 2 skipped** on the first run (by design: `fonts.spec.ts` is Chromium-only, WebKit has its own
+  Bangla font; the engine-independent `webkit-font.spec.ts` test runs once, on Chromium). Fixed: nothing needed.
+- Final re-run after all fixes: Playwright specs touched by fixes (`v121-notice-fill`, `auth`, `language`) on
+  Chromium + WebKit 28 / 28; backend typecheck + lint green, unit 733 / 733; frontend typecheck + lint green,
+  unit 153 / 153.
+- Fixed (DOC): the nukta check found "পড়া" in the broken form in this progress file again (my notes); normalized.
+- Tagged `v1.21`. All servers and browsers stopped.
+- Not committed on purpose: `backend/package-lock.json` (an npm-added `"peer": true` on zod, present before testing).
+
+## Testing v1.21 complete
+Stages A and B done on 2026-11-26. One real app bug found and fixed (the overwrite confirmation dropped the
+"reading" state); one broken test hook fixed (throttle reset). No test skipped beyond the by-design engine skips.
