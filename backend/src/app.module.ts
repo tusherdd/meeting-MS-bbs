@@ -23,6 +23,7 @@ import { HealthModule } from './modules/health/health.module';
 import { MailModule } from './modules/mail/mail.module';
 import { DecisionsModule } from './modules/decisions/decisions.module';
 import { NoticesModule } from './modules/notices/notices.module';
+import { NoticeExtractModule } from './modules/notice-extract/notice-extract.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { MeetingsModule } from './modules/meetings/meetings.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -110,6 +111,7 @@ import { testHooksEnabled } from './modules/test-hooks/test-hooks.guard';
     MeetingsModule,
     DecisionsModule,
     NoticesModule,
+    NoticeExtractModule,
     AttachmentsModule,
     ReportsModule,
     AdminModule,

@@ -45,6 +45,7 @@ There is no separate database project: TypeORM entities, migrations and seeds ar
 | Scheduling | `@nestjs/schedule` (outbox worker every minute, daily outbox cleanup, meeting auto-complete every 15 min); off when `SCHEDULER_ENABLED=false`. A job never crashes the app or blocks other jobs; a temporary DB connection error is logged once as a short WARN and retried on the next tick (`common/scheduling/scheduled-job.ts`) |
 | Tests | Jest unit tests (mocks) + e2e tests on a separate database `DB_NAME_TEST` (`backend/.env.test`) |
 | PDF | Puppeteer (HTML → PDF) — required so Bangla text shapes correctly; fonts embedded from `backend/assets/fonts/`: **NikoshBAN** for Bangla, **Tinos** for English (no internet fonts, §13.10) |
+| OCR (v1.21) | `tesseract.js` (WASM, `ben`+`eng` traineddata in `backend/assets/tessdata/`, Apache-2.0), `pdfjs-dist` (legacy Node build), `@napi-rs/canvas` (render fallback), `mammoth` (DOCX text) — npm only, no system tools (§6.12) |
 | Frontend | Next.js (App Router), TypeScript, Tailwind CSS |
 | Timezone | Store `timestamptz` (UTC). Display and compute "today/week/month" in `Asia/Dhaka`. |
 
@@ -79,6 +80,7 @@ backend/
 │       ├── decisions/           meeting minutes "সভা কার্যবিবরণী" (v1.11 as "decisions", renamed v1.13, §6.9)
 │       ├── notices/             uploaded meeting notice "সভার নোটিশ" (v1.13, §6.8)
 │       ├── attachments/         other attachments "অন্যান্য সংযুক্তি" (v1.17, §6.11)
+│       ├── notice-extract/      fill the meeting form from the notice (v1.21, §6.12): extractors, OCR, parser, matching
 │       ├── notifications/       NotificationsService.notify + channels (in-app, e-mail)
 │       ├── mail/                outbox entity, worker, templates, admin outbox API
 │       ├── reports/             summaries + PDF (Puppeteer)
@@ -526,6 +528,72 @@ Besides the notice, the organizer can add up to five more files to a meeting, ea
 - Tests: `attachment-rules.spec.ts`, `attachments.service.spec.ts`, `test/attachments.e2e-spec.ts`; frontend
   `tests/unit/attachments.test.ts`, `e2e/v117-attachments.spec.ts`.
 
+### 6.12 Fill the meeting form from the notice (v1.21 part 1 of 3, owner request 2026-11-25)
+The organizer uploads the notice to the **create or edit form**; the backend reads it and returns the form fields and
+the matched officers. Part 1 = backend only (the form UI comes in part 3, an AI extractor in part 2). Module
+`modules/notice-extract/`.
+- **Endpoint:** `POST /meetings/notice-extract` (multipart `file`) → 200 with the result. Used before the meeting exists.
+  Every officer and admin, **not SUPER_ADMIN** (403, the "cannot organize" message). **Nothing is stored:** the file is
+  checked and read in memory (multer memory storage, no temp file), dropped after the request; no meeting is created.
+- **Files:** exactly the notice upload rules (§6.8, `processDecisionFile`): PDF, DOCX (no macros, no legacy `.doc`),
+  JPEG / PNG (re-encoded without EXIF), decided by the bytes, max **10 MB**.
+- **Rate limit:** 20 per user per day (`@Throttle`, in-memory throttler store: a restart resets it).
+- **Audit:** `NOTICE_EXTRACTED` — `after: { method, success, durationMs }` only; never the text, the fields or the
+  file name. Logs only carry the error type.
+- **Pluggable extraction:** `extractors/notice-extractor.ts` (interface + token `NOTICE_EXTRACTOR`). Now `OcrExtractor`
+  (method `OCR`); part 2 adds an AI extractor. Officer matching is never part of an extractor: it always runs on our
+  server, the officer list is never sent anywhere.
+- **Text (OcrExtractor):** DOCX → text (`mammoth`). PDF → the text layer (`pdfjs-dist`); when it has too little real
+  Bangla Unicode (`text-quality.ts`: < 80 Bangla letters, < 40 % Bangla among letters, or no "সভা" — image-only scans,
+  Bijoy/SutonnyMJ text) page 1 (and 2) are OCR'd: the page's largest embedded image (≥ 0.5 MP, from the operator list,
+  decoded by pdfjs, PNG via sharp — CamScanner PDFs) or, only when there is none, the page rendered with
+  `@napi-rs/canvas` (2000 px wide). JPEG / PNG → OCR directly.
+- **OCR** (`ocr/ocr-engine.service.ts`): `tesseract.js` worker, languages `ben+eng`, OEM 1 (LSTM), PSM 4 (single column),
+  traineddata `4.0.0_best_int` from `backend/assets/tessdata/` (`langPath`, `cacheMethod: 'none'`; no network, no cache
+  files). Like the PDF browser: created lazily, reused, one job at a time, **terminated after 2 minutes idle** and on
+  shutdown; **60 s per page** (then the worker is killed and the page reported in `warnings`). Images are prepared with
+  sharp (grayscale, 1600–2480 px wide, normalised). Memory: ~150–250 MB while reading, nothing when idle.
+- **OCR fixes** (`parse/ocr-fixes.ts`): `normalizeBangla` (§13.13) + a small whole-word dictionary of misreads seen in real
+  notices ("আগারগীও" → "আগারগাঁও", "মহদয়" → "মহোদয়", "যেগাসচিব" → "যুগ্মসচিব", "এনালিন্ট" → "এনালিস্ট", …).
+- **Parser** (`parse/notice-parser.ts`, pure, ONE fixed format): everything from "অনুলিপি" on is cut; labels are read only
+  below the "সভার নোটিশ" heading (the header, memo number "নং-…" and top-right date are ignored); labels allow extra spaces
+  and ":" / "ঃ". Title = the paragraph after the heading up to "একটি সভা…", without a leading
+  "… কর্তৃক বাস্তবায়নাধীন" (e.g. "বাংলাদেশ পরিসংখ্যান ব্যুরো (বিবিএস) কর্তৃক বাস্তবায়নাধীন") and without "একটি".
+  "সভাপতি" → raw text. "তারিখ ও সময়" (or separate "তারিখ" / "সময়") → date + start; end = start + 45 min (§13.6).
+  "স্থান" → venue. "আলোচ্যসূচি" → agenda, one line per "ক) খ)" item, up to the body paragraph "২।". "বিতরণ" → the numbered
+  lines up to "অনুলিপি"; wrapped lines joined; signature/contact lines skipped; notes in parentheses
+  ("(বিশেষ আমন্ত্রণে)", "(জ্যেষ্ঠতার ক্রমানুসারে নয়)") and the final "।" removed. Each line → name (after
+  "জনাব" / "জনাবা" / "বেগম" / "ড." …, or starting with "মোঃ"; initials written with commas such as "এইচ, এম," stay in the
+  name), designation, wing / office (BBS address parts are never the wing). "কর্মকর্তা (সকল)", "সকল কর্মকর্তা" … = group.
+  A field not found is **null** with a warning — never guessed.
+- **Time** (`parse/notice-time.ts`): Bangla digits and months (also numeric day-first dates). সকাল / পূর্বাহ্ন = as written;
+  দুপুর: 12 stays, 1–6 → +12; বেলা: 12 stays, 1–7 → +12, 8–11 as written (বেলা ১২.০০ = 12:00, বেলা ২.০০ = 14:00);
+  বিকাল / বিকেল / অপরাহ্ন / সন্ধ্যা → +12 (বিকাল ৩.৩০ = 15:30); রাত: 6–11 → +12, 12 → 00. No word: 1–7 → afternoon with
+  the warning `TIME_ASSUMED_AFTERNOON`, otherwise as written. All in Asia/Dhaka.
+- **Officer matching** (`match/officer-matcher.ts`, pure): active officers only, never SUPER_ADMIN (the query). Normalization:
+  honorifics removed; "মোঃ" / "মো:" / "মুঃ" / "মোহাম্মদ" / "মুহাম্মদ" are one token and ignored; normalizeBangla + OCR fixes;
+  punctuation → space; "উপ পরিচালক" = "উপপরিচালক". Names are compared against the **whole line** (its first tokens, window
+  of the name length ± 1, joined without spaces), never comma-split parts — "এইচ, এম, ফিরোজ" = "এইচ.এম. ফিরোজ" =
+  "এইচএম ফিরোজ". Score = Levenshtein similarity + 0.10 designation match (main or structured additional charge, §6.2) +
+  0.05 wing match. Designations / wings are found as whole token sequences; a name inside a longer found one is ignored
+  ("পরিচালক" in "প্রকল্প পরিচালক").
+  - **sure:** best name ≥ 0.90 (or ≥ 0.80 with a designation match) and ≥ 0.08 ahead of the second;
+  - **maybe:** up to 3 candidates with name ≥ 0.60;
+  - **unmatched:** `group`, `not-found`, or `ambiguous`, with the raw text and the parsed name / designation / wing
+    ("add as guest").
+  - A line **without a name** ("প্রকল্প পরিচালক, SCEM প্রকল্প") is matched by designation (+ wing when the line names a
+    known one) only when **exactly one** officer fits; otherwise unmatched.
+  - The same officer "sure" on two lines is kept once (warning `DUPLICATE_OFFICER`).
+  - **Chair:** the same matching on the "সভাপতি" text → `sure` / `maybe` / `unmatched` (unmatched may become a guest chair).
+- **Response:** `{ method, fields: { title, date, startTime, endTime, venue, agenda }, chair, participants: { sure, maybe,
+  unmatched }, warnings: [{ code, message }] }` (`dto/notice-extract.dto.ts`; warning messages in Bangla,
+  `parse/notice-warnings.ts`). A file that cannot be read at all → 422 `NOTICE_EXTRACT_FAILED`.
+- **Time and memory notes:** a text-layer PDF or DOCX takes well under a second; a scanned page about 5–20 s on a laptop
+  (first job + ~2 s to load the language data). nginx gives this route `proxy_read_timeout 180s` (README §4.7).
+- Tests (unit): `notice-parser.spec.ts` (the real notice's OCR text, anonymized), `notice-time.spec.ts`,
+  `ocr-fixes.spec.ts`, `officer-matcher.spec.ts` (sure / maybe / unmatched / group / comma name / no-name lines / chair /
+  duplicates), `text-quality.spec.ts`, `ocr-engine.service.spec.ts` (lazy, reuse, idle, 60 s timeout, shutdown).
+
 ## 7. Data model (TypeORM entities)
 
 All tables have `id` (uuid), `createdAt`, `updatedAt`.
@@ -636,6 +704,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 | GET | `/meetings` | 👤 | My meetings by range (`from`, `to`, `status`, `role=organizer|participant`, page). Admin may pass `scope=all`. |
 | GET | `/meetings/:id` | 👤 | Detail (organizer, participants, admins only); people with designation and wing; guest officers |
 | POST | `/meetings/check-conflicts` | 👤 | Dry run of the conflict engine |
+| POST | `/meetings/notice-extract` | 👤 (not SUPER_ADMIN) | Read a notice (multipart `file`) → form fields + matched officers; nothing stored; 20/day (v1.21, §6.12) |
 | POST | `/meetings` | 👤 | Create (409 on blocking conflict: lead rule, §6.4) |
 | PATCH | `/meetings/:id` | 👤 | Update (organizer, internal chair or admin; re-runs conflict engine; lead rule on time or chair change) |
 | POST | `/meetings/:id/cancel` | 👤 | Cancel with reason (organizer, internal chair or admin) |
@@ -722,7 +791,8 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
    checked, macro-enabled files and legacy .doc refused), image metadata stripped, private folder
    (`DECISION_UPLOAD_DIR`, notices in `notices/`, other attachments in `attachments/` (v1.17, §6.11), never static), only through the authenticated download with
    `nosniff`; DOCX always as an attachment; PDF / images inline (v1.17), shown only through a Blob URL of the
-   session-fetched bytes (§13.22).
+   session-fetched bytes (§13.22). The notice extraction (v1.21, §6.12) uses the same checks but keeps the file in
+   memory only and never stores it.
 10. Authorization checked in services (organizer, internal chair or admin for meeting edit/cancel; organizer/admin
     for complete; SUPER_ADMIN protected).
 11. Only parameterized queries (TypeORM query builder / repositories). No string-built SQL.
@@ -730,7 +800,7 @@ Legend: 🔓 public · 👤 any logged-in user · 🛡 ADMIN or SUPER_ADMIN
 13. Audit log for: login, user create/update/role/status, change-request decisions, meeting create/update/cancel/delete,
     meeting notice upload / replace / remove (`MEETING_NOTICE_UPLOADED` / `_REPLACED` / `_REMOVED`, v1.13; the v1.10
     `MEETING_NOTICE_EXPORTED` stays for old rows), other attachments add / remove (`MEETING_ATTACHMENT_ADDED` /
-    `_REMOVED`, v1.17), minutes file upload / delete
+    `_REMOVED`, v1.17), notice extraction (`NOTICE_EXTRACTED`: method / success / duration only, v1.21), minutes file upload / delete
     (`MEETING_DECISION_UPLOADED` / `_DELETED`, v1.11), designation priority changes.
 14. Swagger enabled only when `SWAGGER_ENABLED=true` (off by default); in production only behind HTTP basic auth
     (`SWAGGER_USER`, `SWAGGER_PASSWORD`).
@@ -873,6 +943,10 @@ Release **v1.20** (2026-11-25): participant picker designation filter next to th
 additional charges, and "add everyone in this list" for the current wing + designation (§13.6;
 `GET /users/directory?designationId=`). Reworked the same day: the separate group-add box was removed, the v1
 picker restored.
+
+Release **v1.21** part 1 of 3 (2026-11-25, no tag): "fill the meeting form from the notice" — backend only:
+`POST /meetings/notice-extract` with local OCR (tesseract.js, traineddata in `backend/assets/tessdata/`), the fixed-format
+parser and officer matching (§6.12). No migration. Part 2: an AI extractor; part 3: the form UI.
 
 ## 13. Frontend (`frontend/`)
 

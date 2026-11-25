@@ -577,6 +577,10 @@ export const MESSAGE_CATALOG = {
     bn: 'এই সভার কোনো নোটিশ ফাইল নেই।',
     en: 'This meeting has no notice file.',
   },
+  NOTICE_EXTRACT_FAILED: {
+    bn: 'নোটিশ থেকে তথ্য পড়া যায়নি। ফাইলটি পরীক্ষা করুন অথবা তথ্যগুলো নিজে লিখুন।',
+    en: 'The notice could not be read. Check the file or enter the details yourself.',
+  },
   ATTACHMENT_FORBIDDEN: {
     bn: 'শুধু সভার সংশ্লিষ্ট কর্মকর্তা অথবা প্রশাসক এই সভার সংযুক্তি দেখতে পারেন।',
     en: 'Only the officers of this meeting or an administrator can see its attachments.',

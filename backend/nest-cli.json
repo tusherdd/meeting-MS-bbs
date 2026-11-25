@@ -16,6 +16,11 @@
         "include": "../assets/fonts/*",
         "outDir": "dist/assets",
         "watchAssets": false
+      },
+      {
+        "include": "../assets/tessdata/*.gz",
+        "outDir": "dist/assets",
+        "watchAssets": false
       }
     ]
   }

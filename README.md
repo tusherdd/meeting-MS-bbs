@@ -89,6 +89,24 @@ Dev mode on a small machine (8 GB RAM):
   if you need the UI, run `npm run preview` in `frontend/` instead: one production build, then a small server
   (about 150 MB) on http://localhost:3000. It does not reload on frontend changes.
 - The PDF browser (Chromium) starts only on the first PDF and closes after 5 minutes without a PDF.
+- The OCR worker of "fill the form from the notice" (v1.21, tesseract.js) starts only on the first scanned
+  notice, needs about 150–250 MB while it reads, and is stopped after 2 minutes without work.
+
+### Reading notices (OCR, v1.21) — no system packages
+
+`POST /meetings/notice-extract` reads PDF / DOCX / JPEG / PNG notices with npm packages only, the same on macOS
+and Ubuntu: **no** Homebrew / apt `tesseract` or `poppler` is needed.
+
+| What | Package | Note |
+|---|---|---|
+| OCR | `tesseract.js` (WASM in a worker thread) | languages `ben` + `eng`, page mode "single column" (PSM 4), 60 s per page |
+| Language data | in the repo: `backend/assets/tessdata/` | `ben.traineddata.gz` (1.4 MB) + `eng.traineddata.gz` (3.0 MB), Apache-2.0, see its README; loaded from disk, never downloaded |
+| PDF | `pdfjs-dist` (legacy Node build) | text layer; for scans the embedded page image (no rendering) |
+| PDF render (only when needed) | `@napi-rs/canvas` (prebuilt binary) | pages without a scanned image, e.g. Bijoy-font PDFs |
+| DOCX | `mammoth` | text only |
+
+The file stays in memory and is dropped after the request; nothing is stored, no meeting is created.
+At most 20 extractions per user per day.
 
 First login: `admin@bbs.gov.bd` with `SEED_SUPER_ADMIN_PASSWORD`; the app then asks for a new password.
 Officers log in with their official email and the office default password (`DEFAULT_OFFICER_PASSWORD`).
@@ -148,6 +166,7 @@ npm ci
 npx puppeteer browsers install chrome    # Chrome for PDFs (in ~/.cache/puppeteer of this user)
 cp .env.example .env && chmod 600 .env   # then edit, see 4.4
 npm run build                             # also copies assets/fonts/ (NikoshBAN, Tinos) to dist/assets/fonts/
+                                          # and (v1.21) assets/tessdata/ (OCR language data) to dist/assets/tessdata/
 
 cd ../frontend
 npm ci
@@ -270,6 +289,15 @@ server {
         proxy_read_timeout 60s;            # PDF rendering takes up to 30 s
     }
 
+    # v1.21: reading a scanned notice (OCR, up to 60 s per page, 2 pages) may take longer.
+    location = /api/v1/meetings/notice-extract {
+        proxy_pass http://127.0.0.1:4000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 180s;
+    }
+
     location /uploads/ {
         proxy_pass http://127.0.0.1:4000;
         proxy_set_header Host $host;
@@ -323,8 +351,10 @@ Copy the backup folder to a second machine regularly.
 2. Back up first: run the `pg_dump` line from 4.8 by hand.
 3. `cd /opt/bbs-meeting/app && git fetch --tags && git checkout <new tag>`
 4. Backend: `cd backend && npm ci && npm run build && npm run migration:run:prod`
-   (check that `dist/assets/fonts/` has `NikoshBAN.ttf` and the two `Tinos-*.ttf` files: the PDF reports need them)
+   (check that `dist/assets/fonts/` has `NikoshBAN.ttf` and the two `Tinos-*.ttf` files: the PDF reports need them;
+   since v1.21 the OCR reads `ben.traineddata.gz` / `eng.traineddata.gz` from `dist/assets/tessdata/` or `backend/assets/tessdata/`)
 5. Add any new variables from `backend/.env.example` to `backend/.env`.
+   v1.21: add the `notice-extract` location with `proxy_read_timeout 180s` to the nginx site (4.7), then `sudo nginx -t && sudo systemctl reload nginx`.
 6. Frontend: `cd ../frontend && npm ci && npm run build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/`
 7. `sudo systemctl restart bbs-meeting-api bbs-meeting-web`
 8. Check: `curl -s https://meeting.bbs.gov.bd/api/v1/health` shows `"status":"ok"`; log in; open a report PDF.

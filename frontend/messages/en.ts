@@ -991,6 +991,7 @@ export const en: Messages = {
       MEETING_NOTICE_REMOVED: "Meeting notice removed",
       MEETING_ATTACHMENT_ADDED: "Attachment added",
       MEETING_ATTACHMENT_REMOVED: "Attachment removed",
+      NOTICE_EXTRACTED: "Form filled from notice",
       OFFICE_REPORT_EXPORTED: "Office report PDF downloaded",
       MEETING_DECISION_UPLOADED: "Meeting minutes uploaded",
       MEETING_DECISION_DELETED: "Meeting minutes file deleted",

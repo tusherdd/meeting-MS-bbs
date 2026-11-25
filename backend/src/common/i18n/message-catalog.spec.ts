@@ -8,6 +8,7 @@ import { AUTH_MESSAGES } from '../../modules/auth/auth.messages';
 import { CHANGE_REQUEST_MESSAGES } from '../../modules/change-requests/change-requests.messages';
 import { DESIGNATION_MESSAGES } from '../../modules/designations/designations.messages';
 import { MEETING_MESSAGES } from '../../modules/meetings/meetings.messages';
+import { NOTICE_EXTRACT_MESSAGES } from '../../modules/notice-extract/notice-extract.messages';
 import { PROFILE_MESSAGES } from '../../modules/profile/profile.messages';
 import { USER_MESSAGES } from '../../modules/users/users.messages';
 import { WING_MESSAGES } from '../../modules/wings/wings.messages';
@@ -95,6 +96,7 @@ describe('API message catalog (v1.6)', () => {
       CHANGE_REQUEST_MESSAGES,
       DESIGNATION_MESSAGES,
       MEETING_MESSAGES,
+      NOTICE_EXTRACT_MESSAGES,
       PROFILE_MESSAGES,
       USER_MESSAGES,
       WING_MESSAGES,

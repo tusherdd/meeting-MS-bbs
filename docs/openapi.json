@@ -87,6 +87,7 @@
                 "MEETING_NOTICE_REMOVED",
                 "MEETING_ATTACHMENT_ADDED",
                 "MEETING_ATTACHMENT_REMOVED",
+                "NOTICE_EXTRACTED",
                 "MEETING_DECISION_UPLOADED",
                 "MEETING_DECISION_DELETED",
                 "OFFICE_REPORT_EXPORTED",
@@ -4266,6 +4267,74 @@
         ]
       }
     },
+    "/api/v1/meetings/notice-extract": {
+      "post": {
+        "description": "For the create and edit forms. Same file rules as the notice upload (PDF, DOCX without macros, JPEG, PNG; checked by the bytes; max 10 MB). The file is processed in memory and dropped; no meeting is created. PDF: the text layer, or OCR of page 1 (and 2) when it holds no real Bangla text (scans, Bijoy fonts); images: OCR (local tesseract.js, ben+eng). Officers are matched on the server (active officers only, never SUPER_ADMIN). Fields not found are null. Every officer and admin, not SUPER_ADMIN. 20 per user per day. Audited (NOTICE_EXTRACTED: method, success, duration).",
+        "operationId": "NoticeExtractController_extract",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "description": "Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bn",
+                "en"
+              ],
+              "default": "bn"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/NoticeExtractUploadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoticeExtractResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file, wrong type, macro-enabled Word file, unreadable"
+          },
+          "403": {
+            "description": "SUPER_ADMIN (system account)"
+          },
+          "413": {
+            "description": "File larger than 10 MB"
+          },
+          "422": {
+            "description": "The file could not be read (e.g. a broken PDF)"
+          },
+          "429": {
+            "description": "More than 20 extractions today"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a meeting notice and return the form fields (nothing is stored)",
+        "tags": [
+          "Meeting notice"
+        ]
+      }
+    },
     "/api/v1/meetings/{id}/attachments": {
       "get": {
         "description": "The meeting's people, admins and office report viewers in scope (like the notice), also for cancelled meetings. `canManage` = I may add / remove (the organizer, not cancelled).",
@@ -5326,6 +5395,7 @@
               "MEETING_NOTICE_REMOVED",
               "MEETING_ATTACHMENT_ADDED",
               "MEETING_ATTACHMENT_REMOVED",
+              "NOTICE_EXTRACTED",
               "MEETING_DECISION_UPLOADED",
               "MEETING_DECISION_DELETED",
               "OFFICE_REPORT_EXPORTED",
@@ -8633,6 +8703,422 @@
         },
         "required": [
           "file"
+        ]
+      },
+      "NoticeExtractUploadDto": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "The notice: PDF, DOCX (no macros), JPEG or PNG, max 10 MB (same rules as the notice upload)."
+          }
+        },
+        "required": [
+          "file"
+        ]
+      },
+      "ExtractedFieldsDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "nullable": true,
+            "example": "অর্থনৈতিক শুমারি ২০২৩ শীর্ষক প্রকল্পের ICT Support Team এর সভা"
+          },
+          "date": {
+            "type": "string",
+            "nullable": true,
+            "example": "2026-11-10",
+            "description": "Asia/Dhaka calendar date (YYYY-MM-DD)"
+          },
+          "startTime": {
+            "type": "string",
+            "nullable": true,
+            "example": "12:00",
+            "description": "HH:mm, 24 h, Asia/Dhaka"
+          },
+          "endTime": {
+            "type": "string",
+            "nullable": true,
+            "example": "12:45",
+            "description": "startTime + 45 minutes (the form default)"
+          },
+          "venue": {
+            "type": "string",
+            "nullable": true
+          },
+          "agenda": {
+            "type": "string",
+            "nullable": true,
+            "description": "The agenda; each \"ক) খ)\" item on its own line"
+          }
+        },
+        "required": [
+          "title",
+          "date",
+          "startTime",
+          "endTime",
+          "venue",
+          "agenda"
+        ]
+      },
+      "ExtractNamedRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string",
+            "example": "পরিচালক"
+          },
+          "nameEn": {
+            "type": "string",
+            "example": "Director"
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn"
+        ]
+      },
+      "MatchedOfficerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameBn": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "designation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExtractNamedRefDto"
+              }
+            ]
+          },
+          "wing": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExtractNamedRefDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "nameBn",
+          "nameEn",
+          "designation",
+          "wing"
+        ]
+      },
+      "MatchCandidateDto": {
+        "type": "object",
+        "properties": {
+          "officer": {
+            "$ref": "#/components/schemas/MatchedOfficerDto"
+          },
+          "score": {
+            "type": "number",
+            "example": 0.94,
+            "description": "Name similarity 0..1 plus designation / wing boosts"
+          },
+          "designationMatch": {
+            "type": "boolean",
+            "description": "A designation of the officer (incl. additional charges) is in the line"
+          },
+          "wingMatch": {
+            "type": "boolean",
+            "description": "The officer’s wing is in the line"
+          }
+        },
+        "required": [
+          "officer",
+          "score",
+          "designationMatch",
+          "wingMatch"
+        ]
+      },
+      "ExtractedChairDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "sure",
+              "maybe",
+              "unmatched"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "description": "The raw \"সভাপতি\" text (name + designation)"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "designation": {
+            "type": "string",
+            "nullable": true
+          },
+          "match": {
+            "nullable": true,
+            "description": "Set when status = sure",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MatchCandidateDto"
+              }
+            ]
+          },
+          "candidates": {
+            "description": "Set when status = maybe (up to 3)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchCandidateDto"
+            }
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "group",
+              "not-found",
+              "ambiguous"
+            ],
+            "nullable": true,
+            "description": "Set when status = unmatched (then it may become a guest chair)"
+          }
+        },
+        "required": [
+          "status",
+          "text",
+          "name",
+          "designation",
+          "match",
+          "candidates",
+          "reason"
+        ]
+      },
+      "SureParticipantDto": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "number",
+            "example": 3,
+            "description": "1-based position in the distribution list"
+          },
+          "text": {
+            "type": "string",
+            "description": "The cleaned line"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "designation": {
+            "type": "string",
+            "nullable": true
+          },
+          "wing": {
+            "type": "string",
+            "nullable": true
+          },
+          "match": {
+            "$ref": "#/components/schemas/MatchCandidateDto"
+          }
+        },
+        "required": [
+          "line",
+          "text",
+          "name",
+          "designation",
+          "wing",
+          "match"
+        ]
+      },
+      "MaybeParticipantDto": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "number",
+            "example": 3,
+            "description": "1-based position in the distribution list"
+          },
+          "text": {
+            "type": "string",
+            "description": "The cleaned line"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "designation": {
+            "type": "string",
+            "nullable": true
+          },
+          "wing": {
+            "type": "string",
+            "nullable": true
+          },
+          "candidates": {
+            "description": "Up to 3, best first",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchCandidateDto"
+            }
+          }
+        },
+        "required": [
+          "line",
+          "text",
+          "name",
+          "designation",
+          "wing",
+          "candidates"
+        ]
+      },
+      "UnmatchedParticipantDto": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "number",
+            "example": 3,
+            "description": "1-based position in the distribution list"
+          },
+          "text": {
+            "type": "string",
+            "description": "The cleaned line"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "designation": {
+            "type": "string",
+            "nullable": true
+          },
+          "wing": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "group",
+              "not-found",
+              "ambiguous"
+            ],
+            "description": "group = \"কর্মকর্তা (সকল)\" etc.; not-found = no officer fits; ambiguous = a line without a name fits several officers"
+          }
+        },
+        "required": [
+          "line",
+          "text",
+          "name",
+          "designation",
+          "wing",
+          "reason"
+        ]
+      },
+      "ExtractedParticipantsDto": {
+        "type": "object",
+        "properties": {
+          "sure": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SureParticipantDto"
+            }
+          },
+          "maybe": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaybeParticipantDto"
+            }
+          },
+          "unmatched": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnmatchedParticipantDto"
+            }
+          }
+        },
+        "required": [
+          "sure",
+          "maybe",
+          "unmatched"
+        ]
+      },
+      "ExtractWarningDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "DATE_NOT_FOUND"
+          },
+          "message": {
+            "type": "string",
+            "example": "নোটিশে সভার তারিখ পাওয়া যায়নি।"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "NoticeExtractResponseDto": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "OCR",
+              "AI"
+            ],
+            "description": "OCR = local text layer / OCR + parser (v1.21 part 1)"
+          },
+          "fields": {
+            "$ref": "#/components/schemas/ExtractedFieldsDto"
+          },
+          "chair": {
+            "nullable": true,
+            "description": "null when the notice has no \"সভাপতি\" line",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExtractedChairDto"
+              }
+            ]
+          },
+          "participants": {
+            "$ref": "#/components/schemas/ExtractedParticipantsDto"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExtractWarningDto"
+            }
+          }
+        },
+        "required": [
+          "method",
+          "fields",
+          "chair",
+          "participants",
+          "warnings"
         ]
       },
       "AttachmentDto": {

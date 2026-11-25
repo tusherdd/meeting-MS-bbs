@@ -925,6 +925,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/meetings/notice-extract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read a meeting notice and return the form fields (nothing is stored)
+         * @description For the create and edit forms. Same file rules as the notice upload (PDF, DOCX without macros, JPEG, PNG; checked by the bytes; max 10 MB). The file is processed in memory and dropped; no meeting is created. PDF: the text layer, or OCR of page 1 (and 2) when it holds no real Bangla text (scans, Bijoy fonts); images: OCR (local tesseract.js, ben+eng). Officers are matched on the server (active officers only, never SUPER_ADMIN). Fields not found are null. Every officer and admin, not SUPER_ADMIN. 20 per user per day. Audited (NOTICE_EXTRACTED: method, success, duration).
+         */
+        post: operations["NoticeExtractController_extract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/meetings/{id}/attachments": {
         parameters: {
             query?: never;
@@ -1122,7 +1142,7 @@ export interface components {
              * @example MEETING_CREATE
              * @enum {string}
              */
-            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_ATTACHMENT_ADDED" | "MEETING_ATTACHMENT_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+            action: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_ATTACHMENT_ADDED" | "MEETING_ATTACHMENT_REMOVED" | "NOTICE_EXTRACTED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
             /** @example meeting */
             entityType: string;
             entityId: string | null;
@@ -2586,6 +2606,147 @@ export interface components {
              */
             file: string;
         };
+        NoticeExtractUploadDto: {
+            /**
+             * Format: binary
+             * @description The notice: PDF, DOCX (no macros), JPEG or PNG, max 10 MB (same rules as the notice upload).
+             */
+            file: string;
+        };
+        ExtractedFieldsDto: {
+            /** @example অর্থনৈতিক শুমারি ২০২৩ শীর্ষক প্রকল্পের ICT Support Team এর সভা */
+            title: string | null;
+            /**
+             * @description Asia/Dhaka calendar date (YYYY-MM-DD)
+             * @example 2026-11-10
+             */
+            date: string | null;
+            /**
+             * @description HH:mm, 24 h, Asia/Dhaka
+             * @example 12:00
+             */
+            startTime: string | null;
+            /**
+             * @description startTime + 45 minutes (the form default)
+             * @example 12:45
+             */
+            endTime: string | null;
+            venue: string | null;
+            /** @description The agenda; each "ক) খ)" item on its own line */
+            agenda: string | null;
+        };
+        ExtractNamedRefDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example পরিচালক */
+            nameBn: string;
+            /** @example Director */
+            nameEn: string;
+        };
+        MatchedOfficerDto: {
+            /** Format: uuid */
+            id: string;
+            nameBn: string;
+            nameEn: string;
+            designation: components["schemas"]["ExtractNamedRefDto"] | null;
+            wing: components["schemas"]["ExtractNamedRefDto"] | null;
+        };
+        MatchCandidateDto: {
+            officer: components["schemas"]["MatchedOfficerDto"];
+            /**
+             * @description Name similarity 0..1 plus designation / wing boosts
+             * @example 0.94
+             */
+            score: number;
+            /** @description A designation of the officer (incl. additional charges) is in the line */
+            designationMatch: boolean;
+            /** @description The officer’s wing is in the line */
+            wingMatch: boolean;
+        };
+        ExtractedChairDto: {
+            /** @enum {string} */
+            status: "sure" | "maybe" | "unmatched";
+            /** @description The raw "সভাপতি" text (name + designation) */
+            text: string;
+            name: string | null;
+            designation: string | null;
+            /** @description Set when status = sure */
+            match: components["schemas"]["MatchCandidateDto"] | null;
+            /** @description Set when status = maybe (up to 3) */
+            candidates: components["schemas"]["MatchCandidateDto"][];
+            /**
+             * @description Set when status = unmatched (then it may become a guest chair)
+             * @enum {string|null}
+             */
+            reason: "group" | "not-found" | "ambiguous" | null;
+        };
+        SureParticipantDto: {
+            /**
+             * @description 1-based position in the distribution list
+             * @example 3
+             */
+            line: number;
+            /** @description The cleaned line */
+            text: string;
+            name: string | null;
+            designation: string | null;
+            wing: string | null;
+            match: components["schemas"]["MatchCandidateDto"];
+        };
+        MaybeParticipantDto: {
+            /**
+             * @description 1-based position in the distribution list
+             * @example 3
+             */
+            line: number;
+            /** @description The cleaned line */
+            text: string;
+            name: string | null;
+            designation: string | null;
+            wing: string | null;
+            /** @description Up to 3, best first */
+            candidates: components["schemas"]["MatchCandidateDto"][];
+        };
+        UnmatchedParticipantDto: {
+            /**
+             * @description 1-based position in the distribution list
+             * @example 3
+             */
+            line: number;
+            /** @description The cleaned line */
+            text: string;
+            name: string | null;
+            designation: string | null;
+            wing: string | null;
+            /**
+             * @description group = "কর্মকর্তা (সকল)" etc.; not-found = no officer fits; ambiguous = a line without a name fits several officers
+             * @enum {string}
+             */
+            reason: "group" | "not-found" | "ambiguous";
+        };
+        ExtractedParticipantsDto: {
+            sure: components["schemas"]["SureParticipantDto"][];
+            maybe: components["schemas"]["MaybeParticipantDto"][];
+            unmatched: components["schemas"]["UnmatchedParticipantDto"][];
+        };
+        ExtractWarningDto: {
+            /** @example DATE_NOT_FOUND */
+            code: string;
+            /** @example নোটিশে সভার তারিখ পাওয়া যায়নি। */
+            message: string;
+        };
+        NoticeExtractResponseDto: {
+            /**
+             * @description OCR = local text layer / OCR + parser (v1.21 part 1)
+             * @enum {string}
+             */
+            method: "OCR" | "AI";
+            fields: components["schemas"]["ExtractedFieldsDto"];
+            /** @description null when the notice has no "সভাপতি" line */
+            chair: components["schemas"]["ExtractedChairDto"] | null;
+            participants: components["schemas"]["ExtractedParticipantsDto"];
+            warnings: components["schemas"]["ExtractWarningDto"][];
+        };
         AttachmentDto: {
             /** Format: uuid */
             id: string;
@@ -3053,7 +3214,7 @@ export interface operations {
                 limit?: number;
                 /** @description Who did it */
                 actorId?: string;
-                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_ATTACHMENT_ADDED" | "MEETING_ATTACHMENT_REMOVED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
+                action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "REFRESH_TOKEN_REUSE" | "PASSWORD_CHANGE" | "PASSWORD_RESET_REQUEST" | "PASSWORD_RESET" | "USER_CREATE" | "USER_UPDATE" | "USER_STATUS_CHANGE" | "USER_ROLE_CHANGE" | "USER_PASSWORD_RESET_BY_ADMIN" | "USERS_DEFAULT_PASSWORD_APPLIED" | "DESIGNATION_CREATE" | "DESIGNATION_UPDATE" | "DESIGNATION_PRIORITY_CHANGE" | "DESIGNATION_DELETE" | "WING_CREATE" | "WING_UPDATE" | "WING_DELETE" | "PROFILE_UPDATE" | "PROFILE_PHOTO_UPDATE" | "PROFILE_PHOTO_DELETE" | "NOTIFICATION_EMAIL_CHANGE_REQUEST" | "NOTIFICATION_EMAIL_VERIFIED" | "CHANGE_REQUEST_CREATE" | "CHANGE_REQUEST_CANCEL" | "CHANGE_REQUEST_APPROVE" | "CHANGE_REQUEST_REJECT" | "EMAIL_RETRY" | "MEETING_CREATE" | "MEETING_UPDATE" | "MEETING_CANCEL" | "MEETING_COMPLETE" | "MEETING_DELETE" | "MEETING_CHAIR_PRIORITY_APPLIED" | "MEETING_NOTICE_EXPORTED" | "MEETING_NOTICE_UPLOADED" | "MEETING_NOTICE_REPLACED" | "MEETING_NOTICE_REMOVED" | "MEETING_ATTACHMENT_ADDED" | "MEETING_ATTACHMENT_REMOVED" | "NOTICE_EXTRACTED" | "MEETING_DECISION_UPLOADED" | "MEETING_DECISION_DELETED" | "OFFICE_REPORT_EXPORTED" | "CONFLICT_CREATED" | "CONFLICT_RESOLVED";
                 /** @description user, meeting, designation, change_request, … */
                 entityType?: string;
                 /** @description Id of the changed record */
@@ -5451,6 +5612,67 @@ export interface operations {
             };
             /** @description Meeting cancelled */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeExtractController_extract: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Language of API messages: en or bn (default bn). PDF reports ignore it (always Bangla). */
+                "Accept-Language"?: "bn" | "en";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["NoticeExtractUploadDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeExtractResponseDto"];
+                };
+            };
+            /** @description No file, wrong type, macro-enabled Word file, unreadable */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description SUPER_ADMIN (system account) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description File larger than 10 MB */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The file could not be read (e.g. a broken PDF) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description More than 20 extractions today */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -59,6 +59,8 @@ export enum AuditAction {
   /** v1.17: other attachments "অন্যান্য সংযুক্তি" (SPEC.md §6.11). */
   MEETING_ATTACHMENT_ADDED = 'MEETING_ATTACHMENT_ADDED',
   MEETING_ATTACHMENT_REMOVED = 'MEETING_ATTACHMENT_REMOVED',
+  /** v1.21: a notice was read to fill the meeting form (method / success / duration only). */
+  NOTICE_EXTRACTED = 'NOTICE_EXTRACTED',
   /** v1.11: meeting decision files ("সভা কার্যবিবরণী"). */
   MEETING_DECISION_UPLOADED = 'MEETING_DECISION_UPLOADED',
   MEETING_DECISION_DELETED = 'MEETING_DECISION_DELETED',

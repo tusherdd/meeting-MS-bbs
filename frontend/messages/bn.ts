@@ -984,6 +984,7 @@ const bnMessages = {
       MEETING_NOTICE_REMOVED: "সভার নোটিশ মুছে ফেলা",
       MEETING_ATTACHMENT_ADDED: "সংযুক্তি যোগ",
       MEETING_ATTACHMENT_REMOVED: "সংযুক্তি বাদ",
+      NOTICE_EXTRACTED: "নোটিশ থেকে ফর্ম পূরণ",
       OFFICE_REPORT_EXPORTED: "অফিস রিপোর্ট PDF Download",
       MEETING_DECISION_UPLOADED: "সভা কার্যবিবরণী Upload",
       MEETING_DECISION_DELETED: "সভা কার্যবিবরণী ফাইল মুছে ফেলা",
