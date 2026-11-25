@@ -91,6 +91,10 @@ export type AuditLogItem = S["AuditLogItemDto"];
 export type AppSettings = S["AppSettingsDto"];
 export type UpdateAppSettingsInput = S["UpdateAppSettingsDto"];
 export type NoticeExtractionMethod = AppSettings["noticeExtractionMethod"];
+// v1.21 part 3: "fill the meeting form from the notice" (SPEC.md §6.12).
+export type NoticeExtractResult = S["NoticeExtractResponseDto"];
+export type NoticeMatchedOfficer = S["MatchedOfficerDto"];
+export type NoticeUnmatchedReason = S["UnmatchedParticipantDto"]["reason"];
 export type EmailOutboxItem = S["EmailOutboxItemDto"];
 export type EmailStatus = EmailOutboxItem["status"];
 export type AuditAction = AuditLogItem["action"];

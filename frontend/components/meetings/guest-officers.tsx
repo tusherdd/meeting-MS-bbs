@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,6 +25,18 @@ export const MAX_GUESTS = 50;
 export const GUEST_CHAIR_PREFIX = "guest:";
 export const guestChairValue = (email: string) => `${GUEST_CHAIR_PREFIX}${email}`;
 
+/**
+ * v1.21 part 3: name and designation taken from a notice line ("অতিথি হিসেবে যোগ করুন"); the email
+ * is still typed by the user. A new `seq` applies a new prefill; `asChair` offers to make the guest
+ * the chair once added.
+ */
+export interface GuestPrefill {
+  seq: number;
+  name: string;
+  designation: string;
+  asChair: boolean;
+}
+
 const sameEmail = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 /**
@@ -37,15 +49,44 @@ const sameEmail = (a: string, b: string) => a.trim().toLowerCase() === b.trim().
 export function GuestOfficers({
   guests,
   onChange,
+  prefill,
+  onMakeChair,
 }: {
   guests: GuestEntry[];
   onChange: (next: GuestEntry[]) => void;
+  prefill?: GuestPrefill | null;
+  /** v1.21: called with the new guest's email when "make this guest the chair" was ticked. */
+  onMakeChair?: (email: string) => void;
 }) {
   const t = useT();
   const [name, setName] = useState("");
   const [designation, setDesignation] = useState("");
   const [email, setEmail] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
+  const [asChair, setAsChair] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
+  const [offerChair, setOfferChair] = useState(false); // prefilled from the notice's chair line
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  // A new prefill replaces the fields (state adjusted during render, React's pattern for props).
+  const [seenSeq, setSeenSeq] = useState(0);
+  if (prefill && prefill.seq !== seenSeq) {
+    setSeenSeq(prefill.seq);
+    setName(prefill.name);
+    setDesignation(prefill.designation);
+    setEmail("");
+    setEmailTouched(false);
+    setAsChair(prefill.asChair);
+    setOfferChair(prefill.asChair);
+    setPrefilled(true);
+  }
+  // ...and moves the focus to the email field, the one thing left to type.
+  const prefillSeq = prefill?.seq ?? 0;
+  useEffect(() => {
+    if (prefillSeq === 0) return;
+    emailRef.current?.focus();
+    emailRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [prefillSeq]);
 
   const emailValid = guestEntrySchema.shape.email.safeParse(email).success;
   const duplicate = email.trim() !== "" && guests.some((g) => sameEmail(g.email, email));
@@ -64,14 +105,16 @@ export function GuestOfficers({
       setEmailTouched(true);
       return;
     }
-    onChange([
-      ...guests,
-      { name: clean(name), designation: clean(designation), email: email.trim().toLowerCase() },
-    ]);
+    const added = email.trim().toLowerCase();
+    onChange([...guests, { name: clean(name), designation: clean(designation), email: added }]);
+    if (prefilled && offerChair && asChair) onMakeChair?.(added);
     setName("");
     setDesignation("");
     setEmail("");
     setEmailTouched(false);
+    setAsChair(false);
+    setOfferChair(false);
+    setPrefilled(false);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -109,6 +152,7 @@ export function GuestOfficers({
         />
         <Input
           id="guest-email"
+          ref={emailRef}
           type="email"
           inputMode="email"
           label={t.meetingForm.guestEmail}
@@ -121,6 +165,22 @@ export function GuestOfficers({
           onKeyDown={onKeyDown}
         />
       </div>
+      {prefilled && (
+        <div className="space-y-2" data-testid="guest-prefilled">
+          <p className="text-sm text-slate-700">{t.noticeFill.guestPrefilled}</p>
+          {onMakeChair && offerChair && (
+            <label className="flex w-fit items-center gap-2 text-sm text-slate-800">
+              <input
+                type="checkbox"
+                className="size-4 accent-brand-700"
+                checked={asChair}
+                onChange={(e) => setAsChair(e.target.checked)}
+              />
+              {t.noticeFill.guestAsChair}
+            </label>
+          )}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="secondary" size="sm" onClick={add} disabled={!canAdd}>
           {t.meetingForm.guestAdd}

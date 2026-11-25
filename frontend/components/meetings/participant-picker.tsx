@@ -18,7 +18,7 @@ import { useFormat, useLocale, useNames, useT } from "@/providers/locale-provide
 import { fromDirectory, groupByWing, type SelectedPerson } from "./people";
 
 const PAGE = 20;
-const MAX_PEOPLE = 200;
+export const MAX_PEOPLE = 200;
 
 interface Props {
   selected: SelectedPerson[];

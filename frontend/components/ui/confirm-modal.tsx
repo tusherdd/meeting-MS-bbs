@@ -21,6 +21,7 @@ export function ConfirmModal({
   error,
   danger = false,
   confirmDisabled = false,
+  cancelLabel,
 }: {
   open: boolean;
   onClose: () => void;
@@ -32,6 +33,8 @@ export function ConfirmModal({
   error?: unknown;
   danger?: boolean;
   confirmDisabled?: boolean;
+  /** v1.21: a different label for the cancel button (default: common.cancel). */
+  cancelLabel?: string;
 }) {
   const t = useT();
   return (
@@ -42,7 +45,7 @@ export function ConfirmModal({
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
-            {t.common.cancel}
+            {cancelLabel ?? t.common.cancel}
           </Button>
           <Button
             variant={danger ? "danger" : "primary"}

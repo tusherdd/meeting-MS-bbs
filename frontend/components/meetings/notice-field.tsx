@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useId, useRef, useState } from "react";
+import { type ReactNode, useId, useRef, useState } from "react";
 import { ErrorAlert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -28,16 +28,23 @@ const inputClass =
  *   after the meeting is saved;
  * - edit: the current file with Replace and Remove; Replace / a first upload is sent at once, Remove
  *   asks for confirmation. Both are separate from "Save Changes".
+ * v1.21 part 3: `onFileChosen` reports every valid chosen file (both modes) for "নোটিশ থেকে পূরণ
+ * করুন"; `children` (the fill button and its summary) are shown right under the file input.
  */
 export function NoticeField({
   meetingId,
   current,
   onSelect,
+  onFileChosen,
+  children,
 }: {
   meetingId?: string;
   current?: NoticeFile | null;
   /** create mode: the file to upload after saving (null = none / invalid). */
   onSelect?: (file: File | null) => void;
+  /** v1.21: the last valid file chosen in this form (create and edit), null = none / invalid. */
+  onFileChosen?: (file: File | null) => void;
+  children?: ReactNode;
 }) {
   const t = useT();
   const { formatFileSize } = useFormat();
@@ -72,6 +79,7 @@ export function NoticeField({
     upload.reset();
     const issue = file ? noticeFileProblem(file) : null;
     setProblem(issue === "type" ? t.notice.badType : issue === "size" ? t.notice.tooLarge : null);
+    onFileChosen?.(file && !issue ? file : null);
     if (!meetingId) {
       onSelect?.(file && !issue ? file : null);
       return;
@@ -138,6 +146,7 @@ export function NoticeField({
           <ErrorAlert error={upload.error} />
         </div>
       )}
+      {children}
 
       {meetingId && current && (
         <ConfirmModal

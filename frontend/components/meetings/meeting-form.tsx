@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { type ChangeEvent, useMemo, useState } from "react";
+import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Alert, ErrorAlert } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import {
   toIso,
 } from "@/lib/meeting-time";
 import { type MeetingFormValues } from "@/lib/schemas";
+import { type FillField, type FillPerson, type FillPlan, formHasValues, guestPrefill } from "@/lib/notice-fill";
 import { useSchemas } from "@/lib/hooks/use-schemas";
 import { requiredFields } from "@/lib/required-fields";
 import type { Clash, MeetingDetail } from "@/lib/types";
@@ -34,10 +35,12 @@ import {
   GuestOfficers,
   guestChairValue,
   type GuestEntry,
+  type GuestPrefill,
 } from "./guest-officers";
 import { AttachmentsField, type PendingAttachment } from "./attachments-field";
 import { NoticeField } from "./notice-field";
-import { ParticipantPicker } from "./participant-picker";
+import { type GuestLine, NoticeFill } from "./notice-fill";
+import { MAX_PEOPLE, ParticipantPicker } from "./participant-picker";
 import { fromParticipant, type SelectedPerson } from "./people";
 import { clashingOfficerIds, useConflictCheck } from "./use-conflict-check";
 
@@ -97,6 +100,18 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
   // v1.13: only the organizer sees the notice field (not the chair, not an admin editing).
   const isOrganizer = organizer.id === me.id;
   const [noticeFile, setNoticeFile] = useState<File | null>(null);
+  // v1.21 part 3: the last valid notice file chosen here (create and edit) for "নোটিশ থেকে পূরণ করুন".
+  const [fillFile, setFillFile] = useState<File | null>(null);
+  // Fields filled from the notice: light yellow + the tag "নোটিশ থেকে" until the user edits them.
+  const [autoFilled, setAutoFilled] = useState<ReadonlySet<FillField>>(() => new Set());
+  const unmark = (...fields: FillField[]) =>
+    setAutoFilled((prev) => {
+      if (!fields.some((x) => prev.has(x))) return prev;
+      const next = new Set(prev);
+      fields.forEach((x) => next.delete(x));
+      return next;
+    });
+  const [guestPrefillState, setGuestPrefillState] = useState<GuestPrefill | null>(null);
   // v1.17: "অন্যান্য সংযুক্তি" chosen on create, uploaded right after the meeting is saved.
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
 
@@ -113,6 +128,7 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
   }));
   const onStartTimeChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newStart = e.target.value;
+    unmark("startTime", "endTime");
     const moved = moveEndWithStart(
       timing.prevStart,
       newStart,
@@ -266,6 +282,94 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
     }
   }
 
+  // v1.21 part 3: a chair chosen from the notice can only be selected once its option exists (the
+  // person or guest is added in the same click), so it is set right after that render.
+  const pendingChair = useRef<string | null>(null);
+  useEffect(() => {
+    const value = pendingChair.current;
+    if (!value) return;
+    const exists =
+      value === organizer.id ||
+      people.some((p) => p.id === value) ||
+      guests.some((g) => guestChairValue(g.email) === value);
+    if (!exists) return;
+    pendingChair.current = null;
+    form.setValue("chairId", value, { shouldDirty: true });
+  }, [people, guests, organizer.id, form]);
+
+  const fillHasValues = () =>
+    isEdit ||
+    formHasValues(form.getValues(), { people: people.length, guests: guests.length });
+
+  function addPeople(list: FillPerson[]) {
+    if (list.length === 0) return;
+    setPeople((prev) => {
+      const ids = new Set([organizer.id, ...prev.map((p) => p.id)]);
+      const fresh = list.filter((p) => !ids.has(p.id) && (ids.add(p.id), true));
+      return [...prev, ...fresh].slice(0, Math.max(prev.length, MAX_PEOPLE));
+    });
+  }
+
+  function chooseChair(person: FillPerson) {
+    if (person.id !== organizer.id) addPeople([person]);
+    pendingChair.current = person.id;
+    // Already selectable (organizer or a participant): the effect may not run again, so set it now.
+    if (person.id === organizer.id || people.some((p) => p.id === person.id)) {
+      pendingChair.current = null;
+      form.setValue("chairId", person.id, { shouldDirty: true });
+    }
+  }
+
+  /** Put the notice's values into the form (never saves). */
+  function applyFill(plan: FillPlan) {
+    const opts = { shouldDirty: true, shouldValidate: form.formState.isSubmitted };
+    for (const field of plan.filledFields) form.setValue(field, plan.values[field]!, opts);
+    const start = plan.values.startTime;
+    if (start) {
+      let end = plan.values.endTime ?? form.getValues("endTime");
+      if (!plan.values.endTime) {
+        const moved = moveEndWithStart(timing.prevStart, start, end, timing.minutes);
+        if (moved.endTime) {
+          end = moved.endTime;
+          form.setValue("endTime", end, opts);
+        }
+      }
+      setTiming({
+        prevStart: start,
+        minutes: durationMinutes(start, end) ?? DEFAULT_MEETING_MINUTES,
+      });
+    }
+    setAutoFilled(new Set(plan.filledFields));
+    addPeople(plan.addPeople);
+    if (plan.chair.kind === "sure") chooseChair(plan.chair.person);
+  }
+
+  function prefillGuest(line: GuestLine, asChair: boolean) {
+    setGuestPrefillState((prev) => ({
+      seq: (prev?.seq ?? 0) + 1,
+      ...guestPrefill(line),
+      asChair,
+    }));
+  }
+
+  /** Label with the "নোটিশ থেকে" tag while the field holds the notice's value. */
+  const fillLabel = (field: FillField, text: ReactNode) =>
+    autoFilled.has(field) ? (
+      <>
+        {text}{" "}
+        <span
+          data-testid={`autofill-tag-${field}`}
+          className="ml-1 rounded bg-(--color-autofill) px-1.5 py-0.5 text-xs font-medium text-(--color-autofill-text)"
+        >
+          {t.noticeFill.tag}
+        </span>
+      </>
+    ) : (
+      text
+    );
+  const fillClass = (field: FillField) =>
+    autoFilled.has(field) ? "bg-(--color-autofill)!" : undefined;
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-slate-900">
@@ -282,57 +386,84 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
         <div className="space-y-6">
           <Card>
             <CardBody className="space-y-4">
+              {/* v1.21 part 3: the notice comes first (the form can be filled from it). */}
+              {isOrganizer && !cannotOrganize && (
+                <NoticeField
+                  meetingId={meeting?.id}
+                  current={meeting?.notice ?? null}
+                  onSelect={setNoticeFile}
+                  onFileChosen={setFillFile}
+                >
+                  <NoticeFill
+                    file={fillFile}
+                    organizerId={organizer.id}
+                    participantIds={participantIds}
+                    maxPeople={MAX_PEOPLE}
+                    hasValues={fillHasValues}
+                    onApply={applyFill}
+                    onAddPerson={(p) => addPeople([p])}
+                    onSetChair={chooseChair}
+                    onGuest={prefillGuest}
+                  />
+                </NoticeField>
+              )}
               <Input
                 id="title"
-                label={t.meetingForm.title}
+                label={fillLabel("title", t.meetingForm.title)}
                 required={req.title}
                 error={errors.title?.message}
-                {...form.register("title")}
+                className={fillClass("title")}
+                {...form.register("title", { onChange: () => unmark("title") })}
               />
               <Textarea
                 id="agenda"
-                label={t.meetingForm.agenda}
+                label={fillLabel("agenda", t.meetingForm.agenda)}
                 hint={t.meetingForm.agendaHint}
                 rows={4}
                 error={errors.agenda?.message}
-                {...form.register("agenda")}
+                className={fillClass("agenda")}
+                {...form.register("agenda", { onChange: () => unmark("agenda") })}
               />
               <div className="grid gap-4 sm:grid-cols-3">
                 <Input
                   id="date"
                   type="date"
-                  label={t.meetingForm.date}
+                  label={fillLabel("date", t.meetingForm.date)}
                   required={req.date}
                   error={errors.date?.message}
-                  {...form.register("date")}
+                  className={fillClass("date")}
+                  {...form.register("date", { onChange: () => unmark("date") })}
                 />
                 <Input
                   id="startTime"
                   type="time"
                   step={300}
-                  label={t.meetingForm.startTime}
+                  label={fillLabel("startTime", t.meetingForm.startTime)}
                   required={req.startTime}
                   error={errors.startTime?.message}
+                  className={fillClass("startTime")}
                   {...form.register("startTime", { onChange: onStartTimeChange })}
                 />
                 <Input
                   id="endTime"
                   type="time"
                   step={300}
-                  label={t.meetingForm.endTime}
+                  label={fillLabel("endTime", t.meetingForm.endTime)}
                   required={req.endTime}
                   error={errors.endTime?.message}
-                  {...form.register("endTime")}
+                  className={fillClass("endTime")}
+                  {...form.register("endTime", { onChange: () => unmark("endTime") })}
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input
                   id="room"
-                  label={t.meetingForm.room}
+                  label={fillLabel("room", t.meetingForm.room)}
                   required={req.room}
                   placeholder={t.meetingForm.roomPlaceholder}
                   error={errors.room?.message}
-                  {...form.register("room")}
+                  className={fillClass("room")}
+                  {...form.register("room", { onChange: () => unmark("room") })}
                 />
                 <Input
                   id="onlineLink"
@@ -356,13 +487,6 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                 {t.meetingForm.minutesRequired}
               </label>
               {isOrganizer && !cannotOrganize && (
-                <NoticeField
-                  meetingId={meeting?.id}
-                  current={meeting?.notice ?? null}
-                  onSelect={setNoticeFile}
-                />
-              )}
-              {isOrganizer && !cannotOrganize && (
                 <AttachmentsField
                   meetingId={meeting?.id}
                   pending={pendingAttachments}
@@ -381,7 +505,14 @@ export function MeetingForm({ meeting, initialSlot }: Props) {
                 organizerId={organizer.id}
                 clashingIds={clashing}
               />
-              <GuestOfficers guests={guests} onChange={onGuestsChange} />
+              <GuestOfficers
+                guests={guests}
+                onChange={onGuestsChange}
+                prefill={guestPrefillState}
+                onMakeChair={(email) => {
+                  pendingChair.current = guestChairValue(email);
+                }}
+              />
               <Select
                 id="chairId"
                 label={t.meetingForm.chair}

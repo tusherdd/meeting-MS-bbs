@@ -49,6 +49,8 @@
   --color-border: #e5e7eb;
   --color-input-border: #868d98; /* form controls: visible edge (3:1 against white) */
   --color-placeholder: #6b7280;
+  --color-autofill: #fef9c3; /* v1.21: light yellow background of a field filled from the notice */
+  --color-autofill-text: #713f12; /* v1.21: the small "নোটিশ থেকে" tag (on the yellow) */
 
   --color-brand-50: #f4f8f6;
   --color-brand-100: #e3efea;

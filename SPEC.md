@@ -530,7 +530,7 @@ Besides the notice, the organizer can add up to five more files to a meeting, ea
 - Tests: `attachment-rules.spec.ts`, `attachments.service.spec.ts`, `test/attachments.e2e-spec.ts`; frontend
   `tests/unit/attachments.test.ts`, `e2e/v117-attachments.spec.ts`.
 
-### 6.12 Fill the meeting form from the notice (v1.21 parts 1–2 of 3, owner request 2026-11-25)
+### 6.12 Fill the meeting form from the notice (v1.21 parts 1–3, owner request 2026-11-25)
 The organizer uploads the notice to the **create or edit form**; the backend reads it and returns the form fields and
 the matched officers. Part 1 = backend with the local OCR, part 2 = the AI extractor + the admin switch (§6.13), part 3 =
 the form UI. Module `modules/notice-extract/`.
@@ -618,6 +618,9 @@ the form UI. Module `modules/notice-extract/`.
   Part 2 (SDK mocked): `ai-extractor.spec.ts` (success, invalid JSON / wrong shape / refusal throw, no key, cache hit, failed
   reply not cached), `notice-reader.spec.ts` (OCR setting, AI success, fallback on invalid JSON / timeout / no key / rate
   limit), `ai-reply.spec.ts`, `extraction-cache.spec.ts`, `settings.service.spec.ts` (default OCR, no key → AI unavailable).
+  Part 3 (frontend): `tests/unit/notice-fill.test.ts` (response → form state), `e2e/v121-notice-fill.spec.ts` (endpoint
+  mocked: notice field on top, fill, markers, sure / maybe / unmatched, confirm, cancel, 429 / 422).
+- **UI** (v1.21 part 3): the form part in §13.6 ("Fill from the notice").
 
 ### 6.13 App settings "সেটিংস" (v1.21 part 2, owner request 2026-11-25)
 - Table `app_settings` (key-value, §7), module `modules/settings/`. A missing row = the default.
@@ -998,6 +1001,9 @@ Part 2 of 3 (2026-11-25, no tag): the optional AI extractor (`@anthropic-ai/sdk`
 fallback, 1-hour sha256 cache) and the admin page "সেটিংস" with the setting `noticeExtractionMethod` (§6.12, §6.13).
 Migration `AppSettings1795500000000` (table `app_settings`). New env: `ANTHROPIC_API_KEY`, `NOTICE_AI_MODEL`,
 `NOTICE_AI_TIMEOUT_MS`.
+Part 3 of 3 (2026-11-25, no tag): the form UI — the notice field moved to the top of the meeting form, "নোটিশ থেকে
+পূরণ করুন" with the summary box, the yellow "নোটিশ থেকে" markers and the review of the chair and the distribution list
+(sure / সম্ভাব্য মিল / মেলেনি, guest prefill) (§13.6). Frontend only; no migration, no API change.
 
 ## 13. Frontend (`frontend/`)
 
@@ -1143,13 +1149,42 @@ Unknown addresses show the Bangla 404 page; a rendering error shows the 500 page
   হবে" / "Minutes must be uploaded for this meeting", **checked** by default on create; edit shows the stored value.
   Everyone who can open the form (organizer, internal chair, admin) can change it. No required mark (a checkbox is
   never "required" in `lib/required-fields.ts`). Owner's wording: "আপলোড" in Bangla here (like the row menu).
-- **Meeting notice field (v1.13, §6.8)** `components/meetings/notice-field.tsx`: label "সভার নোটিশ" / "Meeting notice",
+- **Meeting notice field (v1.13, §6.8)** `components/meetings/notice-field.tsx` — since v1.21 part 3 the **first field of
+  the form, above the title** (the chair editing never sees it, so the form starts with the title): label "সভার নোটিশ" / "Meeting notice",
   hint "PDF, DOCX, JPG বা PNG; সর্বোচ্চ ১০ MB" / "PDF, DOCX, JPG or PNG; max 10 MB"; not required, so it
   shows no mark (§13.6a). Shown **only to the organizer** (not to a chair or an admin editing). Create: the file is
   uploaded right after the meeting is saved; if that fails the meeting stays saved, a red toast explains why and the
   edit page opens to retry. Edit: the current file (name, size) with "Replace" (upload at once) and "Remove"
   (confirmation), independent of "Save Changes". Client pre-check of extension and size; the backend decides.
-- **Other attachments (v1.17, §6.11)** `components/meetings/attachments-field.tsx`, directly **below** the notice field,
+- **Fill from the notice (v1.21 part 3, §6.12)** `components/meetings/notice-fill.tsx` (pure mapping `lib/notice-fill.ts`),
+  right under the notice file input, for the organizer on create and edit. Once a valid file is chosen in this form, the
+  button "নোটিশ থেকে পূরণ করুন" / "Fill from notice" appears; it is hidden for good when the endpoint answers 403 / 404
+  (feature unavailable; the SUPER_ADMIN never sees the notice field). The click sends the file to
+  `POST /meetings/notice-extract` (`noticeExtractApi`, XMLHttpRequest **without a client time limit** — the server and
+  nginx, 180 s, decide); meanwhile the button is disabled, "নোটিশ পড়া হচ্ছে…" / "Reading the notice…" and "বাতিল" /
+  "Cancel" (aborts) are shown. If the form already holds the user's writing (title, agenda, venue, chair, participants
+  or guests; always on edit — the default date / times of a new meeting do not count), an in-page confirmation comes
+  first: "আগের লেখা বদলে নোটিশের তথ্য বসাবেন?" with "বসান" / "বাতিল".
+  - **Fill:** title, date, start, end, venue (`room`), agenda — only non-null values; the end follows a start without
+    an end (+ the current duration). **Never saved automatically.** Every filled field gets a light yellow background
+    (`--color-autofill`) and the small tag "নোটিশ থেকে" / "From notice" in its label until the user edits that field.
+  - **Summary box** under the notice field (and the same text in an `aria-live` region): "৫টি ঘর পূরণ হয়েছে। বিতরণ
+    তালিকার ১৪ জনের মধ্যে ১১ জন মিলেছে, ২ জন সম্ভাব্য, ১ জন মেলেনি। (পদ্ধতি: নিজস্ব OCR)" (or "পদ্ধতি: AI"; digits
+    through `lib/format.ts`), then the warnings in plain language by code (`noticeFill.warnings`, the server's text
+    for an unknown code), e.g. AI_FALLBACK and TIME_ASSUMED_AFTERNOON.
+  - **Chair:** sure → added to the participants and selected; maybe → a small chooser with the candidates ("… —
+    সভাপতি করুন") or "বাদ দিন"; unmatched → "অতিথি হিসেবে যোগ করুন" fills name + designation of the guest-officer
+    fields (the email is still typed; focus moves there) with the ticked checkbox "এই অতিথি কর্মকর্তাকে সভাপতি করুন" —
+    the guest becomes the chair once added.
+  - **Participants:** sure → added (no repeats, never the organizer, at most 200); "সম্ভাব্য মিল": each line's raw
+    text with up to 3 candidates — a click adds one — or "বাদ দিন"; "মেলেনি": the raw text (group lines also show the
+    reason) with "অতিথি হিসেবে যোগ করুন" (prefills the guest fields) or "বাদ দিন".
+  - The concurrent-meeting check runs as usual after the fill. The file is still uploaded as the meeting's notice on
+    save (create) or at once (edit), as before.
+  - **Errors:** 422 or an empty result → "নোটিশ থেকে পড়া যায়নি, হাতে পূরণ করুন।"; 429 → "আজকের সীমা শেষ, কাল আবার চেষ্টা
+    করুন।"; other errors → the usual error box. No icons; all text in `messages/bn.ts` + `en.ts` (`noticeFill`).
+- **Other attachments (v1.17, §6.11)** `components/meetings/attachments-field.tsx`, lower in the form (below the minutes
+  checkbox; v1.21 part 3 moved only the notice field to the top),
   only for the organizer (create, and edit while `canManage`; the chair and admins never see it): "অন্যান্য সংযুক্তি" /
   "Other attachments", a "ফাইলের নাম" / "File name" input, a file picker and "যোগ করুন" / "Add" — enabled only when both
   are valid (`lib/attachments.ts`). The list shows name, file name and "বাদ দিন" / "Remove". At 5 files Add is disabled

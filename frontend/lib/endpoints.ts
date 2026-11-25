@@ -14,6 +14,7 @@ import type {
   DecisionStatus,
   DecisionSummary,
   NoticeFile,
+  NoticeExtractResult,
   MeetingAttachment,
   AttachmentList,
   AppNotification,
@@ -253,6 +254,19 @@ export const noticesApi = {
   download: (id: string) =>
     apiDownload(`${meetingPath(id)}/notice`, { fallbackName: "meeting-notice" }),
   remove: (id: string) => api<void>(`${meetingPath(id)}/notice`, { method: "DELETE" }),
+};
+
+// Fill the meeting form from the notice (v1.21 part 3, SPEC.md §6.12) -----------------------------------
+export const noticeExtractApi = {
+  /**
+   * Read a notice (nothing is stored). XMLHttpRequest without a client timeout: a scanned notice
+   * may take a minute or more, the server (and nginx, 180 s) decides. `signal` cancels it.
+   */
+  extract: (file: File, signal?: AbortSignal) => {
+    const form = new FormData();
+    form.append("file", file, file.name);
+    return apiUpload<NoticeExtractResult>("/meetings/notice-extract", form, { signal });
+  },
 };
 
 // Other attachments "অন্যান্য সংযুক্তি" (v1.17) ---------------------------------------------------
