@@ -45,6 +45,7 @@ import {
   AttachmentDto,
   AttachmentListDto,
   AttachmentUploadDto,
+  AttachmentUploadFieldsDto,
 } from './dto/attachment.dto';
 
 /** Uploads are counted per user: at most 30 upload requests per hour (like the notice). */
@@ -104,7 +105,7 @@ export class AttachmentsController {
   upload(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseIdPipe) id: string,
-    @Body() body: AttachmentUploadDto,
+    @Body() body: AttachmentUploadFieldsDto,
     @UploadedFile() file: IncomingAttachmentFile | undefined,
     @Req() req: AppRequest,
   ): Promise<AttachmentDto> {

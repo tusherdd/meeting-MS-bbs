@@ -65,8 +65,13 @@ export class AttachmentListDto {
   max!: number;
 }
 
-/** Multipart body of POST /meetings/:id/attachments (the file itself is the `file` part). */
-export class AttachmentUploadDto {
+/**
+ * Validated text fields of POST /meetings/:id/attachments (`@Body()`).
+ * The file part is NOT a property here: with target ES2023 TypeScript defines every declared class
+ * field on the instance (`file = undefined`), and `forbidNonWhitelisted` would then reject "file"
+ * for every upload in the tsc build. multer takes the file before validation anyway.
+ */
+export class AttachmentUploadFieldsDto {
   @ApiProperty({
     example: 'বাজেট প্রস্তাব',
     maxLength: MAX_ATTACHMENT_NAME,
@@ -78,7 +83,10 @@ export class AttachmentUploadDto {
   @IsNotEmpty({ message: MSG.nameRequired })
   @MaxLength(MAX_ATTACHMENT_NAME, { message: MSG.nameTooLong })
   name!: string;
+}
 
+/** Swagger-only multipart body (`@ApiBody`): the fields plus the `file` part. Never used for validation. */
+export class AttachmentUploadDto extends AttachmentUploadFieldsDto {
   @ApiProperty({
     type: 'string',
     format: 'binary',

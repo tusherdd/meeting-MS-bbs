@@ -335,6 +335,20 @@ describe('Users, designations, wings (e2e)', () => {
       ]);
     });
 
+    // Remove this block's fixtures so the later admin-list tests (inactive / admin counts for
+    // "E2EU", the "E2EU Other" designation) see only their own data.
+    afterAll(async () => {
+      const userIds = Object.values(g);
+      await ds
+        .getRepository(UserAdditionalCharge)
+        .delete({ userId: In(userIds) });
+      await ds.getRepository(User).delete({ id: In(userIds) });
+      await ds
+        .getRepository(Designation)
+        .delete({ id: In([groupDesignation, otherDesignation]) });
+      await ds.getRepository(Wing).delete({ id: In([wingA, wingB]) });
+    });
+
     it('designation only: main designation and additional charges, every wing; inactive left out', async () => {
       const items = await list({ designationId: groupDesignation });
       expect(namesOf(items)).toEqual(
